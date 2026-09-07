@@ -114,7 +114,7 @@ jobs:
       - name: Checkout work-lifecycle (pinned, for the release scripts)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: lexijamesesq/work-lifecycle
+          repository: lexijamesesq/core-skills
           ref: da3609c4bd67f830eb4f9a278c48f3010c9683a4 # main, 2026-09-04
           path: work-lifecycle
       - name: Check plugin version discipline
