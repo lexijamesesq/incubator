@@ -4,7 +4,7 @@ This repo follows dotty's CI shape (`.github/CI.md` there — least-privilege
 `permissions:`, `concurrency:` with `cancel-in-progress`, `timeout-minutes`
 on every job, SHA-pinned actions) and wiki's release-gate shape
 (`.github/CI.md` there — `release-check`/`release-tag` split, the
-`<plugin>--v<semver>` tag convention, `work-lifecycle`'s shared, generic
+`<plugin>--v<semver>` tag convention, `core-skills`'s shared, generic
 release scripts). This file records the decisions specific to this repo,
 not a duplicate of either.
 
@@ -13,7 +13,7 @@ not a duplicate of either.
 **`check-plugin-version.sh`/`tag-plugin-release.sh` are called with
 `plugins/incubator`, not `.`, as `plugin_dir` — copy this argument
 carefully if you're copying this shape into a fourth repo.** Every other
-repo publishing a plugin this way (`wiki`, `work-lifecycle`, `dotty-private`)
+repo publishing a plugin this way (`wiki`, `core-skills`, `dotty-private`)
 keeps the plugin manifest at its own repo root, so `.` is the correct
 `plugin_dir` there. This repo's plugin content lives at
 `plugins/incubator/` (moved there from `.claude/{skills,agents}`
