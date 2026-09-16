@@ -1,10 +1,41 @@
-# Default: every path waits for the operator's review.
-* @lexijamesesq
-# Unattended paths: a pattern with no owner clears ownership for it.
+# CODEOWNERS — coverage model (un-inverted).
+#
+# DEFAULT = UNOWNED: any path not matched below needs no code-owner review, so a
+# low-risk deterministic PR (and a Margot LOW-risk verdict) can merge without the
+# operator. There is deliberately NO `* @owner` catch-all.
+#
+# OWNED (listed below) = paths where a JUDGMENT change must have a human: the
+# safety / identity / gate machinery. The branch ruleset requires code-owner
+# review (with 0 baseline approvals), so touching any owned path holds the PR for
+# @lexijamesesq; touching only unowned paths does not.
+#
+# When adding a path: uncertain -> OWNED (under-coverage — an owned path left
+# unowned — is the dangerous direction).
 
-/README.md
-/LICENSE
-/Ideas/**/*.md
-/Examples/**/*.md
-/reference/**/*.md
-/incubator-reference.md
+# --- Gate machinery (CI + release) ---
+/.github/workflows/                             @lexijamesesq
+/.github/dependabot.yml                         @lexijamesesq
+
+# --- Gate / lint configs (can DISABLE a check) ---
+/.pre-commit-config.yaml                        @lexijamesesq
+/.gitleaks.toml                                 @lexijamesesq
+/.gitleaks-ci.toml                              @lexijamesesq
+/.house-code.json                               @lexijamesesq
+/.house-qa.json                                 @lexijamesesq
+
+# --- Governance & policy ---
+/.claude/settings.json                          @lexijamesesq
+/.github/CODEOWNERS                             @lexijamesesq
+
+# --- Release / identity (plugin version = release identity; build config) ---
+/.claude-plugin/marketplace.json                @lexijamesesq
+/plugins/incubator/.claude-plugin/plugin.json   @lexijamesesq
+/pyproject.toml                                 @lexijamesesq
+
+# --- Trust boundary: Bash auto-run allow-list + live DB writes ---
+/.claude/competitive-landscape-settings.json    @lexijamesesq
+/scripts/research-db.py                         @lexijamesesq
+
+# UNOWNED by default (flow without the operator): Ideas/**, Examples/**,
+# Templates/**, reference/**, plugins/incubator/** skill / agent content,
+# .claude/skills/**, .claude/agents/**, *.sample.*, README.md, LICENSE.
