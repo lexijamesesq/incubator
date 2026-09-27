@@ -82,8 +82,9 @@ jobs:
           ignore_paths: .git
 
   release-check:
-    needs: [floor]
-    if: ${{ needs.floor.outputs.mechanical != 'true' }}
+    # floor: always-run
+    # release-check refuses a plugin change without a version bump;
+    # a mechanical PR (a Renovate bump inside a plugin) can still need one.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
