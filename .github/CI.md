@@ -4,8 +4,9 @@ This repo follows dotty's CI shape (`.github/CI.md` there — least-privilege
 `permissions:`, `concurrency:` with `cancel-in-progress`, `timeout-minutes`
 on every job, SHA-pinned actions) and wiki's release-gate shape
 (`.github/CI.md` there — `release-check`/`release-tag` split, the
-`<plugin>--v<semver>` tag convention, `core-skills`'s shared, generic
-release scripts). This file records the decisions specific to this repo,
+`<plugin>--v<semver>` tag convention, dotty's shared
+`estate-plugin-release.yml@v1` reusable, generic across every plugin
+repo). This file records the decisions specific to this repo,
 not a duplicate of either.
 
 ## Decisions recorded here so they aren't re-proposed without new facts
