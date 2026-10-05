@@ -9,8 +9,14 @@ on:
 # a push-to-main run (cancel is gated to pull_request events; on push-to-main
 # `cancel-in-progress` is false). On `pull_request`, github.ref is already
 # per-PR (refs/pull/<N>/merge), so the group is PR-scoped.
+#
+# For push, keying on github.ref alone put every push to main in the same
+# group — GitHub keeps only one pending run per group and replaces it, so
+# a second quick push could silently drop the first push's run (now
+# release-tag's own run, folded in from release.yml). Per-sha for push
+# events gives every commit its own group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -61,24 +67,22 @@ jobs:
           ignore_paths: .git
 
   release-check:
-    name: ci / release-check
+    name: ci
     # floor: always-run
-    # release-check refuses a plugin change without a version bump;
-    # a mechanical PR (a Renovate bump inside a plugin) can still need one.
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: Incubator
-          fetch-depth: 0
-          fetch-tags: true
-      - name: Checkout work-lifecycle (pinned, for the release scripts)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: lexijamesesq/core-skills
-          ref: da3609c4bd67f830eb4f9a278c48f3010c9683a4 # main, 2026-09-04
-          path: work-lifecycle
-      - name: Check plugin version discipline
-        working-directory: Incubator
-        run: bash ../work-lifecycle/.github/scripts/check-plugin-version.sh plugins/incubator incubator
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    uses: lexijamesesq/dotty/.github/workflows/estate-plugin-release.yml@v1
+    with:
+      dotty_ref: v1
+      plugins: '[{"path":"plugins/incubator","name":"incubator"}]'
+
+  release-tag:
+    name: ci
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    uses: lexijamesesq/dotty/.github/workflows/estate-plugin-release.yml@v1
+    with:
+      dotty_ref: v1
+      plugins: '[{"path":"plugins/incubator","name":"incubator"}]'
