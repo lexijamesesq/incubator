@@ -36,6 +36,7 @@ import uuid
 # Configuration — loaded from research-db-config.json (gitignored)
 # ---------------------------------------------------------------------------
 
+
 def _load_config():
     """Load connection config from the gitignored config file, or
     RESEARCH_DB_CONFIG if set. The env override lets callers (e.g. the eval
@@ -44,10 +45,17 @@ def _load_config():
         os.path.dirname(os.path.abspath(__file__)), "research-db-config.json"
     )
     if not os.path.exists(config_path):
-        print(json.dumps({"error": f"Config file not found: {config_path}. Copy research-db-config.sample.json to research-db-config.json and fill in your connection details."}))
+        print(
+            json.dumps(
+                {
+                    "error": f"Config file not found: {config_path}. Copy research-db-config.sample.json to research-db-config.json and fill in your connection details."
+                }
+            )
+        )
         sys.exit(1)
     with open(config_path) as f:
         return json.load(f)
+
 
 def _validate_config(sf):
     """Guard against config states this script must never operate under: an
@@ -58,14 +66,19 @@ def _validate_config(sf):
     """
     errors = []
     if "domain" not in sf or sf.get("domain") is None:
-        errors.append("snowflake.domain is not set — copy research-db-config.sample.json and fill in your domain")
+        errors.append(
+            "snowflake.domain is not set — copy research-db-config.sample.json and fill in your domain"
+        )
     for field in ("role", "database", "schema", "domain"):
         value = sf.get(field)
         if isinstance(value, str) and value.startswith("TODO:"):
-            errors.append(f"snowflake.{field} is still a placeholder ({value!r}) — fill in your real value")
+            errors.append(
+                f"snowflake.{field} is still a placeholder ({value!r}) — fill in your real value"
+            )
     if errors:
         print(json.dumps({"error": "config_invalid", "errors": errors}))
         sys.exit(1)
+
 
 _CONFIG = _load_config()
 _sf = _CONFIG.get("snowflake", {})
@@ -77,6 +90,7 @@ DOMAIN = _sf["domain"]
 # SQL helpers (Snowflake dialect)
 # ---------------------------------------------------------------------------
 
+
 def sql_preamble():
     role = _sf.get("role", "YOUR_ROLE")
     db = _sf.get("database", "YOUR_DB")
@@ -87,14 +101,18 @@ def sql_preamble():
         preamble += f"USE WAREHOUSE {warehouse};\n"
     return preamble
 
+
 def sql_dateadd_months(n, date_col):
     return f"DATEADD('month', {n}, {date_col})"
+
 
 def sql_count_if(condition):
     return f"COUNT_IF({condition})"
 
+
 def sql_gen_uuid():
     return str(uuid.uuid4())
+
 
 def esc(s):
     """Escape backslashes and single quotes for a Snowflake SQL string literal.
@@ -107,6 +125,7 @@ def esc(s):
     if s is None:
         return None
     return str(s).replace("\\", "\\\\").replace("'", "''")
+
 
 # ---------------------------------------------------------------------------
 # Execution
@@ -124,6 +143,7 @@ _AUTH_ERROR_PATTERNS = (
     "reauthentication required",
     "oauth",
 )
+
 
 def execute_sql(sql, output_format="default"):
     """Execute SQL against Snowflake. Returns stdout.
@@ -148,24 +168,53 @@ def execute_sql(sql, output_format="default"):
             cmd = f"{SF_CMD} -f {tmp}"
 
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=120
+            )
         except OSError as e:
             # shell=True normally surfaces a missing command as a nonzero
             # exit from the shell (see the returncode==127 branch below),
             # not a Python exception — this catches the rarer case where
             # subprocess itself can't launch the shell (e.g. E2BIG).
-            print(json.dumps({"error": "cli_not_installed", "message": f"Could not launch the Snowflake CLI: {e}. Check cli_command in research-db-config.json."}), file=sys.stderr)
+            print(
+                json.dumps(
+                    {
+                        "error": "cli_not_installed",
+                        "message": f"Could not launch the Snowflake CLI: {e}. Check cli_command in research-db-config.json.",
+                    }
+                ),
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         if result.returncode != 0:
             stderr = result.stderr.strip()
             stderr_lower = stderr.lower()
-            if result.returncode == 127 or "command not found" in stderr_lower or "no such file or directory" in stderr_lower:
-                print(json.dumps({"error": "cli_not_installed", "message": stderr or "Snowflake CLI not found on PATH. Check cli_command in research-db-config.json."}), file=sys.stderr)
+            if (
+                result.returncode == 127
+                or "command not found" in stderr_lower
+                or "no such file or directory" in stderr_lower
+            ):
+                print(
+                    json.dumps(
+                        {
+                            "error": "cli_not_installed",
+                            "message": stderr
+                            or "Snowflake CLI not found on PATH. Check cli_command in research-db-config.json.",
+                        }
+                    ),
+                    file=sys.stderr,
+                )
             elif any(p in stderr_lower for p in _AUTH_ERROR_PATTERNS):
-                print(json.dumps({"error": "not_authenticated", "message": stderr}), file=sys.stderr)
+                print(
+                    json.dumps({"error": "not_authenticated", "message": stderr}),
+                    file=sys.stderr,
+                )
             else:
-                print(json.dumps({"error": "sql_failure", "message": stderr}), file=sys.stderr)
+                print(
+                    json.dumps({"error": "sql_failure", "message": stderr}),
+                    file=sys.stderr,
+                )
             sys.exit(1)
 
         return result.stdout.strip()
@@ -174,6 +223,7 @@ def execute_sql(sql, output_format="default"):
             os.remove(tmp)
         except OSError:
             pass
+
 
 def parse_json_result(output):
     """Parse JSON output from `snow sql --format json`.
@@ -189,15 +239,21 @@ def parse_json_result(output):
     if not isinstance(data, list):
         return []
     for result_set in reversed(data):
-        if isinstance(result_set, list) and result_set and isinstance(result_set[0], dict):
+        if (
+            isinstance(result_set, list)
+            and result_set
+            and isinstance(result_set[0], dict)
+        ):
             # Filter out USE statement status rows (single 'status' key)
             if not (len(result_set[0]) == 1 and "status" in result_set[0]):
                 return result_set
     return []
 
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_query_landscape(args):
     """Query competitive landscape by capability slugs.
@@ -314,7 +370,9 @@ ORDER BY
 
 
 CLAIM_MIN_CHARS = 30
-QUERY_STRING_PATTERN = __import__("re").compile(r'^[\s\-*]*(?:Query\s+\d+:\s*)?"[^"]+"\s*$')
+QUERY_STRING_PATTERN = __import__("re").compile(
+    r'^[\s\-*]*(?:Query\s+\d+:\s*)?"[^"]+"\s*$'
+)
 
 
 def _validate_finding(f, idx=None):
@@ -325,19 +383,35 @@ def _validate_finding(f, idx=None):
     """
     errors = []
     prefix = f"finding[{idx}]: " if idx is not None else ""
-    required = ["claim", "evidence", "confidence", "ttl_months", "category", "topic", "capabilities"]
+    required = [
+        "claim",
+        "evidence",
+        "confidence",
+        "ttl_months",
+        "category",
+        "topic",
+        "capabilities",
+    ]
     for field in required:
         if field not in f or f[field] is None:
             errors.append(f"{prefix}missing required field: {field}")
     if "capabilities" in f and not f["capabilities"]:
-        errors.append(f"{prefix}capabilities must be a non-empty list (junction rows silently drop otherwise)")
+        errors.append(
+            f"{prefix}capabilities must be a non-empty list (junction rows silently drop otherwise)"
+        )
     claim = (f.get("claim") or "").strip()
     if claim and len(claim) < CLAIM_MIN_CHARS:
-        errors.append(f"{prefix}claim too short ({len(claim)} chars; min {CLAIM_MIN_CHARS}) — write a substantive assertion, not a stub")
+        errors.append(
+            f"{prefix}claim too short ({len(claim)} chars; min {CLAIM_MIN_CHARS}) — write a substantive assertion, not a stub"
+        )
     if claim and QUERY_STRING_PATTERN.match(claim):
-        errors.append(f"{prefix}claim looks like a search query string — claims must be assertions, not research metadata")
+        errors.append(
+            f"{prefix}claim looks like a search query string — claims must be assertions, not research metadata"
+        )
     if not f.get("source_url") and not f.get("source_description"):
-        errors.append(f"{prefix}source_url OR source_description required (capture heuristic: Sourced is a gate)")
+        errors.append(
+            f"{prefix}source_url OR source_description required (capture heuristic: Sourced is a gate)"
+        )
     if "ttl_months" in f and f["ttl_months"] is not None:
         try:
             # Normalize in place so every downstream SQL interpolation site
@@ -408,14 +482,22 @@ def cmd_write_findings(args):
         f["_id"] = sql_gen_uuid()
         result_ids.append({"finding_id": f["_id"], "claim_preview": f["claim"][:80]})
 
-    lines.append("INSERT INTO research_findings (id, domain, topic, category, agent_type, claim, evidence, source_url, source_description, confidence, ttl_months, competitor_id)")
+    lines.append(
+        "INSERT INTO research_findings (id, domain, topic, category, agent_type, claim, evidence, source_url, source_description, confidence, ttl_months, competitor_id)"
+    )
     lines.append("SELECT * FROM (")
     for i, f in enumerate(findings):
         prefix = "    SELECT " if i == 0 else "    UNION ALL SELECT "
         url = f"'{esc(f.get('source_url'))}'" if f.get("source_url") else "NULL"
-        desc = f"'{esc(f.get('source_description'))}'" if f.get("source_description") else "NULL"
+        desc = (
+            f"'{esc(f.get('source_description'))}'"
+            if f.get("source_description")
+            else "NULL"
+        )
         comp = f"'{esc(f['competitor_id'])}'" if f.get("competitor_id") else "NULL"
-        lines.append(f"{prefix}'{f['_id']}', '{DOMAIN}', '{esc(f['topic'])}', '{esc(f['category'])}', NULL, '{esc(f['claim'])}', '{esc(f['evidence'])}', {url}, {desc}, '{esc(f['confidence'])}', {f['ttl_months']}, {comp}")
+        lines.append(
+            f"{prefix}'{f['_id']}', '{DOMAIN}', '{esc(f['topic'])}', '{esc(f['category'])}', NULL, '{esc(f['claim'])}', '{esc(f['evidence'])}', {url}, {desc}, '{esc(f['confidence'])}', {f['ttl_months']}, {comp}"
+        )
     lines.append(");")
 
     junction_rows = []
@@ -433,7 +515,15 @@ def cmd_write_findings(args):
 
     sql = "\n".join(lines)
     execute_sql(sql)
-    print(json.dumps({"findings_written": len(findings), "junction_rows": len(junction_rows), "ids": result_ids}))
+    print(
+        json.dumps(
+            {
+                "findings_written": len(findings),
+                "junction_rows": len(junction_rows),
+                "ids": result_ids,
+            }
+        )
+    )
 
 
 def cmd_lookup_competitor(args):
@@ -519,19 +609,25 @@ LIMIT 1;
     if existing and existing[0].get("SUPERSEDED_BY"):
         sup_id = existing[0]["SUPERSEDED_BY"]
         is_self_super = sup_id == existing[0]["ID"]
-        print(json.dumps({
-            "action": "found_superseded",
-            "id": existing[0]["ID"],
-            "name": existing[0]["NAME"],
-            "superseded_by": sup_id,
-            "self_superseded": is_self_super,
-            "message": (
-                f"Competitor '{name}' exists but is superseded "
-                f"({'self-superseded — soft-deleted state' if is_self_super else f'replaced by {sup_id}'}). "
-                "Surface to human. To revive, run: UPDATE competitors SET superseded_by = NULL WHERE id = '" + existing[0]["ID"] + "'; "
-                "then re-run upsert-competitor to refresh the row."
+        print(
+            json.dumps(
+                {
+                    "action": "found_superseded",
+                    "id": existing[0]["ID"],
+                    "name": existing[0]["NAME"],
+                    "superseded_by": sup_id,
+                    "self_superseded": is_self_super,
+                    "message": (
+                        f"Competitor '{name}' exists but is superseded "
+                        f"({'self-superseded — soft-deleted state' if is_self_super else f'replaced by {sup_id}'}). "
+                        "Surface to human. To revive, run: UPDATE competitors SET superseded_by = NULL WHERE id = '"
+                        + existing[0]["ID"]
+                        + "'; "
+                        "then re-run upsert-competitor to refresh the row."
+                    ),
+                }
             )
-        }))
+        )
         sys.exit(0)
 
     is_update = bool(existing)
@@ -540,14 +636,18 @@ LIMIT 1;
     errors = []
     category = args.get("category")
     if category and category not in CATEGORY_ENUM:
-        errors.append(f"category must be one of {sorted(CATEGORY_ENUM)}, got '{category}'")
+        errors.append(
+            f"category must be one of {sorted(CATEGORY_ENUM)}, got '{category}'"
+        )
     segments = args.get("segments", [])
     for s in segments:
         if s not in SEGMENT_ENUM:
             errors.append(f"segment '{s}' must be one of {sorted(SEGMENT_ENUM)}")
     market_tier = args.get("market_tier")
     if market_tier and market_tier not in MARKET_TIER_ENUM:
-        errors.append(f"market_tier must be one of {sorted(MARKET_TIER_ENUM)}, got '{market_tier}'")
+        errors.append(
+            f"market_tier must be one of {sorted(MARKET_TIER_ENUM)}, got '{market_tier}'"
+        )
     intelligence_body = args.get("intelligence_body", "")
     capabilities = args.get("capabilities", [])
 
@@ -562,9 +662,13 @@ LIMIT 1;
         if not capabilities:
             errors.append("capabilities required for insert (at least one)")
         if not intelligence_body or len(intelligence_body) < INTELLIGENCE_BODY_MIN:
-            errors.append(f"intelligence_body required for insert, min {INTELLIGENCE_BODY_MIN} chars")
+            errors.append(
+                f"intelligence_body required for insert, min {INTELLIGENCE_BODY_MIN} chars"
+            )
         if not args.get("source_url") and not args.get("source_description"):
-            errors.append("source_url OR source_description required for insert (evidence requirement)")
+            errors.append(
+                "source_url OR source_description required for insert (evidence requirement)"
+            )
 
     if errors:
         print(json.dumps({"action": "rejected_validation", "errors": errors}))
@@ -578,10 +682,14 @@ LIMIT 1;
         found_slugs = {r["SLUG"] for r in cap_rows}
         missing = [s for s in capabilities if s not in found_slugs]
         if missing:
-            print(json.dumps({
-                "action": "rejected_validation",
-                "errors": [f"unknown capability slugs: {missing}"]
-            }))
+            print(
+                json.dumps(
+                    {
+                        "action": "rejected_validation",
+                        "errors": [f"unknown capability slugs: {missing}"],
+                    }
+                )
+            )
             sys.exit(1)
         cap_id_by_slug = {r["SLUG"]: r["ID"] for r in cap_rows}
 
@@ -595,23 +703,33 @@ LIMIT 5;
 """
         fuzzy = parse_json_result(execute_sql(sql_fuzzy, output_format="json"))
         if fuzzy and not force_create:
-            print(json.dumps({
-                "action": "rejected_dup",
-                "message": f"Possible duplicates of '{name}' found. Re-run with force_create=true to insert anyway.",
-                "candidates": fuzzy
-            }))
+            print(
+                json.dumps(
+                    {
+                        "action": "rejected_dup",
+                        "message": f"Possible duplicates of '{name}' found. Re-run with force_create=true to insert anyway.",
+                        "candidates": fuzzy,
+                    }
+                )
+            )
             sys.exit(1)
 
         new_id = sql_gen_uuid()
         seg_array = "ARRAY_CONSTRUCT(" + ",".join(f"'{esc(s)}'" for s in segments) + ")"
         ip_array = "NULL"
         if args.get("integration_posture"):
-            ip_array = "ARRAY_CONSTRUCT(" + ",".join(f"'{esc(p)}'" for p in args["integration_posture"]) + ")"
-        intel_json = json.dumps({
-            "body": intelligence_body,
-            "source_url": args.get("source_url"),
-            "source_description": args.get("source_description"),
-        })
+            ip_array = (
+                "ARRAY_CONSTRUCT("
+                + ",".join(f"'{esc(p)}'" for p in args["integration_posture"])
+                + ")"
+            )
+        intel_json = json.dumps(
+            {
+                "body": intelligence_body,
+                "source_url": args.get("source_url"),
+                "source_description": args.get("source_description"),
+            }
+        )
         pricing = args.get("pricing_model")
         pricing_val = f"'{esc(pricing)}'" if pricing else "NULL"
 
@@ -625,7 +743,9 @@ SELECT '{new_id}', '{DOMAIN}', '{esc(name)}', '{category}', {seg_array}, {pricin
         # Junction rows
         for slug in capabilities:
             cap_id = cap_id_by_slug[slug]
-            lines.append(f"INSERT INTO competitor_capabilities (competitor_id, capability_id) VALUES ('{new_id}', '{cap_id}');")
+            lines.append(
+                f"INSERT INTO competitor_capabilities (competitor_id, capability_id) VALUES ('{new_id}', '{cap_id}');"
+            )
         execute_sql("\n".join(lines))
         print(json.dumps({"action": "created", "id": new_id, "name": name}))
         return
@@ -638,14 +758,18 @@ SELECT '{new_id}', '{DOMAIN}', '{esc(name)}', '{category}', {seg_array}, {pricin
     # Category change gate
     if category and category != row["CATEGORY"]:
         if not force_category_change:
-            print(json.dumps({
-                "action": "needs_category_confirmation",
-                "id": existing_id,
-                "name": name,
-                "current_category": row["CATEGORY"],
-                "proposed_category": category,
-                "message": "Category changes are gated. Surface to human; rerun with force_category_change=true (human-only) to apply."
-            }))
+            print(
+                json.dumps(
+                    {
+                        "action": "needs_category_confirmation",
+                        "id": existing_id,
+                        "name": name,
+                        "current_category": row["CATEGORY"],
+                        "proposed_category": category,
+                        "message": "Category changes are gated. Surface to human; rerun with force_category_change=true (human-only) to apply.",
+                    }
+                )
+            )
             sys.exit(0)
         warnings.append(f"category changed: {row['CATEGORY']} → {category}")
 
@@ -670,14 +794,24 @@ SELECT '{new_id}', '{DOMAIN}', '{esc(name)}', '{category}', {seg_array}, {pricin
         set_clauses.append(f"integration_posture = {iv}")
     if intelligence_body:
         if len(intelligence_body) < INTELLIGENCE_BODY_MIN:
-            print(json.dumps({"action": "rejected_validation",
-                              "errors": [f"intelligence_body min {INTELLIGENCE_BODY_MIN} chars"]}))
+            print(
+                json.dumps(
+                    {
+                        "action": "rejected_validation",
+                        "errors": [
+                            f"intelligence_body min {INTELLIGENCE_BODY_MIN} chars"
+                        ],
+                    }
+                )
+            )
             sys.exit(1)
-        intel_json = json.dumps({
-            "body": intelligence_body,
-            "source_url": args.get("source_url"),
-            "source_description": args.get("source_description"),
-        })
+        intel_json = json.dumps(
+            {
+                "body": intelligence_body,
+                "source_url": args.get("source_url"),
+                "source_description": args.get("source_description"),
+            }
+        )
         set_clauses.append(f"intelligence = PARSE_JSON('{esc(intel_json)}')")
     # Always stamp last_researched on update
     set_clauses.append("last_researched = CURRENT_DATE")
@@ -688,13 +822,21 @@ SELECT '{new_id}', '{DOMAIN}', '{esc(name)}', '{category}', {seg_array}, {pricin
     # Capabilities: replace junction rows if capabilities provided
     if capabilities:
         lines = [sql_preamble()]
-        lines.append(f"DELETE FROM competitor_capabilities WHERE competitor_id = '{existing_id}';")
+        lines.append(
+            f"DELETE FROM competitor_capabilities WHERE competitor_id = '{existing_id}';"
+        )
         for slug in capabilities:
             cap_id = cap_id_by_slug[slug]
-            lines.append(f"INSERT INTO competitor_capabilities (competitor_id, capability_id) VALUES ('{existing_id}', '{cap_id}');")
+            lines.append(
+                f"INSERT INTO competitor_capabilities (competitor_id, capability_id) VALUES ('{existing_id}', '{cap_id}');"
+            )
         execute_sql("\n".join(lines))
 
-    print(json.dumps({"action": "updated", "id": existing_id, "name": name, "warnings": warnings}))
+    print(
+        json.dumps(
+            {"action": "updated", "id": existing_id, "name": name, "warnings": warnings}
+        )
+    )
 
 
 def cmd_health(args):
@@ -795,7 +937,9 @@ ORDER BY competitor_count, cap.slug;
     try:
         all_results = json.loads(output)
     except json.JSONDecodeError:
-        print(json.dumps({"error": "could not parse health output", "raw": output[:500]}))
+        print(
+            json.dumps({"error": "could not parse health output", "raw": output[:500]})
+        )
         sys.exit(1)
 
     # Group results by check_name
@@ -819,11 +963,13 @@ ORDER BY competitor_count, cap.slug;
             continue
         check_name = first.get("CHECK_NAME")
         if check_name and check_name in report:
-            report[check_name] = [{k: v for k, v in row.items() if k != "CHECK_NAME"} for row in result_set]
+            report[check_name] = [
+                {k: v for k, v in row.items() if k != "CHECK_NAME"}
+                for row in result_set
+            ]
 
     summary = {
-        check: {"count": len(rows), "rows": rows}
-        for check, rows in report.items()
+        check: {"count": len(rows), "rows": rows} for check, rows in report.items()
     }
     print(json.dumps(summary, indent=2, default=str))
 
@@ -864,8 +1010,11 @@ COMMANDS = {
     "health": cmd_health,
 }
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Strategy Research Database Access Layer")
+    parser = argparse.ArgumentParser(
+        description="Strategy Research Database Access Layer"
+    )
     parser.add_argument("command", choices=COMMANDS.keys())
     parser.add_argument("--json", type=str, default="{}", help="JSON arguments")
     parsed = parser.parse_args()
@@ -877,6 +1026,7 @@ def main():
         sys.exit(1)
 
     COMMANDS[parsed.command](args)
+
 
 if __name__ == "__main__":
     main()

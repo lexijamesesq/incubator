@@ -13,7 +13,7 @@ A Claude Code pipeline for strategic idea development: `/draft`, `/develop`, `/r
 
 Clone the repo. `.claude/` ships tracked and committed — review its contents (see Security below) before opening the directory in Claude Code. Copy the instance config sample and fill in your own values:
 
-```
+```bash
 cp .claude/instance.sample.md .claude/instance.md
 cp jira-config.sample.md jira-config.md
 cp persona.sample.md persona.md
@@ -37,7 +37,7 @@ pre-commit run --all-files  # gitleaks-staged + the standard hook set
 
 ## CI
 
-`.github/workflows/ci.yml`, required via the "Protect main" ruleset: `ruff` (Python lint), `shellcheck` (`ludeeus/action-shellcheck`, no-op today — no `.sh` files yet, kept for when scripts are added), and `gitleaks` (full outgoing PR-range scan via dotty's shared `setup-gitleaks` composite action, base rules only + `--redact` — public repo, the operator's PII ruleset never reaches CI). All three required to merge.
+`.github/workflows/ci.yml`, required via the "Protect main" ruleset: the estate's shared `floor` job (`ci / checks`) — its pre-commit suite runs ruff and shellcheck on the files a PR changes, except on a PR the triage step classifies as `mechanical` (`estate-ci.yml`'s own gate: `steps.triage.outputs.classification != 'mechanical'`, which the pre-commit step inherits via the `precommit_cfg` step it depends on) — so this repo carries no separate `ruff`/`shellcheck` job. PR-time secret scanning is the trusted lane's `trusted-scan` (`gate.yml`, dotty's shared `setup-gitleaks` composite action, base rules only + `--redact` — public repo, the operator's PII ruleset never reaches CI), a separate required check from a separate workflow (`pull_request_target`, not `ci.yml`).
 
 ## Conventions
 
@@ -50,7 +50,7 @@ pre-commit run --all-files  # gitleaks-staged + the standard hook set
 ## Key Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `.claude/instance.sample.md` | Configuration contract template — copy to `.claude/instance.md` and fill in your instance's values |
 | `.claude/skills/` | The pipeline skills: `draft`, `develop`, `refine`, `refine-seed`, `revert-to-seed`, `thesis-test`, `jpd-push`, `cross-domain`, `buildable-surface`, `develop-synthesis`, `competitive-landscape`, `artifact-critic`, `edtech-sme`, `educator-sme` |
 | `.claude/agents/` | Enrichment agent personas invoked by the pipeline skills |
