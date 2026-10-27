@@ -5,7 +5,7 @@ default_stages: [pre-commit]
 
 repos:
   - repo: https://github.com/lexijamesesq/dotty
-    rev: v2026.10.25-4
+    rev: v2026.10.27
     hooks:
       - id: release-version
         args: [plugin, plugins/incubator, incubator]
@@ -27,7 +27,7 @@ repos:
         stages: [pre-commit]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.2
+    rev: v0.17.3
     hooks:
       - id: ruff
         args: [--fix]
