@@ -66,7 +66,7 @@ Delete idea-specific research artifacts. Preserve shared research contributions.
 
 1. Read the `research:` array from frontmatter.
 2. For each path in the array, check if it's under `Research/{idea-name}/` (idea-specific) or `Research/shared/` (shared). Only delete idea-specific artifacts.
-3. Delete the idea-specific research directory: `Research/{idea-name}/` and all its contents (synthesis-handoff.md, development-research.md, cross-domain-signals.md, and any enrichment artifacts from prior runs). Deletion is destructive: list the paths to the human, get their explicit confirmation, then remove them with `rm` through `Bash` (not pre-approved in `allowed-tools`, so the harness prompts as well).
+3. Delete the idea-specific research directory: `Research/{idea-name}/` and all its contents (synthesis-handoff.md, development-research.md, cross-domain-signals.md, and any enrichment artifacts from prior runs). Deletion is destructive: list the paths to the human, get their explicit confirmation, then remove them with `rm` through `Bash` (not pre-approved in `allowed-tools`, so the harness prompts as well). If confirmation is declined or not given, stop: leave the research files and the card's `research:` array exactly as they are, report that the revert did not run, and do not continue to Step 3.
 4. Shared research files (`Research/shared/assessments/*.md`) are NOT touched — findings written there during the original development are durable contributions to the knowledge base.
 
 ### Step 3: Revert the Card

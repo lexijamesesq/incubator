@@ -25,11 +25,11 @@ Check the specified artifact against structural, voice, and rating calibration c
 
 ## Execution
 
-Read these three files in parallel with parallel `Read` calls:
+Read these three files in parallel with parallel `Read` calls. `Read` takes a full disk path: `{workspace_root}` is the vault root from the global Claude Code configuration block, and a vault-relative `$ARGUMENTS` is joined to it the same way.
 
 1. The artifact file at `$ARGUMENTS`
-2. The format example: `Projects/Incubator/Examples/developing-card.md`
-3. The voice guide: `Projects/Incubator/persona.md`
+2. The format example: `{workspace_root}/Projects/Incubator/Examples/developing-card.md`
+3. The voice guide: `{workspace_root}/Projects/Incubator/persona.md`
 
 ## Artifact-Class Routing
 

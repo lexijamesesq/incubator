@@ -159,7 +159,7 @@ Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, ta
 - **`edtech-sme`** (Stream B: Market Intelligence — Competitive) — positioning, market fit, technology risk, go-to-market, strategic timing. Produces `Research/{idea-name}/edtech-market-analysis.md`.
 - **`tam-estimate`** (Stream B: Market Intelligence — Sizing) — TAM/SAM/SOM with top-down/bottom-up reconciliation and sensitivity analysis. Produces `Research/{idea-name}/tam-estimate.md`.
 
-Each subagent's SKILL.md assumes slash-command invocation — a parsed `$ARGUMENTS`, a cwd-relative `research-db.py`, generic file tools. None of that holds under a pointer-invoked Agent call, so the prompt supplies the argument explicitly and overrides those assumptions with an execution contract. Use this pointer-prompt template per agent, substituting `{idea-name}` and `{skill}` (the agent's skill directory name, e.g. `educator-sme`):
+Each subagent's SKILL.md assumes slash-command invocation — a parsed `$ARGUMENTS` and a cwd-relative `research-db.py`. Neither holds under a pointer-invoked Agent call, so the prompt supplies the argument explicitly and overrides those assumptions with an execution contract. The file tools themselves (`Read`, `Write`, `Glob`) are the same in both contexts and need no override. Use this pointer-prompt template per agent, substituting `{idea-name}` and `{skill}` (the agent's skill directory name, e.g. `educator-sme`):
 
 ```text
 Read your operational protocol at claude/skills/{skill}/SKILL.md and execute it in idea-mode for the idea: {idea-name}.
