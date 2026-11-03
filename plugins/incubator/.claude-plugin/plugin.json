@@ -1,6 +1,6 @@
 {
   "name": "incubator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Cross-project strategy-critique skills from the Incubator pipeline: adversarial critics, SME lenses, and estimation tools, shared with Strategy-rooted sessions.",
   "author": {
     "name": "Lexi James",

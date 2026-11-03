@@ -10,12 +10,6 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(date:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /refine-seed — Seed Intent Refinement (Pre-Development)
@@ -26,7 +20,7 @@ Runs AFTER the router creates a seed (Stage 0→1) and BEFORE /develop transform
 
 ## Invocation
 
-```
+```text
 /refine-seed [idea-name]
 ```
 
@@ -39,7 +33,7 @@ Runs AFTER the router creates a seed (Stage 0→1) and BEFORE /develop transform
 Parse `$ARGUMENTS` to resolve the target idea file.
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all seed-stage ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -71,6 +65,7 @@ Load in parallel:
 ### Step 2: Validate
 
 Confirm:
+
 - `stage: seed` in frontmatter
 - `### Original Capture` section exists and is non-empty
 - `domain` and at least one `themes` entry set in frontmatter
@@ -83,7 +78,7 @@ If domain/themes missing: note for the human but continue — refinement can pro
 
 Read the Original Capture carefully. This is the raw thought — it contains the idea's actual intent, which may differ from any draft header fields already present.
 
-**3a: Determine the idea's nature**
+#### 3a: Determine the idea's nature
 
 Ask: **Does this seed describe something that doesn't exist yet, or something that exists but works poorly?**
 
@@ -93,7 +88,7 @@ Ask: **Does this seed describe something that doesn't exist yet, or something th
 
 This classification shapes how the header fields are drafted — capability-absent ideas lead with the gap, experience-broken ideas lead with the user's moment, hybrids name both.
 
-**3b: Draft header fields**
+##### 3b: Draft header fields
 
 Using the Original Capture and the nature classification, draft:
 
@@ -108,17 +103,20 @@ Using the Original Capture and the nature classification, draft:
 Using the portfolio index from Step 1, find related ideas at **seed, developing, drafting, or refining** stages. **Exclude complete-stage ideas** from merge/keep — they are finished work.
 
 **Match criteria** — an idea is "related" if:
+
 - It shares 2+ themes from the `themes` frontmatter array, OR
 - It addresses the same strategic connection or organizational priority
 
 **If related ideas found**, present with merge/keep recommendations:
 
 **Merge signals** (recommend merge when most present):
+
 - Core insights converge — same idea, different framing
 - Who-cares overlaps significantly
 - One is a clear subset of the other
 
 **Keep-separate signals** (recommend keep-separate when any present):
+
 - Distinct who-cares — different audiences or needs
 - Distinct problems — independently justifiable decisions
 - Each delivers customer value independently
@@ -126,7 +124,7 @@ Using the portfolio index from Step 1, find related ideas at **seed, developing,
 **Stage-aware actions:**
 
 | Related idea stage | Available actions |
-|---|---|
+| --- | --- |
 | **Seed** | Merge into one seed (human picks primary), or keep separate |
 | **Developing** | Keep separate; note relationship for differentiation |
 | **Drafting / Refining** | Keep separate; note relationship |
@@ -136,7 +134,7 @@ Present:
 > **Related ideas:** {N} found
 >
 > | Idea | Stage | Action | Why |
-> |------|-------|--------|-----|
+> | --- | --- | --- | --- |
 > | {name} | {stage} | {Merge / Add to related-ideas / No action} | {rationale} |
 >
 > **Unique territory for this seed:** {one sentence — what this idea does that no sibling addresses}
@@ -154,7 +152,7 @@ Wait for human decision on merge/keep and related-ideas updates before proceedin
 
 Present the complete refined seed to the human:
 
-```
+```text
 Seed refinement: {idea-name}
 
 **Nature:** {Capability-absent | Experience-broken | Hybrid}
@@ -176,6 +174,7 @@ Ready to write? Or adjust any fields first?
 ```
 
 The human may:
+
 - Accept as-is → write and done
 - Modify any field → update and re-present
 - Disagree with the nature classification → adjust framing and re-draft
@@ -188,6 +187,7 @@ This is the alignment step. Take the time to get it right — /develop depends o
 After human approval, update the idea file:
 
 **Frontmatter updates:**
+
 - `updated: {today's date}`
 - `themes: []` — updated per theme check
 - `related-ideas: []` — updated per Step 4
@@ -211,7 +211,7 @@ Report: "Seed refined: {idea-name}. Ready for /develop."
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | No Original Capture | Cannot refine — nothing to interpret. Exit. |
 | Idea not at seed stage | Report current stage. Exit. |
 | Seed is a clear duplicate of an existing idea | Present the duplicate, recommend merge or archive. Wait for human. |
@@ -220,7 +220,7 @@ Report: "Seed refined: {idea-name}. Ready for /develop."
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no seed-stage ideas | Report and exit |
 | Idea file not found | Fuzzy match, report available files, exit |
 | Idea not at seed stage | Report current stage, exit |
@@ -230,6 +230,7 @@ Report: "Seed refined: {idea-name}. Ready for /develop."
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Conduct research (that's /develop's job)
 - Assess impact dimensions (that's the synthesis agent's job)
 - Draft output documents (that's /draft's job)

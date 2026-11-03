@@ -8,10 +8,6 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /artifact-critic — Structural and Voice Conformance Check
@@ -20,7 +16,7 @@ Check the specified artifact against structural, voice, and rating calibration c
 
 ## Invocation
 
-```
+```text
 /artifact-critic [idea-file-path]
 ```
 
@@ -29,13 +25,11 @@ Check the specified artifact against structural, voice, and rating calibration c
 
 ## Execution
 
-Read these three files in parallel using `mcp__obsidian__read_multiple_notes` (vault `.md` files are blocked from generic Read by the vault redirect hook — Obsidian MCP is the canonical reader):
+Read these three files in parallel with parallel `Read` calls. `Read` takes a full disk path: `{workspace_root}` is the vault root from the global Claude Code configuration block, and a vault-relative `$ARGUMENTS` is joined to it the same way.
 
 1. The artifact file at `$ARGUMENTS`
-2. The format example: `Projects/Incubator/Examples/developing-card.md`
-3. The voice guide: `Projects/Incubator/persona.md`
-
-If `mcp__obsidian__read_multiple_notes` is unavailable in the fork context, fall back to three sequential `mcp__obsidian__read_note` calls. Do not use generic `Read` on these paths — the vault hook will block it.
+2. The format example: `{workspace_root}/Projects/Incubator/Examples/developing-card.md`
+3. The voice guide: `{workspace_root}/Projects/Incubator/persona.md`
 
 ## Artifact-Class Routing
 
@@ -45,7 +39,7 @@ Before applying the checks below, identify the artifact class. When the artifact
 
 Check structural conformance against this spec:
 
-```
+```text
 **Core insight:** One sentence — confident and declarative
 **Problem it addresses:** One sentence — what's broken today
 **Who cares:** One sentence — audiences and their stakes, comma-separated

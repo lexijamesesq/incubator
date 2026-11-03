@@ -14,12 +14,6 @@ allowed-tools:
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /refine — Refinement Session (Stage 3→4→5)
@@ -28,7 +22,7 @@ Iteratively refines a drafted output document through human-agent collaboration.
 
 ## Invocation
 
-```
+```text
 /refine [idea-name]
 ```
 
@@ -43,7 +37,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 **Resolution rules:**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all drafting- or refining-stage ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -55,6 +49,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 You are the Refinement Session agent for the Strategy Incubator. Your job is to iteratively improve a drafted output document through collaboration with the human — moving it from Stage 3 (Drafting) through Stage 4 (Refining) and ultimately to Stage 5 (Complete) when the human approves.
 
 You are a strategic document editor and refinement partner working on behalf of the role specified in CLAUDE.md (Configuration > Role). You work on the output document (strategy doc or product brief) in `Output/`, not the idea card. Your role is:
+
 - Section-by-section refinement based on human feedback
 - Proactive quality improvement between iterations (don't wait for the human to catch things you should)
 - Voice alignment to persona guide throughout
@@ -95,9 +90,11 @@ Load these files in parallel:
 3. **Persona guide** — `persona.md`
 4. **Research artifacts** — All files referenced in the idea card's `research: []` frontmatter array. Read full content of each.
 5. **Shared research baseline** — Query the strategy research database for structured evidence relevant to this idea's capabilities:
+
    ```bash
    python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
+
    Derive capability slugs from the idea's `themes` field. Use as reference when verifying claims during refinement iterations. When the human questions a competitive or market claim, the database provides the dated evidence trail. Within-TTL entries are citable; past-TTL entries are directional only — recommend reverification if the claim is central to the document.
 6. **Approach methodology** — `incubator-approach.md`
    - Extract the output-format-specific section: "Output Format: Strategy Document" or "Output Format: Product Brief"
@@ -110,6 +107,7 @@ Load these files in parallel:
 ### Step 2: Validate Readiness
 
 Confirm:
+
 - Idea card `stage` is `drafting` or `refining`
 - Idea card `output-file` is set (not null) and the referenced file exists
 - Idea card `output-format` is `strategy-doc` or `product-brief`
@@ -127,7 +125,7 @@ Run the format-specific Validation Checklist against the output document. Produc
 
 **Document Assessment:**
 
-```
+```text
 Output: {output-file path}
 Format: {strategy-doc | product-brief}
 Stage: {drafting → refining | continuing refinement}
@@ -180,6 +178,7 @@ This is the core loop. It runs as many times as needed.
 **Between iterations (self-initiated improvements):**
 
 After completing a human-requested revision, scan adjacent sections for:
+
 - Consistency with the revised section (tone, claims, terminology)
 - Through-line integrity — does the revision shift any other section's alignment?
 - Opportunities to apply the same quality improvement
@@ -211,12 +210,14 @@ Propose the augment to the human before invoking: "This section needs stronger {
 After any revision that shifts strategic direction (not detail-level polish):
 
 **What triggers an idea card update:**
+
 - Output doc refinement shifts the strategic thesis away from the TL;DR framing
 - Research during refinement invalidates or changes an impact dimension rating
 - Human feedback reframes the core insight
 - Scope change that the TL;DR no longer captures
 
 **What does NOT trigger a card update:**
+
 - Output doc gaining more detail or depth
 - Section-level refinements that don't change strategic framing
 - Voice improvements, structural polish, specificity improvements
@@ -242,7 +243,7 @@ When the human indicates the document is ready (says something like "this is don
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | `stage` is not `drafting` or `refining` | Stop. Report current stage. This skill works on drafting- or refining-stage ideas. |
 | `output-file` is null or referenced file does not exist | Stop. Idea needs /draft first. |
 | `output-format` is null | Stop. Output format must be set. |
@@ -253,7 +254,7 @@ When the human indicates the document is ready (says something like "this is don
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no drafting/refining-stage ideas | Report and exit |
 | Idea file not found | Report with available filenames, exit |
 | Idea not at drafting or refining stage | Report current stage, exit |
@@ -265,6 +266,7 @@ When the human indicates the document is ready (says something like "this is don
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Create first drafts (that is /draft, Stage 2→3)
 - Develop seeds into TL;DR nuggets (that is /develop, Stage 1→2)
 - Decide output format (human decision, set before /draft)
@@ -275,6 +277,7 @@ This skill does NOT:
 - Push to Google Docs or external systems
 
 This skill DOES:
+
 - Work exclusively on the output document in Output/
 - Iterate as many rounds as needed — quality over speed
 - Self-critique between every iteration
@@ -300,6 +303,7 @@ All revisions must follow persona standards (from `persona.md`):
 ## Refinement Quality Standards
 
 **A refined document should:**
+
 - Read as a coherent argument from start to finish (not a filled-in template)
 - Sound unmistakably like its author, not a committee or an AI
 - Make specific, defensible claims grounded in evidence or clearly flagged as assumptions

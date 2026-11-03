@@ -4,7 +4,7 @@ description: This skill should be used when the user asks to "thesis-test [idea/
 argument-hint: ["idea-name-or-subject"]
 context: conversation
 disable-model-invocation: false
-allowed-tools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash(date:*)", "Bash(python3 scripts/research-db.py:*)", "Bash(mkdir:*)", "mcp__obsidian__read_note", "mcp__obsidian__read_multiple_notes", "mcp__obsidian__write_note", "mcp__obsidian__patch_note", "mcp__obsidian__update_frontmatter", "mcp__obsidian__search_notes", "mcp__obsidian__list_directory", "mcp__obsidian__get_frontmatter", "Skill", "Agent"]
+allowed-tools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash(date:*)", "Bash(python3 scripts/research-db.py:*)", "Bash(mkdir:*)", "Skill", "Agent"]
 ---
 
 # /thesis-test — Adversarial Thesis Stress-Test
@@ -19,7 +19,7 @@ This skill **tests** theses. It does **not** generate them. Thesis authorship is
 
 ## Invocation
 
-```
+```text
 /thesis-test [idea-name]                      # card-mode
 /thesis-test --subject "subject string" [--brief PATH]   # subject-mode
 ```
@@ -43,7 +43,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Card-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles + stages, ask user to select a `developing`+ idea |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -110,6 +110,7 @@ Subject-mode has no prior artifacts — skip to Step 3.
 Card-mode: partition the existing `Research/{idea}/` artifacts into carry-forward context vs. adversarial re-run, at **slice granularity** — per artifact SECTION / finding class, not per file.
 
 For each section / finding class, apply the test: **"Would this finding hold under any plausible thesis, not just the one being tested?"**
+
 - **YES** → carry forward as established context (passed to the lenses in Step 3 as given).
 - **NO** → mark for adversarial re-run (the lens must redo it under the committed thesis).
 
@@ -126,6 +127,7 @@ Three lenses run in parallel, each charged to **test** the theses — attempt to
 **Mechanism — reuse /develop's pattern, do not duplicate it.** Launch the three as parallel background subagents in a SINGLE message via the Agent tool, `subagent_type` set to the lens name, using the pointer-prompt pattern in `claude/skills/develop/SKILL.md` Step 4 Phase 1 (read-your-own-SKILL.md pointer + execution contract that overrides the slash-command assumptions, holds back writes-of-record, and bounds web research). Apply the same **model-override policy** `/develop` Step 4 Phase 1 specifies — per-lens overrides are persona-rubric-gated there, and a lens that fails its rubric inherits the session model; /develop's Model overrides paragraph is the single source of truth for which lens currently runs on what. Do not restate the /develop template here — point at it and apply the thesis-test deltas below.
 
 **Thesis-test deltas to the pointer prompt (per lens):**
+
 - The lens is in **test mode**, not enrichment mode. Charge: for each thesis, for each of *your* break conditions, attempt to falsify the thesis. Cite specific evidence for and against. The thesis must survive contradiction or be marked down. Do NOT rubber-stamp the thesis back as new seed truth.
 - **Named palette attacks.** Where a break condition invokes a palette attack (`attack-patterns.md` §A), name it in the lens's charge; the lens runs the named attack as its question.
 - Supply, in the prompt: the full thesis brief (theses + this lens's break conditions), and the carry-forward context from Step 2 (card-mode). Tell the lens which slices are given (do not re-derive) and which it must re-run under the thesis.
@@ -136,11 +138,12 @@ Three lenses run in parallel, each charged to **test** the theses — attempt to
 
 **Frame check (orchestrator, at fan-out return — before audit and synthesis).** Read every lens's `GIVEN-CONTESTED` line FIRST, before anything else. Any flag halts the run for a disposition: the given stands (record why the contradicting evidence doesn't break the frame), reclassify it as contested and re-scope the affected slices, or halt the run. A broken frame outranks a polite fight inside it — parallel agents can't be recalled, so fan-out return is the earliest practical stop.
 
-**Serialized writes (orchestrator, after all three lenses return).** Apply held-back `research-db.py` writes one at a time from the project root (validate first, per /develop Phase 1.5). Append all new artifact paths (the three lens artifacts + the Step 2 partition table) to the card `research:` array in a SINGLE read-modify-write `update_frontmatter` (card-mode only). A lens that fails or returns no report is recorded by name with its reason; continue with the rest, and treat its theses' break conditions as `UNKNOWN-INSUFFICIENT` for that lens in the synthesis.
+**Serialized writes (orchestrator, after all three lenses return).** Apply held-back `research-db.py` writes one at a time from the project root (validate first, per /develop Phase 1.5). Append all new artifact paths (the three lens artifacts + the Step 2 partition table) to the card `research:` array in a SINGLE read-modify-write `Edit` (card-mode only). A lens that fails or returns no report is recorded by name with its reason; continue with the rest, and treat its theses' break conditions as `UNKNOWN-INSUFFICIENT` for that lens in the synthesis.
 
 ### Step 4: Verdict Audit
 
 Invoke `/artifact-critic` via the Skill tool on each lens artifact (pass the artifact path). artifact-critic detects that the artifact is a thesis-test lens artifact and ALSO loads its bundled `thesis-verdict-rubric.md` (navigator pattern — see that skill). The audit checks:
+
 - verdicts match their cited evidence (no verdict stronger than its evidence);
 - `UNKNOWN-INSUFFICIENT` is used where evidence is thin, not a silent HOLDS;
 - the evidence-vs-interpretation partition is present where the lens draws a conclusion;
@@ -154,10 +157,12 @@ Triage each finding: fix it in the artifact, or override with a stated reason. *
 You author this. It is the real strategic work of the skill.
 
 Read the per-thesis roll-ups across the three lenses and produce the synthesis at:
+
 - **card-mode:** `Research/{idea}/thesis-test-{date}.md`
 - **subject-mode:** `{caller location}/thesis-test-{date}.md`
 
 Required operations:
+
 1. **Stack-rank** the theses by aggregate survival across lenses. Tiebreak on the assumption-to-knowledge ratio: a thesis holding known conditions outranks one holding fewer conditions carried by more unknowns.
 2. **When verdicts are mixed** (any thesis not a clean HOLDS), BOTH of these as applicable:
    - **Component-level recomposition across theses** — when none survive cleanly, recompose the surviving components into a revised position, naming which component survived from which thesis (e.g., architecture from one thesis, sequencing from a second's break evidence, workflow-ownership from a third's load-bearing break).
@@ -178,11 +183,13 @@ Required operations:
 **Subject-mode:** present the synthesis to the human. Done — nothing is routed into a card.
 
 **Card-mode, one-or-more theses hold (including CONDITIONAL HOLD):** route the surviving position into the card via the develop-synthesis path — do NOT hand-edit the card body. First present the recomposed/conditional position and its conditions to the human and get confirmation; only then:
+
 1. Write the surviving-thesis result as synthesis-handoff additions into `Research/{idea}/synthesis-handoff.md` (the thesis-test verdicts + the recomposed/conditional position, in the handoff format `/develop` Step 4.5 uses).
 2. Re-invoke `develop-synthesis` via the Skill tool (idea name) per /develop Step 5 conventions — it re-renders the card from the updated handoff.
 3. Run `/artifact-critic` on the card per /develop Step 6.
 
 **Card-mode, NO CLEAN SURVIVOR (nothing holds, even conditionally):** do NOT invoke develop-synthesis — it renders confident positions, and a null result is not one. Instead:
+
 1. Write a **falsification record** at `Research/{idea}/falsification-record-{date}.md`: the theses tested, the break evidence per thesis, and the recomposed reframe if Step 5 produced one.
 2. Add a dated `### Thesis Test Results` section to the card noting the falsification and linking the record. Keep frontmatter valid (the card stays at its current stage; do not silently regress it).
 3. **HALT for the human gate.** Lead with: the thesis did not survive — that is a real result, not a failed run; here is the break evidence and the reframe if one emerged. Present the options with their consequences; the human decides — the skill NEVER auto-shelves:
@@ -194,7 +201,7 @@ Required operations:
 ## Stop Rules & Error Handling
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Empty argument, no `--subject` | Card-mode: Glob Ideas/, present titles + stages, ask user to select. |
 | Idea file not found | Report with closest candidates; suggest `--subject`. Exit. |
 | Card not at `developing`+ (card-mode) | Stop. Report stage; point to `/develop {name}` first (Step 0 gate). Exit. |
@@ -213,6 +220,7 @@ Required operations:
 ## Scope Boundaries
 
 This skill does NOT:
+
 - **Generate theses.** Thesis authorship is human-owned; the skill tests, it does not invent. Step 1 may co-draft structure interactively, but every strategic claim is the human's.
 - Enrich (that is `/develop` and the enrichment lenses in their default mode).
 - Develop a seed (run `/develop` first — this is a second-pass operation).

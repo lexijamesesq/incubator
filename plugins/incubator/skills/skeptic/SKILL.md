@@ -7,8 +7,7 @@ disable-model-invocation: false
 allowed-tools:
   - Glob
   - Grep
-  - mcp__obsidian__read_note
-  - mcp__obsidian__list_directory
+  - Read
   - Agent
 ---
 
@@ -18,7 +17,7 @@ The human's verb for the skeptic agent. Audits whether a developed idea's eviden
 
 ## Invocation
 
-```
+```text
 /skeptic [idea-name]
 ```
 
@@ -32,7 +31,7 @@ The human's verb for the skeptic agent. Audits whether a developed idea's eviden
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| --- | --- |
 | Skeptic agent fails to launch or return | Report the failure; do not self-audit in this context — a same-session audit is the bias this skill exists to avoid. |
 | Handoff-fidelity mode but no `Research/{idea}/synthesis-handoff.md` exists | Report the missing handoff; offer card-decay mode instead. |
 

@@ -12,9 +12,6 @@ allowed-tools:
   - Glob
   - Bash(date:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /divergent-thinking — Nonlinear Thinking Enrichment Agent
@@ -25,7 +22,7 @@ This is an enrichment agent, not a stage transition workflow. It does not change
 
 ## Invocation
 
-```
+```text
 /divergent-thinking [idea-name]                # idea mode
 /divergent-thinking --adhoc "subject string"   # ad-hoc mode
 ```
@@ -47,7 +44,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles, ask user to select |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -58,8 +55,6 @@ Parse `$ARGUMENTS` to determine mode:
 ## Persona
 
 This skill runs in the divergent-thinking agent's context. The agent carries the nonlinear thinker persona, quality gate, coverage checks, and voice requirements. See `.claude/agents/divergent-thinking.md`.
-
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents.
 
 ## Execution Flow
 
@@ -80,6 +75,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 1: Load Context
 
 **Idea mode:** Load only the idea file at the resolved path — full content (frontmatter + body). Extract:
+
 - Core insight
 - Themes (from frontmatter `themes: []`)
 - Domain (from frontmatter `domain:`)
@@ -93,6 +89,7 @@ Both modes: Do NOT load any other files. No persona guide, no strategy docs, no 
 ### Step 2: Validate
 
 Confirm the idea file has:
+
 - A core insight populated in the body (non-empty)
 - `domain` set in frontmatter
 - `themes` with at least one entry in frontmatter
@@ -168,9 +165,10 @@ created: {today's date YYYY-MM-DD}
 {...}
 ```
 
-5. Update the idea file frontmatter: append the research artifact path to the `research: []` array.
+1. Update the idea file frontmatter: append the research artifact path to the `research: []` array.
 
 **Frontmatter update rules:**
+
 - The path to append is the file actually written in step 4 (may include dated suffix if it's an augment run)
 - If `research:` is currently `[]` (empty array), replace with `[{written path}]`
 - If `research:` already contains entries, append the new path to the existing array
@@ -182,7 +180,7 @@ created: {today's date YYYY-MM-DD}
 
 Present the completed analysis to the user with:
 
-```
+```text
 Divergent thinking complete: {idea-name}
 
 **Angles generated:** {N}
@@ -203,7 +201,7 @@ Divergent thinking complete: {idea-name}
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Idea file not found | Fuzzy match against Ideas/ listing. If no match, report available files and exit. |
 | Idea too vague | Report: core insight too abstract for structural analogies. Ask human to sharpen it. |
 | Research directory creation fails | Report error, exit. |
@@ -212,7 +210,7 @@ Divergent thinking complete: {idea-name}
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
 | Idea file not found | Report with available filenames from Ideas/ listing, exit |
 | Idea has no core insight | Report "Core insight missing — cannot generate angles without a seed to diverge from" and exit |
@@ -226,5 +224,6 @@ Divergent thinking complete: {idea-name}
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage
 - Modify the idea body content (only updates frontmatter `research:` and `updated:` fields)

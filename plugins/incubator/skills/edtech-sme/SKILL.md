@@ -15,9 +15,6 @@ allowed-tools:
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /edtech-sme — EdTech Market Analysis (Enrichment Agent)
@@ -26,7 +23,7 @@ Evaluates a strategic idea against edtech market dynamics, competitive landscape
 
 ## Invocation
 
-```
+```text
 /edtech-sme [idea-name]                  # idea mode
 /edtech-sme --adhoc "subject string"     # ad-hoc mode
 ```
@@ -48,7 +45,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles, ask user to select |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -66,9 +63,10 @@ Exit. Do NOT silently interpret a no-match as ad-hoc mode.
 
 This skill runs in the edtech-sme agent's context. The agent carries the full industry analyst persona, domain knowledge (competitors, buyer dynamics, dual-role entities), evaluation framework, and quality standards. See `.claude/agents/edtech-sme.md`.
 
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents; run research-db.py from the project root.
+**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: run research-db.py from the project root.
 
 **Output serves two purposes:**
+
 - **Enrichment:** Feeds into the idea's `industry-disruption`, `revenue-potential`, and `strategic-alignment` impact dimension assessments
 - **Research artifact:** Preserved at `Research/[idea-name]/edtech-market-analysis.md` for reference during drafting and refining stages
 
@@ -91,6 +89,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 1: Load Context
 
 **Idea mode:** Read the idea file at the resolved path — full content including frontmatter and body. Extract:
+
 - **Core insight** — the central idea being evaluated
 - **Themes** — from frontmatter `themes: []` array
 - **Domain** — from frontmatter `domain:` field
@@ -102,14 +101,18 @@ Execute these steps in order. Stop and report errors at any step rather than con
 **Shared research baseline:**
 
 - **Idea mode:** Query by capability slugs derived from the idea's `themes` field:
+
   ```bash
   python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
   ```
+
 - **Ad-hoc mode:** Look up the subject directly. If the subject names a company/product, try `lookup-competitor`:
+
   ```bash
   python3 scripts/research-db.py lookup-competitor --json '{"name": "Subject Name"}'
   python3 scripts/research-db.py query-competitor --json '{"name": "Subject Name"}'
   ```
+
   If no match, query by inferred capability slugs if any apply, otherwise proceed with web research only.
 
 Within-TTL entries are known starting points — do not rediscover competitors already documented there. Past-TTL entries are directional only (relevant categories and framing, not current positioning). During Step 3, use `query-competitor` for targeted deep-dives on competitors central to the analysis.
@@ -131,6 +134,7 @@ If the idea is too abstract for market analysis — no discernible product conce
 Use `WebSearch` to gather current market intelligence. Execute 4-6 targeted searches derived from the idea's themes, competitive frame, and product category.
 
 **Search targets:**
+
 - **Registry-informed targeted searches:** For each registry-matched competitor (from Step 1), include at least one targeted search for that competitor's recent activity in the idea's capability domain. E.g., if the idea is about rubric design and FeedbackFruits is registry-matched, search for "FeedbackFruits rubric" or "FeedbackFruits assessment authoring 2025 2026". These targeted searches supplement — not replace — the generic searches below.
 - Competitor features and recent product launches in the relevant category
 - Acquisitions, mergers, and strategic partnerships in edtech assessment
@@ -141,6 +145,7 @@ Use `WebSearch` to gather current market intelligence. Execute 4-6 targeted sear
 **When the idea spans multiple product categories**, expand the competitor scan to include adjacent-category players. Name specific companies from each relevant category — do not limit to direct assessment competitors.
 
 **Research quality standards:**
+
 - Name competitors, cite specific products, reference real dynamics
 - Capture source URLs for all findings
 - Flag any knowledge that is more than 18 months old
@@ -161,6 +166,7 @@ For Technology Risk, rate as Low / Medium / High. For ideas with emerging techno
 ### Step 5: Assess Strategic Timing
 
 Analyze the market window with specific signals:
+
 - Is the market moving toward this idea or away from it?
 - What external forces (regulatory, technological, competitive) create urgency or reduce it?
 - Is there a first-mover advantage, or is fast-follower safer?
@@ -237,7 +243,7 @@ confidence: high | medium | low
 - {Source 3 with URL}
 ```
 
-4. Update the idea file frontmatter: append the written artifact path to the `research: []` array
+1. Update the idea file frontmatter: append the written artifact path to the `research: []` array
 
    **Frontmatter update rules:**
    - Read the current frontmatter to get the existing `research:` array
@@ -253,7 +259,7 @@ confidence: high | medium | low
 
 Idea-mode presentation template:
 
-```
+```text
 EdTech market analysis complete: {idea-name}
 
 **Market Fit:** {Strong/Moderate/Weak} — {one-sentence verdict}
@@ -283,6 +289,7 @@ EdTech market analysis complete: {idea-name}
 Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing frontmatter ratings, state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
 
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to competitor entries, market dynamics, and positioning data that would benefit other ideas). Write qualifying findings to the strategy research database:
+
 ```bash
 python3 scripts/research-db.py write-findings --json '{
   "findings": [
@@ -301,12 +308,15 @@ python3 scripts/research-db.py write-findings --json '{
   ]
 }'
 ```
+
 **Source URL requirement:** Every finding MUST have a `source_url` with the most specific available page — not a homepage. Use `source_description` only when no stable URL exists, with enough detail to locate the source. Do not write findings with neither.
 
 Use `python3 scripts/research-db.py lookup-competitor --json '{"name": "..."}'` to resolve competitor names to IDs. When a web search finding relates to a competitor already in the database, link it. When web research sparks a question about what the database already knows, query for it:
+
 ```bash
 python3 scripts/research-db.py query-competitor --json '{"name": "Competitor Name"}'
 ```
+
 This oscillation between web research and database lookups produces richer context than either source alone.
 
 **Competitor registry updates:**
@@ -338,7 +348,7 @@ Note in the presentation:
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| --- | --- |
 | Idea too abstract for market analysis (no discernible product concept, buyer, or competitive frame) | Report: "This idea is too abstract for market analysis. To evaluate market dynamics, I need a clearer product concept — what would the buyer be purchasing?" Ask human to refine before rerunning. Exit. |
 | No competitive data found across all searches | Proceed with low-confidence flags on all dimensions. Write artifact noting data limitations. Present results with explicit confidence warnings. |
 
@@ -347,7 +357,7 @@ Note in the presentation:
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
 | Idea file not found | Fuzzy match against available filenames. If no match, report with available filenames and exit |
 | Idea too abstract for market lens | Report what is missing (product concept, buyer persona, competitive frame) and ask human for refinement. Exit. |
@@ -359,6 +369,7 @@ Note in the presentation:
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage (enrichment only)
 - Modify the idea body content (only appends to `research:` frontmatter array)
 - Recommend go/no-go decisions (that is a human decision)

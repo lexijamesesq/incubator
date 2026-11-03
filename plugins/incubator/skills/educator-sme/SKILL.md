@@ -15,9 +15,6 @@ allowed-tools:
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /educator-sme — Educator SME Evaluation
@@ -26,7 +23,7 @@ Evaluates a strategic idea through the lens of a veteran educator with 20+ years
 
 ## Invocation
 
-```
+```text
 /educator-sme [idea-name]                  # idea mode
 /educator-sme --adhoc "subject string"     # ad-hoc mode
 ```
@@ -48,7 +45,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles, ask user to select |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -60,7 +57,7 @@ Parse `$ARGUMENTS` to determine mode:
 
 This skill runs in the educator-sme agent's context. The agent carries the full veteran educator persona (20+ years K-12 and higher ed), domain calibration framework, evaluation dimensions, and quality standards. See `.claude/agents/educator-sme.md`.
 
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents; run research-db.py from the project root.
+**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: run research-db.py from the project root.
 
 ## Execution Flow
 
@@ -81,6 +78,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 1: Load Context
 
 **Idea mode:** Read the idea file at the resolved path — full content (frontmatter + body). Extract:
+
 - **Core insight** — from the body content
 - **Problem statement** — from `Problem it addresses` if present (Stage 2+), or infer from core insight (Stage 1)
 - **Domain** — from frontmatter `domain` field, used for K-12 vs. higher ed calibration:
@@ -91,9 +89,11 @@ Execute these steps in order. Stop and report errors at any step rather than con
 **Ad-hoc mode:** The subject string is the target. There is no idea file, no themes, no domain. Frame the evaluation around the subject itself (a product, tool, methodology, concept). Without a domain signal, evaluate both K-12 and higher ed perspectives unless the subject is clearly one or the other.
 
 **Shared research baseline:** Query the strategy research database for customer evidence and educator-relevant findings:
+
 ```bash
 python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
 ```
+
 Derive capability slugs from the idea's `themes` field. Within-TTL entries are known starting points for customer pain signals and adoption evidence — do not rediscover patterns already documented there. Past-TTL entries are directional only. During Step 4 (Optional Research), if web research surfaces a competitor or methodology, use `query-competitor` for a targeted deep-dive on what the database already knows about it.
 
 Context exclusions (strategy docs, OKRs, persona guide, competitive data, business framing) are enforced by the agent's scope constraints.
@@ -107,6 +107,7 @@ Calibrate your perspective based on the idea's domain field using your domain ca
 Work through your five evaluation dimensions (Pain Point Validity, Adoption Realism, Workflow Integration, The Skeptic's Objection, The Champion's Argument) with educator-grounded specificity. Every claim must connect to a concrete classroom reality.
 
 **Dimension-to-output mapping:**
+
 - Pain Point Validity → "Pain Point Analysis" section
 - Adoption Realism → "Adoption Assessment" verdict + "Adoption Barriers" section
 - Workflow Integration → Folds into both "Pain Point Analysis" (current state) and "Adoption Barriers" (transition friction)
@@ -118,6 +119,7 @@ The "Strongest Use Case" and "Suggested Refinements" output sections synthesize 
 ### Step 4: Optional Research
 
 If the idea makes specific pedagogical claims or references methodologies that need validation, use `WebSearch` to check:
+
 - Educator sentiment on the specific methodology (e.g., "teacher opinions on standards-based grading")
 - Research on similar interventions and their adoption rates
 - Adoption data for comparable edtech tools
@@ -181,7 +183,7 @@ domain-calibration: {k12 | higher-ed | both | platform-downstream}
 {If Step 4 was performed: queries, findings, sources. If skipped: "Evaluation based on educator practice knowledge — no external research needed."}
 ```
 
-5. Update the idea file's frontmatter: append the written artifact path to the `research: []` array.
+1. Update the idea file's frontmatter: append the written artifact path to the `research: []` array.
    - Read the idea file to get current frontmatter
    - Append the new path (including dated suffix if applicable from step 3)
    - Do NOT remove older dated-suffix entries from prior runs — augment artifacts coexist
@@ -196,7 +198,7 @@ domain-calibration: {k12 | higher-ed | both | platform-downstream}
 
 Idea-mode presentation template:
 
-```
+```text
 Educator SME Evaluation: {idea-name}
 
 **Adoption Assessment: {High / Medium / Low}**
@@ -231,11 +233,13 @@ Idea frontmatter updated: research array now includes educator evaluation path.
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to pain point evidence, adoption patterns, and educator sentiment that would benefit other ideas). Write qualifying findings to the strategy research database. **Source URL requirement:** Every finding MUST have a `source_url` with the most specific available page — not a homepage. Use `source_description` only when no stable URL exists. Do not write findings with neither.
 
 **Claim-content guardrail:** A finding's `claim` field must be a **substantive assertion** with content the reader can act on. The following are NOT findings — never write them as `claim`:
+
 - Search query strings (e.g., `"teacher experience using AI rubric generator 2025"`) — these are research metadata, not findings
 - Bare citations / titles (e.g., `[Title](URL)`) — a citation without an assertion is a bookmark, not a finding
 - Query-prefixed paragraphs where the leading quoted query is verbatim what you searched — strip the query; submit only the assertion
 
 If research surfaced an article whose title is the most relevant signal, capture the article's *finding* as your `claim` (the assertion the article makes), with the article's URL as `source_url`. The title belongs at the URL's content, not in your `claim` field.
+
 ```bash
 python3 scripts/research-db.py write-findings --json '{
   "findings": [
@@ -262,7 +266,7 @@ Your impact-dimension signals are advisory. If a signal contradicts the idea car
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Idea file not found | Fuzzy match attempt, then report available files and exit |
 | Idea too abstract for educator lens | Report: "This idea is too abstract to evaluate from a classroom perspective. To proceed, ground it in a specific educator workflow or student outcome." Ask human to refine. |
 | No meaningful educator touchpoint | Report: "This idea is pure infrastructure with no downstream classroom impact I can evaluate. The educator perspective doesn't apply here." Exit cleanly. |
@@ -272,7 +276,7 @@ Your impact-dimension signals are advisory. If a signal contradicts the idea car
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
 | Idea file not found | Report with available filenames from Ideas/ listing, exit |
 | Frontmatter cannot be parsed | Report parsing issue, exit |
@@ -284,6 +288,7 @@ Your impact-dimension signals are advisory. If a signal contradicts the idea car
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage (enrichment only)
 - Modify the idea body content
 - Modify impact dimension frontmatter fields (advisory signals only)

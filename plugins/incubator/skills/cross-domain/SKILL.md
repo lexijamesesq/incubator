@@ -10,11 +10,8 @@ allowed-tools:
   - Bash(date:*)
   - Bash(mkdir:*)
   - mcp__atlassian__searchJiraIssuesUsingJql
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__list_directory
+  - Write
+  - Edit
 ---
 
 # /cross-domain — Cross-Domain JPD Discovery (Enrichment Agent)
@@ -25,7 +22,7 @@ Queries the JPD project for ideas from other product domains that have functiona
 
 ## Invocation
 
-```
+```text
 /cross-domain [idea-name]                  # idea mode
 /cross-domain --adhoc "subject string"     # ad-hoc mode
 ```
@@ -47,7 +44,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles, ask user to select |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -69,7 +66,7 @@ Execute these phases in order. Stop and report errors at any phase rather than c
 
 ### Phase 0: Load Configuration
 
-Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `mcp__obsidian__read_note`. All Jira connection details, field IDs, and JQL parameters used in this skill come from that file. Do not proceed if the file cannot be read.
+Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `Read`. All Jira connection details, field IDs, and JQL parameters used in this skill come from that file. Do not proceed if the file cannot be read.
 
 ### Phase 0.1: Parse Arguments
 
@@ -88,6 +85,7 @@ Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-
 Read the organizational structural reference: `.claude/skills/cross-domain/org-structural-reference.md`.
 
 **Idea mode:** Also read the idea file at the resolved path — full content including frontmatter and body. Extract:
+
 - **Core insight** — the central idea
 - **Themes** — from frontmatter `themes: []`
 - **Domain** — from frontmatter `domain:`
@@ -105,7 +103,7 @@ Fetch all JPD ideas with structural metadata only (no descriptions). Use **statu
 
 Run these 5 queries (sequentially — MCP calls cannot be parallelized):
 
-```
+```text
 // Query 1: Active development (highest-value signals)
 mcp__atlassian__searchJiraIssuesUsingJql(
     cloudId={Cloud ID from jira-config.md > Connection},
@@ -138,6 +136,7 @@ All queries use the same `fields` array and `maxResults=100`. Field IDs come fro
 **Overflow detection:** If any individual query returns exactly 100 results, note it in the retrieval stats footer (e.g., "Done partition truncated at 100"). This is informational — the skill proceeds with what was retrieved. Active statuses (Experimentation, GTM, Opportunity Identification) are unlikely to overflow; Done and Backlog may.
 
 **Error handling at this phase:**
+
 - If MCP tools are unavailable or return auth error on the first query: surface the auth URL to the user, wait for the OAuth flow to complete, then retry the failed query once. If the retry succeeds, continue normally. If the retry also fails, stop and output: "Cross-domain discovery unavailable — Atlassian MCP authenticated but query still failed. Run `/mcp` to verify connection, then re-run." A retry that also fails has, in practice, required a full session exit-and-resume to clear — recommend that over further in-session retries.
 - If MCP call times out on any query: Stop. Output: "Could not check — Atlassian MCP timed out. Cross-domain signals were not evaluated. Restart Claude Code to refresh connection."
 - If ALL queries return 0 results combined: Stop. Output: "Warning: JPD queries returned 0 results across all statuses. This is unexpected — verify MCP connection. Cross-domain signals could not be evaluated."
@@ -150,6 +149,7 @@ Record total retrieved count across all queries.
 Two-step in-memory filter on Phase 1 results.
 
 **Step A — Hard structural filter:**
+
 - Exclude all results where Product Brand matches your own brand (value and field ID from `jira-config.md > Static Field Values` and `jira-config.md > Cross-Domain Query`). These are your team's ideas, not cross-domain.
 - All other brands remain.
 
@@ -176,7 +176,7 @@ Record counts at each stage for the retrieval stats footer.
 
 Fetch full descriptions for Phase 1.5 survivors only:
 
-```
+```text
 mcp__atlassian__searchJiraIssuesUsingJql(
     cloudId={Cloud ID from jira-config.md > Connection},
     jql='project = {project key from jira-config.md > Connection} AND key in ({surviving keys from Phase 1.5})',
@@ -193,6 +193,7 @@ If Phase 1.5 yields more than 25 survivors, batch into multiple queries of 25.
 **No description truncation.** Descriptions are fetched in full for the small survivor set.
 
 **Relevance classification:** Classify each candidate as one of:
+
 - **Direct overlap** — another team building the same capability (duplication risk, collaboration opportunity)
 - **Enabler/dependency** — infrastructure this idea depends on or must coordinate with, where the human would need to engage with the other team or make a design decision based on the dependency. General platform improvements that benefit many ideas (responsive design, accessibility compliance, shipped foundational improvements) go into the artifact as reference context but are excluded from the Phase 3 output — unless the improvement is specifically load-bearing for THIS idea's core capability (e.g., rubric infrastructure improvements for a grading idea, content editor improvements for an authoring idea whose primary surface is the editor)
 - **Convergence** — same user problem, different angle
@@ -216,7 +217,7 @@ If all candidates are "Not relevant," report a confident negative with retrieval
 **Status signal weight** (for output ordering and reader interpretation):
 
 | Status | Signal Weight | Interpretation |
-|---|---|---|
+| --- | --- | --- |
 | Done | Strongest | Another team already built this — assess for leverage or duplication |
 | 3 - GTM | Strong | Shipping imminently — high-confidence organizational investment |
 | 2 - Experimentation | Medium-strong | Active development — team is committed |
@@ -232,6 +233,7 @@ Phase 2 may classify more signals as relevant than the reader needs. This phase 
 **Output cap:** Maximum 5 signals in Phase 3 output. If fewer than 5 classified as relevant, include all.
 
 **Ranking dimensions** (apply these as reasoning lenses, not a scoring formula):
+
 - **Actionability:** Would the reader need to coordinate with, align to, or build on this team's work? Direct overlap and convergence rank highest. Enablers rank higher when they represent a specific integration decision than when they're general infrastructure.
 - **Status weight:** Done and GTM items are stronger signals (proven organizational investment). Opportunity Identification is interest, not commitment. Backlog is weakest.
 - **Domain breadth:** Signals from different domains are more valuable together than multiple signals from one team's roadmap. Prefer breadth over depth.
@@ -297,6 +299,7 @@ Retrieved: {total} | After brand exclusion: {count} | Evaluated: {Phase 1.5 surv
 Update the idea file frontmatter: append `Research/{idea-name}/cross-domain-signals.md` to the `research: []` array.
 
 **Frontmatter update rules:**
+
 - Read the current frontmatter to get the existing `research:` array
 - Append the new path — including the dated suffix if this is an augment run
 - Do NOT remove older dated-suffix entries from prior runs — augment artifacts coexist
@@ -309,7 +312,7 @@ Phase 3 outputs only the signals selected in Phase 2.5 (maximum 5). This format 
 
 **When signals are found:**
 
-```
+```text
 ### Cross-Domain Signals
 {N} ideas from other domains with possible functional overlap:
 - [{issue-key}]({Atlassian base URL}/browse/{issue-key}) {summary} ({Domain Label}) — {Signal type}: {Connection sentence}
@@ -325,7 +328,7 @@ Issue keys are linked using the Atlassian base URL from `jira-config.md`. Order 
 
 **When no signals are found:**
 
-```
+```text
 ### Cross-Domain Signals
 No ideas from other domains with functional overlap found.
 
@@ -334,7 +337,7 @@ Retrieved: {total} | After brand exclusion: {count} | Evaluated: {Phase 1.5 surv
 
 **When retrieval failed:**
 
-```
+```text
 ### Cross-Domain Signals
 Could not check — {reason}.
 This is NOT a confident negative. Cross-domain signals were not evaluated.
@@ -343,7 +346,7 @@ This is NOT a confident negative. Cross-domain signals were not evaluated.
 ## Error Handling
 
 | Scenario | Detection | Behavior | Output |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | MCP not authenticated (auth flow not yet attempted) | MCP tools unavailable on first query, no auth flow in progress | Surface auth URL, wait for user to complete OAuth, then retry the failed query once. Only stop if the retry also fails. | "Cross-domain discovery requires Atlassian MCP authentication. Open the auth URL, complete the flow, and the skill will retry automatically. If the retry fails, run `/mcp` to verify connection and re-invoke the skill." |
 | MCP not authenticated (retry exhausted) | First query failed, auth flow completed by user, retry also failed | Stop | "Cross-domain discovery unavailable — Atlassian MCP authenticated but query still failed. Run `/mcp` to verify connection, then re-run." |
 | MCP timeout | MCP call returns timeout error on any query | Stop. Do not retry. | "Could not check — Atlassian MCP timed out. Cross-domain signals were not evaluated. Restart Claude Code to refresh connection." |
@@ -356,6 +359,7 @@ This is NOT a confident negative. Cross-domain signals were not evaluated.
 | Phase 2 description fetch fails | Key-based query errors/times out | Degrade to summary-only | Add "(summary-only — description unavailable)" to affected signals |
 
 **General principles:**
+
 - Never silently swallow an error that changes confidence level
 - Always distinguish "checked and clean" from "could not check"
 - Partial results are better than no results — degrade gracefully
@@ -364,6 +368,7 @@ This is NOT a confident negative. Cross-domain signals were not evaluated.
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage (enrichment only)
 - Modify the idea file body (only appends to `research:` frontmatter array)
 - Use internal strategy docs (that is Stream A's job)
@@ -390,12 +395,14 @@ The cache-route-optimization idea (`cache-route-optimization`) produced this out
 **6 candidates evaluated. 4 selected, 2 excluded.**
 
 Selected:
+
 - Multi-stop Route Builder Phase 2 (Oakwood, Done) — Enabler: adds intermediate-stop scheduling, directly enables the cache-checkpoint sequencing this idea requires. *Selected because: specific integration point, Done status (proven investment).*
 - Enhanced Cache Tags Phase 3 (Acorn, Done) — Enabler: cache metadata schema improvements, foundational to any cache-route join logic. *Selected because: specifically load-bearing for a cache-routing idea — not general infrastructure.*
 - Map Layer rotated terrain views (Oakwood, GTM) — Enabler: aligns territory views with seasonal foraging direction, exactly the orientation this idea's checkpoint scheduling depends on. *Selected because: specific to this idea's spatial layer, shipping imminently.*
 - Burrow Inventory & Cache integration (Burrow, Opportunity Identification) — Convergence: Burrow building cross-cache inventory tracking — different angle on the same need for trustworthy cache state at routing time. *Selected because: different domain, same underlying need.*
 
 Excluded:
+
 - Enhanced Cache Tags pre-GA Tasks (Acorn, Done) — duplicative with Enhanced Cache Tags Phase 3, null description, low incremental value.
 - Responsive Map UI (Oakwood, Done) — general UI infrastructure (responsive design, accessibility). Benefits every map feature, not specific to cache-route optimization.
 

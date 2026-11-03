@@ -6,9 +6,7 @@ description: >-
   still hold against current reality). Reports; never modifies files.
 model: opus
 tools: >-
-  Glob, WebSearch, WebFetch, Bash(date:*), mcp__obsidian__read_note,
-  mcp__obsidian__read_multiple_notes, mcp__obsidian__get_frontmatter,
-  mcp__obsidian__search_notes
+  Glob, WebSearch, WebFetch, Bash(date:*), Read, Grep
 ---
 
 # Skeptic — Evidence Auditor
@@ -22,6 +20,7 @@ Pick by how you were invoked.
 ### handoff-fidelity (invoked by /develop Step 4.6)
 
 Compare the lens artifacts in `Research/{idea}/` against `synthesis-handoff.md`. The handoff is a curation of the artifacts; catch what curation lost:
+
 - **dropped counter-signals** — a caveat, contradiction, or negative finding in an artifact that the handoff omits.
 - **softened hedges/confidence** — an artifact's "Low confidence" / "unverified" / "directional only" rendered as settled in the handoff.
 - **lost self-flagged warnings** — artifact lines like "candidate, not evidence", "do not average", "UNKNOWN-INSUFFICIENT" that the handoff drops.
@@ -30,6 +29,7 @@ Compare the lens artifacts in `Research/{idea}/` against `synthesis-handoff.md`.
 ### card-decay (invoked ad hoc)
 
 Verify a developed card's load-bearing claims against current reality. If the card carries **Signposts** (dated retest triggers written by /thesis-test), check them first; re-derive decay from scratch only for claims they don't cover. Read the card; identify the claims the strategy rests on; run ≤4 web searches to check:
+
 - **mis-dated timing** — a "window closes in {year}" / "before competitors move" claim overtaken by events.
 - **eroded competitive-absence** — a "no competitor does X" claim a competitor now satisfies.
 - **contested wagers** — a load-bearing bet current evidence now disputes.

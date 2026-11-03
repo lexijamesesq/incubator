@@ -11,9 +11,6 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(date:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /buildable-surface — Buildable Surface Enrichment Agent
@@ -24,7 +21,7 @@ This is an enrichment agent, not a stage transition workflow. It does not change
 
 ## Invocation
 
-```
+```text
 /buildable-surface [idea-name]
 ```
 
@@ -41,7 +38,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 **Resolution rules:**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all developing-or-later ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -76,6 +73,7 @@ Load in parallel:
 3. **Persona guide** — `persona.md` — governs voice and word choice for candidate sentences. The format constraints (one sentence, numbered list) enforce brevity; the persona governs how that sentence reads.
 
 Extract from the idea file:
+
 - `stage` from frontmatter
 - The `### Thought Outline` section content
 - The `### Research Summary` section content
@@ -84,6 +82,7 @@ Extract from the idea file:
 ### Step 2: Validate
 
 Confirm the idea file has:
+
 - `stage` is `developing`, `drafting`, `refining`, or `complete`
 - A `### Thought Outline` section exists and is non-empty
 
@@ -108,6 +107,7 @@ Generate 3-5 genuinely distinct product approach candidates that could express t
 **Grounding rule:** Each candidate must connect to a finding from the research artifacts or Research Summary. Do not speculate. If research is thin, generate fewer candidates (3 minimum) rather than ungrounded ones.
 
 **Distinctness check:** After generating candidates, verify each pair is genuinely distinct:
+
 - Different product approach (not different features on the same surface)
 - Different interaction model or user action
 - Different assumption about where value lives
@@ -115,6 +115,7 @@ Generate 3-5 genuinely distinct product approach candidates that could express t
 If any two candidates are "the same thing but with X," merge or replace one.
 
 **For each candidate, produce:**
+
 - A candidate name (product noun — what is built)
 - One sentence: the user action and what makes this approach distinct
 
@@ -123,6 +124,7 @@ If any two candidates are "the same thing but with X," merge or replace one.
 **Write the Buildable Surface section** into the idea file, placed between `### Thought Outline` and `### Open Questions`.
 
 **Standalone invocation (not inline from /develop):** Check if a `### Buildable Surface` section already exists in the idea file.
+
 - If it exists: present the existing section to the user and ask "Overwrite existing Buildable Surface section?" Wait for confirmation before proceeding. If user declines, present the new analysis without writing and exit.
 - If it does not exist: write directly.
 
@@ -142,6 +144,7 @@ To detect inline vs standalone: check if the idea file's `stage` was just change
 No sub-labels, no recommended surface, no rationale. The numbered list implies these are options to explore — the human and /draft pick which to develop. Appetite bounding happens downstream.
 
 **Write constraints:**
+
 - Insert between `### Thought Outline` and `### Open Questions` using Edit tool
 - Do not write detection classification (borderline, principle-shaped) into the card — report it in terminal output only
 - Do not modify any other section of the idea file
@@ -151,7 +154,7 @@ No sub-labels, no recommended surface, no rationale. The numbered list implies t
 
 **If no-op (feature-shaped):**
 
-```
+```text
 Buildable surface check: {idea-name}
 
 **Result:** No-op — feature-shaped
@@ -161,7 +164,7 @@ Buildable surface check: {idea-name}
 
 **If fired (principle-shaped or borderline):**
 
-```
+```text
 Buildable surface check: {idea-name}
 
 **Result:** {Principle-shaped | Borderline} — section generated
@@ -179,7 +182,7 @@ Buildable surface check: {idea-name}
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Idea file not found | Fuzzy match against Ideas/ listing. If no match, report available files and exit. |
 | Idea at seed stage | Report: develop it first with /develop. Exit. |
 | No Thought Outline | Report: cannot assess without Thought Outline. Exit. |
@@ -189,7 +192,7 @@ Buildable surface check: {idea-name}
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no eligible ideas exist | Report "No developing-or-later ideas found in Ideas/" and exit |
 | Idea file not found | Report with available filenames from Ideas/ listing, exit |
 | Idea at seed stage | Report: develop first, exit |
@@ -202,6 +205,7 @@ Buildable surface check: {idea-name}
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage
 - Modify impact dimensions or other TL;DR sections (only inserts/replaces the Buildable Surface section)
 - Generate divergent or creative angles (that's divergent-thinking)

@@ -11,10 +11,6 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(date:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__delete_note
   - Skill
 ---
 
@@ -26,7 +22,7 @@ Reverts a developing-stage idea card to seed stage so it can be re-developed wit
 
 ## Invocation
 
-```
+```text
 /revert-to-seed [idea-name]
 ```
 
@@ -38,7 +34,7 @@ Reverts a developing-stage idea card to seed stage so it can be re-developed wit
 Parse `$ARGUMENTS` to resolve the target idea file.
 
 | Input | Behavior |
-|-------|----------|
+| --- | --- |
 | Empty | List all developing-stage ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 
@@ -70,7 +66,7 @@ Delete idea-specific research artifacts. Preserve shared research contributions.
 
 1. Read the `research:` array from frontmatter.
 2. For each path in the array, check if it's under `Research/{idea-name}/` (idea-specific) or `Research/shared/` (shared). Only delete idea-specific artifacts.
-3. Delete the idea-specific research directory: `Research/{idea-name}/` and all its contents (synthesis-handoff.md, development-research.md, cross-domain-signals.md, and any enrichment artifacts from prior runs).
+3. Delete the idea-specific research directory: `Research/{idea-name}/` and all its contents (synthesis-handoff.md, development-research.md, cross-domain-signals.md, and any enrichment artifacts from prior runs). Deletion is destructive: list the paths to the human, get their explicit confirmation, then remove them with `rm` through `Bash` (not pre-approved in `allowed-tools`, so the harness prompts as well). If confirmation is declined or not given, stop: leave the research files and the card's `research:` array exactly as they are, report that the revert did not run, and do not continue to Step 3.
 4. Shared research files (`Research/shared/assessments/*.md`) are NOT touched — findings written there during the original development are durable contributions to the knowledge base.
 
 ### Step 3: Revert the Card
@@ -78,6 +74,7 @@ Delete idea-specific research artifacts. Preserve shared research contributions.
 Write the idea file back to seed state:
 
 **Frontmatter — preserve identity, clear development artifacts:**
+
 ```yaml
 type: {preserved}
 stage: seed
@@ -102,6 +99,7 @@ jira-pushed-at: {preserved}
 ```
 
 **Body — seed template with Original Capture:**
+
 ```markdown
 ## {Title from developed card}
 
@@ -120,6 +118,7 @@ Note: The header fields here come from the DEVELOPED card, not from re-interpret
 Invoke `/refine-seed {idea-name}`.
 
 The seed now has:
+
 - Original Capture (what /refine-seed interprets)
 - Header fields from the developed card (what /refine-seed would normally present to the human for confirmation)
 
@@ -132,7 +131,7 @@ After /refine-seed completes, the seed is ready for `/develop`.
 
 ### Step 5: Present
 
-```
+```text
 Revert complete: {idea-name}
 
 **Reverted from:** developing → seed
@@ -152,7 +151,7 @@ Ready for /develop.
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | Card not at developing stage | Report current stage, exit |
 | No Original Capture section | Report — card cannot be reverted without Original Capture. Exit. |
 | Research directory doesn't exist | Skip cleanup, proceed with card revert |
@@ -162,6 +161,7 @@ Ready for /develop.
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Touch shared research files (`Research/shared/assessments/*.md`)
 - Run /develop (that's the next step, invoked separately by the human)
 - Modify other ideas' frontmatter (related-ideas on sibling cards stay as-is)
