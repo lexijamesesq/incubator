@@ -138,7 +138,7 @@ Three lenses run in parallel, each charged to **test** the theses — attempt to
 
 **Frame check (orchestrator, at fan-out return — before audit and synthesis).** Read every lens's `GIVEN-CONTESTED` line FIRST, before anything else. Any flag halts the run for a disposition: the given stands (record why the contradicting evidence doesn't break the frame), reclassify it as contested and re-scope the affected slices, or halt the run. A broken frame outranks a polite fight inside it — parallel agents can't be recalled, so fan-out return is the earliest practical stop.
 
-**Serialized writes (orchestrator, after all three lenses return).** Apply held-back `research-db.py` writes one at a time from the project root (validate first, per /develop Phase 1.5). Append all new artifact paths (the three lens artifacts + the Step 2 partition table) to the card `research:` array in a SINGLE read-modify-write `update_frontmatter` (card-mode only). A lens that fails or returns no report is recorded by name with its reason; continue with the rest, and treat its theses' break conditions as `UNKNOWN-INSUFFICIENT` for that lens in the synthesis.
+**Serialized writes (orchestrator, after all three lenses return).** Apply held-back `research-db.py` writes one at a time from the project root (validate first, per /develop Phase 1.5). Append all new artifact paths (the three lens artifacts + the Step 2 partition table) to the card `research:` array in a SINGLE read-modify-write `Edit` (card-mode only). A lens that fails or returns no report is recorded by name with its reason; continue with the rest, and treat its theses' break conditions as `UNKNOWN-INSUFFICIENT` for that lens in the synthesis.
 
 ### Step 4: Verdict Audit
 
