@@ -7,8 +7,7 @@ disable-model-invocation: false
 allowed-tools:
   - Glob
   - Grep
-  - mcp__obsidian__read_note
-  - mcp__obsidian__list_directory
+  - Read
   - Agent
 ---
 

@@ -5,9 +5,7 @@ description: >-
   competitive landscape, buyer behavior, and technology trends. Provides
   outside-in perspective deliberately without internal strategy context.
 tools: >-
-  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*),
-  mcp__obsidian__read_note, mcp__obsidian__write_note,
-  mcp__obsidian__update_frontmatter
+  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*)
 model: sonnet
 ---
 

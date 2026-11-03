@@ -10,11 +10,8 @@ allowed-tools:
   - Bash(date:*)
   - Bash(mkdir:*)
   - mcp__atlassian__searchJiraIssuesUsingJql
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__list_directory
+  - Write
+  - Edit
 ---
 
 # /cross-domain — Cross-Domain JPD Discovery (Enrichment Agent)
@@ -69,7 +66,7 @@ Execute these phases in order. Stop and report errors at any phase rather than c
 
 ### Phase 0: Load Configuration
 
-Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `mcp__obsidian__read_note`. All Jira connection details, field IDs, and JQL parameters used in this skill come from that file. Do not proceed if the file cannot be read.
+Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `Read`. All Jira connection details, field IDs, and JQL parameters used in this skill come from that file. Do not proceed if the file cannot be read.
 
 ### Phase 0.1: Parse Arguments
 

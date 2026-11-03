@@ -10,12 +10,6 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(date:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /refine-seed — Seed Intent Refinement (Pre-Development)

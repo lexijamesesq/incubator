@@ -15,14 +15,6 @@ allowed-tools:
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__write_note
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__list_directory
-  - mcp__obsidian__get_frontmatter
   - Skill
   - Agent
 ---
@@ -170,10 +162,10 @@ Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, ta
 Each subagent's SKILL.md assumes slash-command invocation — a parsed `$ARGUMENTS`, a cwd-relative `research-db.py`, generic file tools. None of that holds under a pointer-invoked Agent call, so the prompt supplies the argument explicitly and overrides those assumptions with an execution contract. Use this pointer-prompt template per agent, substituting `{idea-name}` and `{skill}` (the agent's skill directory name, e.g. `educator-sme`):
 
 ```text
-Read your operational protocol at claude/skills/{skill}/SKILL.md (via Obsidian MCP read_note if generic Read is redirected) and execute it in idea-mode for the idea: {idea-name}.
+Read your operational protocol at claude/skills/{skill}/SKILL.md and execute it in idea-mode for the idea: {idea-name}.
 Execution contract (overrides where the protocol assumes slash-command invocation):
 - Treat {idea-name} as the parsed argument; you are in idea-mode.
-- Write your research artifact to Research/{idea-name}/ exactly per your protocol's artifact template (Obsidian MCP write_note for .md files).
+- Write your research artifact to Research/{idea-name}/ exactly per your protocol's artifact template.
 - HOLD BACK writes-of-record: do NOT run research-db.py write commands (write-findings, upsert-competitor) and do NOT modify the idea card or its frontmatter. Return these as exact executable payloads in your final report (full command JSON; the research-array entry) for the orchestrator to apply.
 - research-db.py READ queries (lookup-*, query-*) are allowed; run them from the project root.
 - Bound your web research: 3-6 targeted searches; stop when your artifact template's fields are covered.
@@ -541,7 +533,7 @@ After writing the card to file, invoke the artifact critic to check structural a
 **Invoke via Skill tool:**
 Use the Skill tool with skill name `artifact-critic`, passing the completed idea card file path as the argument (e.g., `Ideas/foraging-intelligence.md`).
 
-The artifact-critic skill declares `context: fork`, so it runs in an isolated forked context — separate from this session — with read access to vault notes via Obsidian MCP. It returns a deviation report.
+The artifact-critic skill declares `context: fork`, so it runs in an isolated forked context — separate from this session — with read access to vault notes. It returns a deviation report.
 
 **Triage the findings:**
 For each finding the critic returns, either:

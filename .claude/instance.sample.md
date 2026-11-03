@@ -33,10 +33,9 @@ The pipeline depends on multiple MCP servers. Verify connections before invoking
 
 | MCP Server | Used By | Failure Mode |
 | --- | --- | --- |
-| Obsidian | All skills that read/write vault `.md` files | Pipeline-wide failure — vault redirect hook blocks `Read`/`Edit`/`Write`/`Grep` and routes to Obsidian MCP. Without it, skills cannot read idea cards, NPS files, persona, strategy docs. |
 | Atlassian | `/cross-domain` (read JPD), `/jpd-push` (write to JPD) | Skill-local failure with auth-flow recovery — surface the OAuth URL, retry once after user completes flow. |
 
-**Recommended start-of-session check:** Run `/mcp` to surface connection state. If Obsidian or Atlassian shows disconnected, reconnect before invoking pipeline skills. Skills will fail noisily with auth instructions if MCP is missing, but a pre-flight check avoids interrupting a running pipeline mid-stream.
+**Recommended start-of-session check:** Run `/mcp` to surface connection state. If Atlassian shows disconnected, reconnect before invoking pipeline skills. Skills will fail noisily with auth instructions if MCP is missing, but a pre-flight check avoids interrupting a running pipeline mid-stream.
 
 The optional research database is accessed via `python3 scripts/research-db.py`, not via MCP — separate auth path. See `scripts/research-db-config.sample.json` for setup.
 

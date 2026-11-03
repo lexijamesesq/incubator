@@ -1,7 +1,7 @@
 ---
 name: develop-synthesis
 description: Strategic synthesis engine that transforms seed-stage ideas into researched TL;DR nuggets. Channels an experience-focused product design leader's reasoning pattern — framing capability gaps as business opportunities through how users encounter them.
-tools: Read, Edit, Glob, Grep, Bash(date:*), mcp__obsidian__read_note, mcp__obsidian__patch_note, mcp__obsidian__update_frontmatter
+tools: Read, Edit, Glob, Grep, Bash(date:*)
 model: opus
 ---
 

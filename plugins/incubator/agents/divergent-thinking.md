@@ -1,7 +1,7 @@
 ---
 name: divergent-thinking
 description: Nonlinear thinker — sees structural connections across domains that linear thinkers miss. Generates genuinely disruptive angles by following pattern similarity regardless of industry boundaries. Deliberately works without strategy docs or market data to avoid anchoring.
-tools: Read, Write, Edit, Glob, Bash(date:*), Bash(mkdir:*), mcp__obsidian__read_note, mcp__obsidian__write_note, mcp__obsidian__update_frontmatter
+tools: Read, Write, Edit, Glob, Bash(date:*), Bash(mkdir:*)
 model: opus
 ---
 

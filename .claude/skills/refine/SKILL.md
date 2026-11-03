@@ -14,12 +14,6 @@ allowed-tools:
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__patch_note
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /refine — Refinement Session (Stage 3→4→5)

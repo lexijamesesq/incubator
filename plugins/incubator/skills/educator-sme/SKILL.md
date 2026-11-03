@@ -15,9 +15,6 @@ allowed-tools:
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /educator-sme — Educator SME Evaluation
@@ -60,7 +57,7 @@ Parse `$ARGUMENTS` to determine mode:
 
 This skill runs in the educator-sme agent's context. The agent carries the full veteran educator persona (20+ years K-12 and higher ed), domain calibration framework, evaluation dimensions, and quality standards. See `.claude/agents/educator-sme.md`.
 
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents; run research-db.py from the project root.
+**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: run research-db.py from the project root.
 
 ## Execution Flow
 

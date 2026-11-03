@@ -8,10 +8,6 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__search_notes
-  - mcp__obsidian__get_frontmatter
 ---
 
 # /artifact-critic — Structural and Voice Conformance Check
@@ -29,13 +25,11 @@ Check the specified artifact against structural, voice, and rating calibration c
 
 ## Execution
 
-Read these three files in parallel using `mcp__obsidian__read_multiple_notes` (vault `.md` files are blocked from generic Read by the vault redirect hook — Obsidian MCP is the canonical reader):
+Read these three files in parallel with parallel `Read` calls:
 
 1. The artifact file at `$ARGUMENTS`
 2. The format example: `Projects/Incubator/Examples/developing-card.md`
 3. The voice guide: `Projects/Incubator/persona.md`
-
-If `mcp__obsidian__read_multiple_notes` is unavailable in the fork context, fall back to three sequential `mcp__obsidian__read_note` calls. Do not use generic `Read` on these paths — the vault hook will block it.
 
 ## Artifact-Class Routing
 

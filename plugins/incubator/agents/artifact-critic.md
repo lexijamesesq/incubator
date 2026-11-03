@@ -1,7 +1,7 @@
 ---
 name: artifact-critic
 description: Checks strategy artifacts (TL;DR cards, output documents) for structural conformance, voice conformance, and rating calibration. Invoked by /develop and /draft after artifact generation.
-tools: Read, Glob, Grep, mcp__obsidian__read_note, mcp__obsidian__read_multiple_notes, mcp__obsidian__search_notes, mcp__obsidian__get_frontmatter
+tools: Read, Glob, Grep
 model: opus
 ---
 

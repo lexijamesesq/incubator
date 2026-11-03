@@ -15,9 +15,6 @@ allowed-tools:
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /tam-estimate — TAM Estimation Enrichment Agent
@@ -60,7 +57,7 @@ Parse `$ARGUMENTS` to determine mode:
 
 This skill runs in the tam-estimate agent's context. The agent carries the full market sizing analyst persona, domain knowledge (products, segments, geography, business model), SOM cap rules, divergent analyst mode, and quality standards. See `.claude/agents/tam-estimate.md`.
 
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents; run research-db.py from the project root.
+**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: run research-db.py from the project root.
 
 Output feeds into the `revenue-potential` impact dimension and supports investment prioritization conversations with VPs and ELT.
 

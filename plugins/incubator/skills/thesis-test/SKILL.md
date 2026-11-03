@@ -4,7 +4,7 @@ description: This skill should be used when the user asks to "thesis-test [idea/
 argument-hint: ["idea-name-or-subject"]
 context: conversation
 disable-model-invocation: false
-allowed-tools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash(date:*)", "Bash(python3 scripts/research-db.py:*)", "Bash(mkdir:*)", "mcp__obsidian__read_note", "mcp__obsidian__read_multiple_notes", "mcp__obsidian__write_note", "mcp__obsidian__patch_note", "mcp__obsidian__update_frontmatter", "mcp__obsidian__search_notes", "mcp__obsidian__list_directory", "mcp__obsidian__get_frontmatter", "Skill", "Agent"]
+allowed-tools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash(date:*)", "Bash(python3 scripts/research-db.py:*)", "Bash(mkdir:*)", "Skill", "Agent"]
 ---
 
 # /thesis-test — Adversarial Thesis Stress-Test

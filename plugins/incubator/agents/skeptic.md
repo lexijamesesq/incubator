@@ -6,9 +6,7 @@ description: >-
   still hold against current reality). Reports; never modifies files.
 model: opus
 tools: >-
-  Glob, WebSearch, WebFetch, Bash(date:*), mcp__obsidian__read_note,
-  mcp__obsidian__read_multiple_notes, mcp__obsidian__get_frontmatter,
-  mcp__obsidian__search_notes
+  Glob, WebSearch, WebFetch, Bash(date:*), Read, Grep
 ---
 
 # Skeptic — Evidence Auditor

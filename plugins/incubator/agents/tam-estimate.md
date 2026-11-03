@@ -5,9 +5,7 @@ description: >-
   defensible TAM/SAM/SOM estimates using top-down and bottom-up methodologies
   with conservative bias.
 tools: >-
-  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*),
-  mcp__obsidian__read_note, mcp__obsidian__write_note,
-  mcp__obsidian__update_frontmatter
+  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*)
 model: sonnet
 ---
 

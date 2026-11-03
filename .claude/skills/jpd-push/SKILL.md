@@ -14,11 +14,6 @@ allowed-tools:
   - mcp__atlassian__createJiraIssue
   - mcp__atlassian__editJiraIssue
   - mcp__atlassian__transitionJiraIssue
-  - mcp__obsidian__read_note
-  - mcp__obsidian__read_multiple_notes
-  - mcp__obsidian__update_frontmatter
-  - mcp__obsidian__get_frontmatter
-  - mcp__obsidian__patch_note
   - mcp__claude_ai_Google_Drive__create_file
   - mcp__claude_ai_Google_Drive__search_files
   - mcp__claude_ai_Google_Drive__get_file_metadata
@@ -71,13 +66,13 @@ Unknown flags should be reported as an error and exit before resolution proceeds
 
 ### Step 0: Load Configuration
 
-Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `mcp__obsidian__read_note`. All Jira connection details, field IDs, and option IDs used in this skill come from that file. Do not proceed if the file cannot be read.
+Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `Read`. All Jira connection details, field IDs, and option IDs used in this skill come from that file. Do not proceed if the file cannot be read.
 
 Also read `Projects/Incubator/CLAUDE.md` Configuration > External References block to resolve `incubator.jpd_sidecars_folder_id` (used in Step 3c), `incubator.research_db_label` (used in Step 3c sidecar substitution), and the strategy doc `path` → `external_url` mappings (used in Step 3 link translation).
 
 ### Step 1: Load and Validate
 
-Read the idea file via `mcp__obsidian__read_note` (vault `.md` files are blocked from generic Read by the vault redirect hook — Obsidian MCP is the canonical reader for vault content). Verify all push prerequisites:
+Read the idea file. Verify all push prerequisites:
 
 **Required for push:**
 
@@ -157,7 +152,7 @@ The default path is card-canonical: if the card body has a `### Cross-Domain Sig
 
 Self-heal procedure:
 
-1. Read the artifact via `mcp__obsidian__read_note`. Extract signals from the `## Signals` section only (NOT from `## Signals Reviewed and Excluded`). Extract convergence groups from `## Convergence Groups`.
+1. Read the artifact. Extract signals from the `## Signals` section only (NOT from `## Signals Reviewed and Excluded`). Extract convergence groups from `## Convergence Groups`.
 
 2. Apply the curation cap: 5 signals maximum, 1 convergence group maximum.
    - **If the artifact has ≤5 signals under `## Signals`:** use all of them.
@@ -177,7 +172,7 @@ Self-heal procedure:
 
    For each signal, derive the parenthetical Domain Label using the same priority chain /cross-domain uses: Brand → Product Domain → Squad → omit. If the artifact's `**Domain Label:**` line is populated, use that value directly.
 
-4. Patch the new section into the card body BETWEEN `### Research Summary` (and its content) and `### Thought Outline` using `mcp__obsidian__patch_note`. Replace the boundary string `\n\n### Thought Outline\n` with `\n\n{new section}\n\n### Thought Outline\n`. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
+4. Patch the new section into the card body BETWEEN `### Research Summary` (and its content) and `### Thought Outline` using `Edit`. Replace the boundary string `\n\n### Thought Outline\n` with `\n\n{new section}\n\n### Thought Outline\n`. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
 
 5. Re-read the card to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
 
@@ -195,7 +190,7 @@ The default path is card-canonical: if the card body has a `### Disruptive Refra
 
 Self-heal procedure:
 
-1. Read the artifact via `mcp__obsidian__read_note`. Locate "## The Disruptive One" — the divergent-thinking skill identifies one of its 3–5 angles as the disruptive frame; that's the one to inline.
+1. Read the artifact. Locate "## The Disruptive One" — the divergent-thinking skill identifies one of its 3–5 angles as the disruptive frame; that's the one to inline.
 
 2. Distill the **2–3 sentence insight** from that angle's "The connection" and "What it opens up" content. Stay close to the artifact's language; do not generatively rewrite.
 
@@ -208,7 +203,7 @@ Self-heal procedure:
 
    No link trailer in the card section — that's a JPD-only addition.
 
-4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `###` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using `mcp__obsidian__patch_note`. Anchor on the next `###` heading after Thought Outline and insert the new section before it. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
+4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `###` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using `Edit`. Anchor on the next `###` heading after Thought Outline and insert the new section before it. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
 
 5. Re-read the card to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
 
@@ -226,7 +221,7 @@ If this is a first push (no `jira-key` in frontmatter), stage the four sidecar `
 
 The sidecar architecture is **one folder per pushed idea, four `.md` files per folder** — one per research stream. The folder name is `{jira-key} - {Idea Title}` (with `/` characters in the title replaced with `-`; other Unicode preserved). The Research Summary link in the JPD body points to the folder URL.
 
-1. Read the four primary research artifacts in parallel via `mcp__obsidian__read_multiple_notes`:
+1. Read the four primary research artifacts in parallel with `Read`:
    - `Research/{idea-name}/edtech-market-analysis.md`
    - `Research/{idea-name}/tam-estimate.md`
    - `Research/{idea-name}/educator-evaluation.md`
@@ -394,7 +389,7 @@ Description-only edit — all other fields stay as set in Step 5a.
 
 Transition the issue to "1 - Opportunity Identification" using `mcp__atlassian__transitionJiraIssue` with the transition ID from `jira-config.md > Transition`. This moves the issue from the default "Backlog" status into the proper workflow state.
 
-Update the idea file frontmatter via `mcp__obsidian__update_frontmatter` (the vault redirect hook blocks generic Edit on vault `.md` files):
+Update the idea file frontmatter with `Edit`:
 
 - Add or update `jira-key: {jira-key}`
 - Add or update `jira-pushed-at: {today's date YYYY-MM-DD}` — use `Bash(date:*)` to get today's date
@@ -412,7 +407,7 @@ Call `mcp__atlassian__editJiraIssue` with:
 
 Before pushing, show a diff of what changed since the last push (compare current payload to what was previously pushed — if this is the first re-push and no prior payload is stored, note "First re-push — showing full payload").
 
-Update `jira-pushed-at` in frontmatter via `mcp__obsidian__update_frontmatter`. Do NOT change `jira-sidecar-url` — the existing sidecar is unchanged.
+Update `jira-pushed-at` in frontmatter with `Edit`. Do NOT change `jira-sidecar-url` — the existing sidecar is unchanged.
 
 **Re-push with sidecar correction (in-place):**
 

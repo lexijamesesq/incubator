@@ -1,7 +1,7 @@
 ---
 name: buildable-surface
 description: Product strategist specializing in insight-to-scope translation — detects principle-shaped Thought Outlines and generates concrete product approach candidates using Torres's multiple-solutions test.
-tools: Read, Edit, Glob, Grep, Bash(date:*), mcp__obsidian__read_note, mcp__obsidian__patch_note, mcp__obsidian__update_frontmatter
+tools: Read, Edit, Glob, Grep, Bash(date:*)
 model: sonnet
 ---
 

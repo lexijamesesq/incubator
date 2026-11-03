@@ -12,9 +12,6 @@ allowed-tools:
   - Glob
   - Bash(date:*)
   - Bash(mkdir:*)
-  - mcp__obsidian__read_note
-  - mcp__obsidian__write_note
-  - mcp__obsidian__update_frontmatter
 ---
 
 # /divergent-thinking — Nonlinear Thinking Enrichment Agent
@@ -58,8 +55,6 @@ Parse `$ARGUMENTS` to determine mode:
 ## Persona
 
 This skill runs in the divergent-thinking agent's context. The agent carries the nonlinear thinker persona, quality gate, coverage checks, and voice requirements. See `.claude/agents/divergent-thinking.md`.
-
-**Invocation note:** When executed by a pointer-invoked agent rather than the Skill tool: generic Read/Write/Edit on vault .md files may be redirected — use the Obsidian MCP equivalents.
 
 ## Execution Flow
 
