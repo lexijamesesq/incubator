@@ -33,7 +33,7 @@ Transforms a seed-stage idea into a researched, assessed TL;DR nugget. Researche
 
 ## Invocation
 
-```
+```text
 /develop [idea-name]
 ```
 
@@ -48,7 +48,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 **Resolution rules:**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all seed-stage ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -61,6 +61,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 You are the orchestrator for the /develop pipeline. You handle research, human interaction, and coordination. Strategic synthesis is delegated to the develop-synthesis agent, which runs in an isolated context with a clean window optimized for judgment-heavy work.
 
 You are working on behalf of the role specified in CLAUDE.md (Configuration > Role). Your output serves two audiences:
+
 - **Internal:** The user uses TL;DR nuggets to prioritize which ideas to develop further
 - **External:** TL;DR nuggets may be pushed to JPD for stakeholder visibility via /jpd-push
 
@@ -94,6 +95,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 0.5: Pre-Flight
 
 Before the ~8-minute research spend, verify the ground:
+
 - **cwd is project root:** `ls scripts/research-db.py`. If absent, halt: "Run /develop from the Incubator project root."
 - **research-db reachable:** run `python3 scripts/research-db.py lookup-capabilities --json '{}'` (this is also Step 1's baseline probe). On failure, emit the reauth/cd fix from the Error Handling table and halt before fan-out.
 - **MCP state:** if Atlassian MCP is disconnected, tell the human NOW that /cross-domain (Step 4 Stream C) is skipped unless they reconnect. In-session auth has required a full session exit-and-resume to clear — surface that rather than burn the spend first.
@@ -110,11 +112,13 @@ Load these files in parallel:
    - **All other ideas (seed, developing, drafting, refining):** Read until first `###` heading or 40 lines. Extract: frontmatter + header fields (Core insight, Problem, Who cares, Strategic connection). Used by Step 3 to verify refine-seed's related-ideas resolution AND portfolio context in the synthesis handoff.
    From the loaded index, extract all unique `themes` values across all idea files into a **portfolio theme vocabulary** — the canonical set of themes in use. Used in Step 5e to ensure theme reuse.
 5. **Shared research baseline** — Query the strategy research database for structured competitive intelligence, customer evidence, and market sizing relevant to this idea's capabilities:
+
    ```bash
    python3 scripts/research-db.py lookup-capabilities --json '{}'
    python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'
    python3 scripts/research-db.py query-gaps --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
+
    Derive capability slugs from the seed's `themes` and `core insight` using the vocabulary list — themes may map directly or expand (e.g., `ai-capabilities` → `ai-item-generation`, `ai-open-response-scoring`). Entries within TTL are baseline; entries past TTL are directional only and require reverification during Stream A/B research. Gap detection identifies where enrichment agents should focus live web research.
 
 6. **Competitor registry** — Snowflake `competitors` table. Already covered by item 5 above's `query-landscape` call (returns name, category, market_tier, pricing_model, matched capabilities filtered by the seed's capability slugs). For competitors central to the seed's competitive frame, follow up with `query-competitor` for the full intelligence body and linked findings.
@@ -122,6 +126,7 @@ Load these files in parallel:
 ### Step 2: Validate the Seed
 
 Confirm the seed file has:
+
 - `stage: seed` in frontmatter
 - Core insight populated in body (non-empty)
 - Source populated in body (non-empty)
@@ -138,6 +143,7 @@ Confirm the seed file has:
 **Prerequisite:** Seeds should be refined via `/refine-seed` before development. Refinement handles intent clarification (capability-absent vs. experience-broken), header field drafting, related ideas matching, and merge/keep decisions.
 
 Check the seed file for refinement indicators:
+
 - **Core insight** populated (non-empty, one sentence)
 - **Initial strategic connection** populated (names a priority and mechanism)
 - **related-ideas** frontmatter resolved (may be empty if no relations exist — that's valid)
@@ -150,7 +156,7 @@ Check the seed file for refinement indicators:
 
 Conduct five research streams. Streams B-E invoke specialized agents; Stream A is orchestrator-executed and splits across two phases — its internal-context half (Phase 1b) runs concurrently with the agent fan-out, its shared-research half (Phase 3) after the database refresh. Prioritize depth over breadth — 3 strong findings beat 10 shallow ones.
 
-**Phase 1: Agent Research (parallel fan-out)**
+#### Phase 1: Agent Research (parallel fan-out)
 
 Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, tam-estimate — as parallel background subagents in a SINGLE message via the Agent tool: one `Agent` call per stream, all in the same message, with `subagent_type` set to the matching agent name. They run concurrently in isolated contexts; no agent depends on another's output. Each produces a research artifact at `Research/{idea-name}/` and returns its held-back writes-of-record as payloads for the orchestrator to apply in Phase 1.5.
 
@@ -163,7 +169,7 @@ Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, ta
 
 Each subagent's SKILL.md assumes slash-command invocation — a parsed `$ARGUMENTS`, a cwd-relative `research-db.py`, generic file tools. None of that holds under a pointer-invoked Agent call, so the prompt supplies the argument explicitly and overrides those assumptions with an execution contract. Use this pointer-prompt template per agent, substituting `{idea-name}` and `{skill}` (the agent's skill directory name, e.g. `educator-sme`):
 
-```
+```text
 Read your operational protocol at claude/skills/{skill}/SKILL.md (via Obsidian MCP read_note if generic Read is redirected) and execute it in idea-mode for the idea: {idea-name}.
 Execution contract (overrides where the protocol assumes slash-command invocation):
 - Treat {idea-name} as the parsed argument; you are in idea-mode.
@@ -179,7 +185,7 @@ Execution contract (overrides where the protocol assumes slash-command invocatio
 **Model overrides:**
 
 | Agent | Model |
-|-------|-------|
+| ------- | ------- |
 | edtech-sme | Sonnet-class |
 | tam-estimate | Sonnet-class |
 | educator-sme | Sonnet-class |
@@ -191,7 +197,7 @@ Overrides are persona-rubric-gated; a lens that fails its rubric reverts to sess
 
 **Agent failure handling:** The four streams run concurrently, so evaluate their reports as a set once they return rather than one at a time. A failure in any one stream (timeout, stop rule, error, or no report) does not affect the others and no single agent blocks the pipeline — record the failed or empty stream by name with its reason in Phase 1.5 and continue with the successful streams. See the error handling table for per-agent fallback behavior.
 
-**Phase 1b: Stream A part 1 — Internal Strategic Context (orchestrator, concurrent with the fan-out)**
+##### Phase 1b: Stream A part 1 — Internal Strategic Context (orchestrator, concurrent with the fan-out)
 
 No agent covers this — strategy docs, NPS, and OKRs require internal file access. **Start it as soon as the four agents are launched and run it while they are in flight.** It reads internal vault files only and depends on nothing the agents produce or write, so holding it until after the fan-out leaves the orchestrator idle across the entire research window for no gain. It must finish before Phase 1.5 begins.
 
@@ -213,7 +219,7 @@ Stream A's remaining half — the shared-research reconciliation — genuinely d
 
   NPS findings directly inform the Customer Sentiment dimension rating. Absence of signal across the full window is itself evidence — note it explicitly in the handoff.
 
-**Phase 1.5: Serialized writes-of-record**
+###### Phase 1.5: Serialized writes-of-record
 
 **Resume after interruption/restart:** list `Research/{idea-name}/` first — a stream whose artifact file exists is complete (its held-back payload is in its report if recoverable, else re-derivable from the artifact); relaunch ONLY missing streams. After applying writes-of-record, immediately create `Research/{idea-name}/development-research.md` as a one-line stub "Phase 1.5 writes-of-record applied {date}" (Step 8 expands it). This stub is the duplicate-write guard: if it exists, do NOT re-apply DB writes.
 
@@ -225,28 +231,32 @@ The parallel agents held back every write-of-record; the orchestrator applies th
 2. **Append artifact paths in one write.** Collect ALL new artifact paths returned by the successful agents and append them to the idea card's `research:` frontmatter array in a SINGLE read-modify-write operation: read the current array, append the new paths, and write once via `update_frontmatter`. Do not issue per-agent frontmatter writes — the agents held these back precisely so the orchestrator serializes them.
 3. **Record stream outcomes.** A stream that failed or returned no report is recorded by name with its failure reason; continue with the successful streams. The existing per-agent failure rules (error handling table) apply, and Phase 4's EdTech WebSearch fallback is unchanged.
 
-**Phase 2: Refresh Shared Research Baseline**
+###### Phase 2: Refresh Shared Research Baseline
 
 After Phase 1.5 applies the held-back writes, re-query the research database to pick up the findings and competitor entries just written:
+
 - `python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'` — refreshed findings + competitor metadata
 
 Phase 1.5 applied `upsert-competitor` for new/updated competitors and `write-findings` for new findings from the agents' held-back payloads. This refresh ensures Phase 3 works from the latest state.
 
-**Phase 3: Stream A part 2 — Shared-Research Reconciliation (orchestrator)**
+###### Phase 3: Stream A part 2 — Shared-Research Reconciliation (orchestrator)
 
 Stream A's internal-context half already ran during the fan-out (Phase 1b). What remains is the part that genuinely depends on Phase 1.5's applied writes and the Phase 2 refresh — it cannot move earlier.
 
 - **Shared research check:** Review the refreshed database query results for findings relevant to this idea's problem space. Note which entries are within TTL (usable as baseline) versus past TTL (directional only — reverify). This now includes any findings applied in Phase 1.5 from the agents' held-back payloads.
 - For each finding, note connection strength: **direct** (explicitly named), **adjacent** (related priority, plausible mechanism), or **indirect** (thematic only).
 - **Database enrichment:** When specific competitors surface during Stream A research, use the database for targeted deep-dives:
+
   ```bash
   python3 scripts/research-db.py query-competitor --json '{"name": "Competitor Name"}'
   ```
+
   This retrieves the full profile (intelligence body, all findings, capability tags) for that specific competitor — richer context than the local file frontmatter alone. Use selectively for competitors that are central to the idea's competitive positioning, not for every competitor in the registry.
 
-**Phase 4: Stream B Fallback (orchestrator — only if edtech-sme failed)**
+###### Phase 4: Stream B Fallback (orchestrator — only if edtech-sme failed)
 
 If `/edtech-sme` failed in Phase 1, execute fallback market intelligence research:
+
 - Use `WebSearch` for competitor landscape, market trends, technology enablers, and customer signals.
 - Execute 3-5 targeted searches derived from the seed's themes and core insight.
 - Capture findings with source URLs.
@@ -254,9 +264,10 @@ If `/edtech-sme` failed in Phase 1, execute fallback market intelligence researc
 
 This preserves current Stream B quality when the agent is unavailable. If edtech-sme succeeded, skip this phase entirely — the agent's output is the market intelligence.
 
-**Phase 5: Read Agent Artifacts**
+###### Phase 5: Read Agent Artifacts
 
 Read all successfully produced agent artifacts to prepare for handoff creation:
+
 - `Research/{idea-name}/edtech-market-analysis.md` (if edtech-sme succeeded)
 - `Research/{idea-name}/tam-estimate.md` (if tam-estimate succeeded)
 - `Research/{idea-name}/educator-evaluation.md` (if educator-sme succeeded)
@@ -468,6 +479,7 @@ After synthesis completes, invoke the buildable surface enrichment agent to chec
 Use the Skill tool with skill name `buildable-surface`, passing the idea name as the argument (e.g., `foraging-intelligence`).
 
 The buildable-surface skill declares `context: fork`, so it executes in an isolated forked context. It reads the idea card and research artifacts, applies a three-signal detection heuristic, and either:
+
 - **No-ops** (feature-shaped) — no section added, proceed to Step 6
 - **Fires** (principle-shaped or borderline) — writes a `### Buildable Surface` section between Thought Outline and Open Questions
 
@@ -493,6 +505,7 @@ If `/divergent-thinking` failed or no `divergent-angles.md` exists, omit the sec
 Using the portfolio theme vocabulary collected in Step 1 and the research findings from Step 4, assess whether the seed's theme classifications still hold.
 
 **General theme assessment:**
+
 - For each existing theme: does research confirm this idea is substantively about this theme, or was it a surface-signal classification? Remove if incidental.
 - For themes in the portfolio vocabulary NOT on the seed: did research reveal a genuine connection the router missed? Add if substantive. Only use existing themes — never invent new ones.
 - Minimum one theme per idea.
@@ -500,6 +513,7 @@ Using the portfolio theme vocabulary collected in Step 1 and the research findin
 **ai-capabilities special case:**
 
 Does AI make or break this idea?
+
 - **Requires AI** → add the tag. The feature doesn't work without it.
 - **Enhanced by AI** → add the tag. Works without AI, but AI is a natural progressive enhancement — not forced.
 - **AI would be forced** → don't add. Solution looking for a problem.
@@ -531,6 +545,7 @@ The artifact-critic skill declares `context: fork`, so it runs in an isolated fo
 
 **Triage the findings:**
 For each finding the critic returns, either:
+
 - **Fix it** in the idea file, or
 - **Override it** with a stated reason (the deviation is intentional and improves the artifact)
 
@@ -538,6 +553,7 @@ If any findings are overridden, note them in the Step 9 presentation under the c
 
 **Critic-skipped fallback:**
 If the artifact-critic invocation returns an error, fails to produce a deviation report, or otherwise does not complete its check, do NOT silently proceed. The orchestrator must:
+
 1. Note the failure reason in working memory.
 2. Perform a best-effort self-review against the format spec and persona guide as a stopgap.
 3. Explicitly surface in Step 9 under the confidence assessment: "Artifact-critic skipped — {reason}. Self-review only; independent adversarial check did not run."
@@ -583,7 +599,7 @@ The synthesis handoff was created in Step 4.5. This step creates the full persis
 
 Lead with the verdict block; then details. Do NOT dump the full card inline — link it, show on request.
 
-```
+```text
 {idea} → developed · confidence: {level} · spine: {moved|unchanged|skipped-thin} · format rec: {strategy-doc|product-brief}
 credibility: {clean | amber ({n}): {signals}}
 next: accept · press harder (targeted re-run) · /thesis-test (≈half a develop) · /draft · revise
@@ -594,6 +610,7 @@ next: accept · press harder (targeted re-run) · /thesis-test (≈half a develo
 - **credibility token — computed mechanically.** `clean` unless any fire → `amber ({n}): {named signals}`: spine diff unchanged-and-rubber-stamp-suspect (when run), any lens fell back or failed, thin research array, zero genuine Open Questions on a complex idea, flat rating variance. Thin-seed branch (spine check skipped): token uses confidence + lens count only. Name any unresolved Step 4.6 skeptic flags here.
 
 **Research summary:**
+
 - Stream A (Internal): {N} connections ({direct/adjacent/indirect})
 - Stream B (EdTech SME): {market fit {verdict}, {N} competitors | fallback web searches}
 - Stream B (TAM): {TAM ${X}, confidence {level} | unavailable}
@@ -604,11 +621,13 @@ next: accept · press harder (targeted re-run) · /thesis-test (≈half a develo
 **Related seeds:** {list or "none found"}
 
 **Classification updates:**
+
 - Title: {unchanged | "Old" → "New"}
 - Themes: {unchanged | added: [x], removed: [z] — rationale per change}
 - AI Feature (JPD): {Yes — load-bearing | No — value stands without AI}
 
 **Spine check (rubber-stamp detector):** {Skipped — seed too thin | results below}. Read the `## Spine Snapshot` section from `synthesis-handoff.md` — never from memory:
+
 - Strategic connection: {moved — seed text replaced | UNCHANGED from seed}
 - Seed capture questions: {N of M survive in Open Questions}
 - Seed dimension ratings: {n/a — seed had none | {K} of {J} unchanged}
@@ -657,6 +676,7 @@ Update via `upsert-competitor` (Snowflake-backed). See the edtech-sme skill for 
 
 Note in the presentation:
 > **Competitor registry updated:**
+>
 > - New: {list with category and capabilities, or "none"}
 > - Updated: {list with what changed, or "none"}
 > - Category changes proposed: {list with rationale, or "none"}
@@ -667,7 +687,7 @@ Note in the presentation:
 At any point during execution, stop and report when:
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Core insight already addressed by existing initiatives | Stop. Report what you found. Classify as "redirect" if initiative is in a different domain, "duplicate" if same domain. |
 | No strategic connection can be established honestly | Stop. Report: no connection found after searching strategy docs and OKRs. Classify as "pause" (no foundation). |
 | Critical context can only come from human | Stop. Report what's missing and why you cannot research it. Ask the human to provide. |
@@ -676,11 +696,13 @@ At any point during execution, stop and report when:
 | Self-declared weakness in strategic connection | Treat as pre-filter signal. Validate quickly (one targeted Grep + one OKR check) before investing in full research. If validation fails, fire stop rule. |
 
 **Minimum strategic connection threshold:** A viable connection requires at least one of:
+
 - (a) Direct reference in product or design strategy docs
 - (b) Direct advancement of a named 2026 OKR
 - (c) Two or more adjacent connections to named priorities with a plausible mechanism
 
 If none exist, the stop rule fires. When stopping, distinguish between:
+
 - **Redirect:** Idea has merit but belongs in a different domain
 - **Pause:** Idea lacks strategic foundation entirely
 
@@ -689,7 +711,7 @@ When stopping, state explicitly: what was found, what is missing, and what would
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no seed-stage ideas exist | Report "No seed-stage ideas found in Ideas/" and exit |
 | Idea file not found | Report with available filenames from Ideas/ listing, exit |
 | Idea not at seed stage | Report current stage, exit |
@@ -712,6 +734,7 @@ When stopping, state explicitly: what was found, what is missing, and what would
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Perform strategic synthesis — that is the develop-synthesis agent's job
 - Refine seeds, clarify intent, or resolve related ideas — that is `/refine-seed`'s job (run it first)
 - Create seed files (that is the router's job via `/process-inbox`)

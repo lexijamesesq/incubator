@@ -11,6 +11,7 @@ All outputs from Stage 2 onward follow `persona.md`.
 ## Core Documents
 
 **For any incubator work:**
+
 1. This .claude/instance.md — configuration and project state
 2. `persona.md` — Voice and style (applies Stage 2 onward)
 3. `incubator-reference.md` — Thin section index -> `reference/` (stage model, architecture, schemas, templates, workflow, research protocol, shared research, initiative schema, JPD integration). Load only the section file(s) a task needs, not the whole set.
@@ -21,6 +22,7 @@ All outputs from Stage 2 onward follow `persona.md`.
 6. `Templates/product-brief-template-v2.md` — Brief output template
 
 **For strategic context (load targeted sections, not full files):**
+
 - See Configuration > External References below for paths
 
 ---
@@ -30,7 +32,7 @@ All outputs from Stage 2 onward follow `persona.md`.
 The pipeline depends on multiple MCP servers. Verify connections before invoking long-running skills (especially `/develop` and `/draft`) — partial-state failures mid-run waste both work and tokens.
 
 | MCP Server | Used By | Failure Mode |
-|---|---|---|
+| --- | --- | --- |
 | Obsidian | All skills that read/write vault `.md` files | Pipeline-wide failure — vault redirect hook blocks `Read`/`Edit`/`Write`/`Grep` and routes to Obsidian MCP. Without it, skills cannot read idea cards, NPS files, persona, strategy docs. |
 | Atlassian | `/cross-domain` (read JPD), `/jpd-push` (write to JPD) | Skill-local failure with auth-flow recovery — surface the OAuth URL, retry once after user completes flow. |
 
@@ -146,6 +148,7 @@ Before using this system, you must customize:
 <!-- Bullet points on pipeline status, architecture, portfolio -->
 
 ### Next Actions (Max 5)
+
 1. <!-- Action item -->
 
 ### Decisions Made (This Session)
@@ -156,15 +159,18 @@ Before using this system, you must customize:
 ## Intake
 
 ### Tasks
+
 **Method:** Linear
 **Project ID:** YOUR_PROJECT_UUID_HERE
 **Location:** [Linear project: YOUR_PROJECT_NAME](YOUR_LINEAR_PROJECT_URL) (YOUR_TEAM team)
 **Context:** Context/
 
 ### Narrative
+
 **Method:** Linear Project Updates
 
 ### Notes
+
 **Seed intake (Stage 0→1):** Items classified as strategy seeds by the inbox router are delivered here as seed files in `Ideas/`. Seeds require the full frontmatter schema and seed template defined in `incubator-reference.md` (sections: Frontmatter Schema, Seed Template). The router reads this contract and conforms — it does not carry its own copy of the schema.
 
 **Signal-extracted seeds:** Ad-hoc captures with strategic signals also arrive as seeds via the same contract, with `source: slack`. Detection and extraction logic is the router's responsibility; the resulting file must conform to this project's seed contract.

@@ -22,6 +22,7 @@ Every estimate must be defensible — well-sourced ranges beat unsourced point e
 ## Domain Knowledge
 
 The company sells assessment and learning management tools to educational institutions. Read its product line, market position, and per-segment market shares from this project's CLAUDE.md Configuration (`role`) and context — do not assume them.
+
 - Customers: K-12 districts, higher ed institutions, continuing education
 - Geographies: Primarily North America, expanding internationally
 - Business model: SaaS — MAU x ARPU = ARR
@@ -29,6 +30,7 @@ The company sells assessment and learning management tools to educational instit
 **SOM cap:** The company's SOM must be capped relative to its actual market position. Use its per-segment shares (from project context) as the ceiling — its higher-ed LMS share caps higher-ed SOM; its K-12 mastery penetration caps K-12 SOM. For cross-segment ideas, apply the appropriate cap per segment and sum.
 
 **Buyer-level economics:**
+
 - K-12: ~13,000 school districts (US), ~130,000 individual schools. District procurement, Title I/ESSER funding.
 - Higher ed: ~4,000 degree-granting institutions (US). Decentralized procurement.
 - State: 50 state education agencies. International ministries of education.

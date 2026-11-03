@@ -27,7 +27,7 @@ Normally invoked by the /develop orchestrator after research (Steps 0-4) is comp
 Parse `$ARGUMENTS` to resolve the target idea file.
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Report error: idea name required. Exit. |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -61,6 +61,7 @@ Load in parallel:
 ### Step 2: Validate
 
 Confirm:
+
 - Seed file exists and has `stage: seed` in frontmatter
 - Research handoff exists and is non-empty
 - Persona guide loads successfully
@@ -72,6 +73,7 @@ If seed is not at `stage: seed`: report current stage and exit. The orchestrator
 Apply the reasoning dimensions from the agent definition (The User's Moment, The Single Strategic Move, The Compound, The Strategic Connection, The Unique Territory) to produce the TL;DR card content. The agent definition carries the full reasoning framework, rubrics, voice requirements, and output template.
 
 Write the completed card to the idea file:
+
 - Update frontmatter (stage, updated date, impact dimensions)
 - Replace body content above `### Original Capture` with the TL;DR template
 - Preserve `### Original Capture`
@@ -80,7 +82,7 @@ Write the completed card to the idea file:
 
 Present what was produced:
 
-```
+```text
 Synthesis complete: {idea-name}
 
 Impact dimensions: {CS}/{UX}/{RP}/{ID}/{SA}
@@ -90,7 +92,7 @@ Card written to: Ideas/{idea-name}.md
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument provided | Report: idea name required. Exit. |
 | Idea file not found | Fuzzy match, report available files. Exit. |
 | Research handoff not found | Report: run research phase first. Exit. |

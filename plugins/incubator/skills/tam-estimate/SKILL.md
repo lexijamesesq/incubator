@@ -26,7 +26,7 @@ Produces defensible TAM/SAM/SOM estimates for a strategic idea in the assessment
 
 ## Invocation
 
-```
+```text
 /tam-estimate [idea-name]                  # idea mode
 /tam-estimate --adhoc "market category"    # ad-hoc mode
 ```
@@ -48,7 +48,7 @@ Parse `$ARGUMENTS` to determine mode:
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | Glob `Ideas/*.md`, present titles, ask user to select |
 | `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
 | No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
@@ -83,6 +83,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 1: Load Context
 
 **Idea mode:** Load the idea file at the resolved path — full content (frontmatter + body). Extract:
+
 - `domain` — assessments, platform, or cross-product
 - `themes` — thematic keywords for search targeting
 - **Core insight** — from body content
@@ -91,9 +92,11 @@ Execute these steps in order. Stop and report errors at any step rather than con
 **Ad-hoc mode:** The subject string is the market category to size. No idea file, no themes, no domain. Frame Step 2 market scope entirely from the subject string. Ad-hoc subjects are expected to be reasonably specific (e.g., "K-12 authentic assessment" not "edtech"); if the subject is too broad, Step 2's stop rule fires.
 
 **Shared research baseline:** Query the strategy research database for TAM figures, growth rates, and buyer benchmarks:
+
 ```bash
 python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
 ```
+
 Derive capability slugs from the idea's `themes` field. Within-TTL entries are known starting points — do not re-research established sizing data that is already documented and current. Past-TTL entries are directional only (useful for market category framing, not current figures).
 
 No other files needed. TAM estimation is externally validated — internal strategy docs are not relevant.
@@ -105,12 +108,13 @@ Based on the idea's domain and themes, define precisely what market is being siz
 **Domain-to-market mapping:**
 
 | Domain | Primary Market Scope |
-|--------|---------------------|
+| -------- | --------------------- |
 | `assessments` | K-12 assessment tools, higher ed assessment tools, or cross-segment assessment depending on themes |
 | `platform` | LMS platform, integration/interoperability layer, analytics platform |
 | `cross-product` | Multiple segments — size each independently then combine |
 
 **Scoping rules:**
+
 - State the market definition explicitly before any estimation
 - Define what is IN scope and what is OUT of scope
 - If the idea targets a specific segment (e.g., K-12 only), do not size the full education market
@@ -133,6 +137,7 @@ Present the market definition to confirm scope before proceeding to estimation. 
 Start with the broadest relevant market and apply successive filters to arrive at TAM, SAM, and SOM.
 
 **Methodology:**
+
 1. Identify the broadest market category (e.g., global EdTech, global assessment market, K-12 digital learning)
 2. Apply successive filters — each with a cited source:
    - Geography (e.g., North America share of global market)
@@ -144,6 +149,7 @@ Start with the broadest relevant market and apply successive filters to arrive a
 5. Apply SOM filters (obtainable — realistic capture given current market position, sales capacity, competitive dynamics)
 
 **Search strategy:**
+
 - Use `WebSearch` for market sizing data. Execute 3-5 targeted searches:
   - "[market category] market size [current year]"
   - "[market category] TAM [analyst firm]" (HolonIQ, Gartner, Grand View Research, Mordor Intelligence)
@@ -161,6 +167,7 @@ Start with the broadest relevant market and apply successive filters to arrive a
 Build an estimate from buyer-level economics.
 
 **Methodology:**
+
 1. Identify target buyer type:
    - K-12: School districts (US: ~13,000), individual schools (~130,000)
    - Higher ed: Institutions (US: ~4,000 degree-granting), departments within institutions
@@ -177,6 +184,7 @@ Build an estimate from buyer-level economics.
 5. Apply SAM and SOM filters consistent with top-down methodology
 
 **Search strategy:**
+
 - "[buyer type] count [geography] [year]" (NCES, government data)
 - "[product category] pricing per student" or "per institution"
 - "education technology spending per student [segment]"
@@ -190,6 +198,7 @@ Build an estimate from buyer-level economics.
 Compare top-down and bottom-up results and produce a final estimate range.
 
 **Reconciliation protocol:**
+
 1. Compare TAM estimates from both methodologies
 2. If within 2x of each other: methodologies converge — present the range as the estimate band
 3. If >2x divergence: investigate why
@@ -203,6 +212,7 @@ Compare top-down and bottom-up results and produce a final estimate range.
 5. SOM cap: Apply your SOM cap rules based on your organization's actual market position per segment.
 
 **Sensitivity analysis:**
+
 - Identify the 2-3 highest-impact variables (e.g., addressable institution count, spend per student, geographic scope)
 - Show +/- 25% range impact on TAM for each variable
 - This tells the reader which assumptions matter most
@@ -316,7 +326,7 @@ confidence: high | medium | low
 [How this TAM analysis feeds into the idea's revenue-potential impact dimension. What rating (Low/Med/High) this evidence supports and why.]
 ```
 
-4. Update the idea file frontmatter: append the written artifact path to the `research: []` array.
+1. Update the idea file frontmatter: append the written artifact path to the `research: []` array.
    - Read the idea file
    - Find the `research:` line in frontmatter
    - If `research: []` (empty array), replace with `research:\n  - {written path}`
@@ -328,7 +338,7 @@ confidence: high | medium | low
 
 Present the completed TAM estimate to the user with:
 
-```
+```text
 TAM estimation complete: {idea-name}
 
 **Market definition:** [One sentence]
@@ -360,6 +370,7 @@ TAM estimation complete: {idea-name}
 Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing frontmatter ratings, state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
 
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to TAM figures, growth rates, buyer counts, and market benchmarks that would benefit other ideas). Write qualifying findings to the strategy research database:
+
 ```bash
 python3 scripts/research-db.py write-findings --json '{
   "findings": [
@@ -378,6 +389,7 @@ python3 scripts/research-db.py write-findings --json '{
   ]
 }'
 ```
+
 **Source URL requirement:** Every finding MUST have a `source_url` with the most specific available page — not a homepage. Use `source_description` only when no stable URL exists, with enough detail to locate the source. Do not write findings with neither.
 
 ## Stop Rules
@@ -385,7 +397,7 @@ python3 scripts/research-db.py write-findings --json '{
 At any point during execution, stop and report when:
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | Idea too abstract to define market scope | Stop. Report: "Cannot define a market to size. The idea needs more specificity on what problem it solves, for whom, and through what mechanism." Ask human to refine. |
 | No reliable market data after 5+ searches | Present what was found with Low confidence flags on all estimates. Write the artifact with "Insufficient Data" markers. Do not fabricate numbers. |
 | Market scope requires internal revenue data | Stop. Note that external-only sources are insufficient for this specific estimate. Ask human to provide internal data or adjust scope. |
@@ -394,7 +406,7 @@ At any point during execution, stop and report when:
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
 | Idea file not found | Fuzzy match or report with available filenames, exit |
 | Idea file has malformed frontmatter | Report parsing issue with specifics, exit |
@@ -407,6 +419,7 @@ At any point during execution, stop and report when:
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Change the idea's stage
 - Modify the idea body content
 - Create or modify the idea file beyond the `research:` frontmatter array

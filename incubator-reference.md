@@ -5,7 +5,7 @@ Reference material for Incubator stage work, split into section-scoped files und
 **How to use:** Load the specific `reference/{file}.md` your task needs — do not load this whole set. Each pipeline skill names the sections it requires in its own instructions.
 
 | Section | File | Contents |
-|---------|------|----------|
+| --------- | ------ | ---------- |
 | Stage Model | `reference/stage-model.md` | The 0→5 stage table: name, what happens, who drives, entry/exit criteria per stage. |
 | Architecture | `reference/architecture.md` | Two-track model (idea cards + output docs), card update rules, consolidation points, cross-stage detection, merge mechanics, archive conventions. |
 | Frontmatter Schema | `reference/frontmatter-schema.md` | The idea-card YAML frontmatter schema, impact-dimension rationale, TAM/related-ideas rules. |

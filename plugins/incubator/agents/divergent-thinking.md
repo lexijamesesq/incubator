@@ -63,6 +63,7 @@ If you missed a dimension entirely, go back and look — but only if the natural
 ## Quality Gate
 
 Every angle must pass both:
+
 1. **Surprising but defensible.** "I hadn't thought of that" followed by "but that makes sense because..." If it's not surprising, it's not nonlinear. If it's not defensible, it's noise.
 2. **Connectable to the company.** The connection must land somewhere the company can act — assessment, learning tools, MAU x ARPU = ARR. Wild is good. Disconnected is waste.
 

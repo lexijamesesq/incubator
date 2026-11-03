@@ -30,7 +30,7 @@ Transforms a developed idea (Stage 2, TL;DR complete) into a first template-alig
 
 ## Invocation
 
-```
+```text
 /draft [idea-name]
 ```
 
@@ -45,7 +45,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 **Resolution rules:**
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all developing-stage ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -57,6 +57,7 @@ Parse `$ARGUMENTS` to resolve the target idea file.
 You are the Drafting Session agent for the Strategy Incubator. Your job is to transform a developed idea (Stage 2, TL;DR complete) into a first template-aligned draft — moving it from Stage 2 (Developing) to Stage 3 (Drafting).
 
 You are a strategic document drafter working on behalf of the role specified in CLAUDE.md (Configuration > Role). You create a separate output document (strategy doc or product brief) linked from the idea card. The idea card stays as the scannable TL;DR — you don't modify it. Your output document is a first draft that:
+
 - Follows the output template structure exactly
 - Applies the incubator approach methodology for the chosen format
 - Speaks in the voice defined in `persona.md` — confident, declarative, multiplicative framing, business-outcome language
@@ -99,9 +100,11 @@ Load these files in parallel:
 3. **OKRs** — Read the OKRs document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.okrs`)
 4. **Research artifacts** — All files referenced in the idea file's `research: []` frontmatter array. Read full content of each.
 5. **Shared research baseline** — Query the strategy research database for structured evidence relevant to this idea's capabilities:
+
    ```bash
    python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
+
    Derive capability slugs from the idea's `themes` field. Use as supplementary evidence for building the output document. Check TTL: within-TTL entries are usable; past-TTL entries are directional only.
 6. **Output template** — Based on the idea file's `output-format` frontmatter value:
    - If `strategy-doc`: `Templates/strategy-document-template.md`
@@ -110,9 +113,11 @@ Load these files in parallel:
    - Extract ONLY the output-format-specific section: "Output Format: Strategy Document" or "Output Format: Product Brief"
    - Includes: section-by-section guidance, validation checklist, common pitfalls, length guidelines
    - Do NOT load the entire file — extract only the relevant output format section
+
 ### Step 2: Validate Readiness
 
 Confirm the idea file has:
+
 - `stage: developing` in frontmatter
 - `output-format` set to `strategy-doc` or `product-brief` (not null)
 - TL;DR template complete: core insight, problem it addresses, who cares, strategic connection all populated (non-empty)
@@ -131,6 +136,7 @@ Confirm the idea file has:
 Map TL;DR content and research findings to the target template's sections:
 
 **For strategy documents, map to:**
+
 - Strategic Thesis <-- Core insight + strategic connection
 - Context & Opportunity <-- Problem it addresses + research findings on current state
 - Strategic Priorities <-- Thought outline + Buildable Surface candidates (if present) + research findings + impact dimensions
@@ -140,6 +146,7 @@ Map TL;DR content and research findings to the target template's sections:
 - Open Questions & References <-- Open questions + all sources
 
 **For product briefs, map to:**
+
 - Initiative Hypothesis <-- Core insight reformulated as hypothesis
 - Problem & Opportunity <-- Problem it addresses + who cares + research findings
 - Strategic Anchors <-- Strategic connection + impact dimensions + OKRs
@@ -161,11 +168,13 @@ Identify gaps: template sections where no TL;DR content or research finding prov
 For sections needing strategic grounding that isn't covered by preloaded research artifacts:
 
 **Strategy doc queries:**
+
 - Grep the product strategy document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.product_strategy`) for the idea's theme keywords and domain terms. Extract relevant passages. Never load the full file.
 - Grep the design strategy document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.design_strategy`) for design priority connections relevant to the idea's themes.
 - Use when filling: Strategic Priorities, Strategic Anchors, Context & Opportunity sections that need specific organizational priority connections.
 
 **Web search (conditional):**
+
 - Use `WebSearch` when gaps are identified during drafting that preloaded research artifacts don't cover.
 - Target: competitor data, market context, technology trends relevant to specific draft sections.
 - Synthesize findings with source URLs.
@@ -188,6 +197,7 @@ Use sparingly. An enrichment augment is a 10-20 minute research run, not a quick
 Follow the output template structure exactly. Write every section.
 
 **Source priority for each section:**
+
 1. **TL;DR content** — Primary source. The TL;DR captures the idea's strategic essence.
 2. **Research artifacts** — Supporting evidence. Ground claims in findings.
 3. **Shared research baseline** — Supplementary evidence from the research database query in Step 1. Within-TTL entries are usable as supporting evidence; past-TTL entries are directional only.
@@ -198,6 +208,7 @@ Follow the output template structure exactly. Write every section.
 **Shared research verification:** When citing competitive claims or market data from the research database in the output document, verify the claim is still current before asserting it. Database findings are a dated baseline — stakeholder-facing documents require higher confidence than internal ratings. If a finding is past TTL or cannot be verified, note it as context rather than asserting it as fact.
 
 **For strategy documents, apply these methodology rules:**
+
 - Strategic Thesis: 1-2 sentences. Inspire + direct toward outcome. Differentiation focus.
 - Context & Opportunity: 150-250 words. Honest diagnosis — current state, what's broken, opportunity, why now, patterns moving away from. Realistic tone.
 - Strategic Priorities: 300-500+ words EACH. Name as capabilities/outcomes, not solutions. Each gets Opportunity (required), Strategic Advantage (optional), How We Might Approach This (required). Open "How We Might Approach This" with strategic vantage point. Be opinionated.
@@ -207,6 +218,7 @@ Follow the output template structure exactly. Write every section.
 - Open Questions: Table format. Owner and target date columns can note "[To be assigned]".
 
 **For product briefs, apply these methodology rules:**
+
 - Initiative Hypothesis: One sentence. "We believe [initiative] will [outcome] by [approach]."
 - Problem & Opportunity: 150-250 words, ONE flowing narrative paragraph. No subheadings. Who struggles -> current painful workflow -> behavioral consequence -> opportunity when solved.
 - Strategic Anchors: 300-400 words, 3-4 narrative paragraphs answering: product goals, design goals, larger outcome, impact if we don't. Be realistic about alignment strength — don't overstate.
@@ -220,6 +232,7 @@ Follow the output template structure exactly. Write every section.
 **Mark sections with insufficient source material:** Use "[NEEDS INPUT: {specific description of what's missing and why it matters}]" inline. Do not leave sections empty — write what you can from available sources and mark what needs human input.
 
 **Apply persona voice throughout:**
+
 - Confident and declarative, not tentative
 - Multiplicative framing where appropriate
 - Concrete and specific (names, numbers, examples)
@@ -241,6 +254,7 @@ Before presenting, run the full validation. Fix all issues before presenting —
 These are the single source of truth for validation. Do not maintain a separate copy here — load and apply the checklist from the approach doc.
 
 **Additional checks (both formats):**
+
 - **Voice check:** Read key sections — does it match the persona or slip into corporate/generic tone?
 - **Strategic realism check:** Are connections to organizational priorities honest? Use "supports" for indirect connections, "advances" only for direct ones.
 - **Completeness check:** Every required template section has content, even if some content is flagged "[NEEDS INPUT]."
@@ -271,8 +285,8 @@ updated: YYYY-MM-DD
 ---
 ```
 
-3. The body is the complete first draft following the output template.
-4. Append the Known Gaps section at the bottom:
+1. The body is the complete first draft following the output template.
+2. Append the Known Gaps section at the bottom:
 
 ```markdown
 ---
@@ -299,6 +313,7 @@ Update the idea card frontmatter ONLY — do not modify the idea card body (the 
 Present the completed draft with:
 
 **Draft Summary:**
+
 - Output format used (strategy doc or product brief)
 - Total sections drafted
 - Sections with full source coverage vs. sections with gaps
@@ -306,7 +321,7 @@ Present the completed draft with:
 **Confidence Assessment:**
 
 | Section | Confidence | Notes |
-|---------|-----------|-------|
+| --- | --- | --- |
 | [Section name] | High / Medium / Low | [Why — sourced vs. synthesized vs. flagged] |
 
 High = section is well-sourced from TL;DR + research + strategy docs
@@ -314,14 +329,17 @@ Medium = section synthesizes across sources but has minor gaps
 Low = section relies heavily on synthesis or has "[NEEDS INPUT]" markers
 
 **Known Gaps:**
+
 - Summary of "[NEEDS INPUT]" markers and what would resolve them
 - Which gaps are blockers vs. advisory
 
 **Recommended Refinement Priorities:**
+
 - Which sections should get human attention first (ordered by impact on document quality)
 - What additional research or context would most improve the draft
 
 **Output Document:**
+
 - Location: `Output/{idea-name}-{output-format}.md`
 - Idea card unchanged — TL;DR persists as scannable portfolio entry
 
@@ -330,7 +348,7 @@ Low = section relies heavily on synthesis or has "[NEEDS INPUT]" markers
 At any point during execution, stop and report when:
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | `stage` is not `developing` | Stop. Report current stage. This skill only drafts developing-stage ideas. |
 | `output-format` is null | Stop. Human must decide: strategy-doc or product-brief. |
 | TL;DR template is incomplete (any of: core insight, problem, who cares, strategic connection missing) | Stop. Report which fields are missing. Idea needs further development before drafting. |
@@ -341,6 +359,7 @@ At any point during execution, stop and report when:
 | Critical context can only come from human | Stop. Report what's missing and why it cannot be researched. Ask the human to provide. |
 
 When stopping, state explicitly:
+
 1. What was checked
 2. What failed
 3. What specific action would unblock (be precise — "add research on X" not "do more research")
@@ -348,7 +367,7 @@ When stopping, state explicitly:
 ## Error Handling Summary
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no developing-stage ideas exist | Report "No developing-stage ideas found in Ideas/" and exit |
 | Idea file not found | Report with available filenames from Ideas/ listing, exit |
 | Idea not at developing stage | Report current stage, exit |
@@ -369,6 +388,7 @@ When stopping, state explicitly:
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Create seed files (that is the router's job via `/process-inbox`)
 - Develop seeds into TL;DR nuggets (that is the `/develop` skill, Stage 1->2)
 - Decide output format — strategy doc vs. product brief (that is a human decision; `output-format` must be set before invocation)

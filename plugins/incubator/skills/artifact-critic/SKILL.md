@@ -20,7 +20,7 @@ Check the specified artifact against structural, voice, and rating calibration c
 
 ## Invocation
 
-```
+```text
 /artifact-critic [idea-file-path]
 ```
 
@@ -45,7 +45,7 @@ Before applying the checks below, identify the artifact class. When the artifact
 
 Check structural conformance against this spec:
 
-```
+```text
 **Core insight:** One sentence — confident and declarative
 **Problem it addresses:** One sentence — what's broken today
 **Who cares:** One sentence — audiences and their stakes, comma-separated

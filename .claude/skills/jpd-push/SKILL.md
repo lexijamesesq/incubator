@@ -30,7 +30,7 @@ Pushes a developed idea to JPD for stakeholder visibility. One-directional — n
 
 ## Invocation
 
-```
+```text
 /jpd-push [idea-name]
 ```
 
@@ -53,7 +53,7 @@ Unknown flags should be reported as an error and exit before resolution proceeds
 **Idea-name resolution rules** (applied after flag parsing, against the positional argument):
 
 | Input | Behavior |
-|-------|----------|
+| ------- | ---------- |
 | Empty | List all developing-or-later ideas in Ideas/, ask user to select |
 | `idea-name` | Resolve to `Ideas/{idea-name}.md` |
 | `idea-name.md` | Strip `.md`, resolve as above |
@@ -80,6 +80,7 @@ Also read `Projects/Incubator/CLAUDE.md` Configuration > External References blo
 Read the idea file via `mcp__obsidian__read_note` (vault `.md` files are blocked from generic Read by the vault redirect hook — Obsidian MCP is the canonical reader for vault content). Verify all push prerequisites:
 
 **Required for push:**
+
 - `stage` is `developing`, `drafting`, `refining`, or `complete`
 - All five impact dimensions are non-null (`customer-sentiment`, `user-experience`, `revenue-potential`, `industry-disruption`, `strategic-alignment`)
 - Body contains populated sections: Core insight, Problem it addresses, Who cares, Strategic connection, Opportunity Assessment table, Research Summary
@@ -142,13 +143,13 @@ The `<<SIDECAR_URL>>` token is a literal placeholder. On first push, Step 3c sta
 {Content — verbatim from card}
 ```
 
-"Strip bold label prefix" means: `**Core insight:** Assessment platforms treat...` becomes `Assessment platforms treat...` — remove the `**Label:** ` prefix since the heading now provides the context.
+"Strip bold label prefix" means: `**Core insight:** Assessment platforms treat...` becomes `Assessment platforms treat...` — remove the `**Label:**` prefix since the heading now provides the context.
 
 **Link translation:** Idea cards may use internal file paths for strategy doc references. Before building the description, replace these with external URLs so links resolve in Jira. The link translation table is configured in CLAUDE.md under Configuration > External References — each external reference entry includes both a local path and an external URL. Match on the local path substring within markdown links and replace with the corresponding external URL, preserving the link text.
 
 Apply to the entire description body.
 
-**Step 3a: Cross-Domain Signals section (mirror card or self-heal from artifact)**
+### Step 3a: Cross-Domain Signals section (mirror card or self-heal from artifact)
 
 The default path is card-canonical: if the card body has a `### Cross-Domain Signals` section, transfer it verbatim into the JPD body as `## Cross-Domain Signals` (heading level adjusted from h3 to h2; content preserved exactly). The card carries the curated 5 signals + 1 convergence group selected by the cross-domain skill's Phase 2.5 ranking — JPD shows the same curated set. The full classified set (including any signals excluded from card output, plus retrieval stats) lives in the Research Sidecar (Step 3c) for stakeholders who want depth.
 
@@ -165,7 +166,7 @@ Self-heal procedure:
 
 3. Format the curated set into a `### Cross-Domain Signals` section using the canonical card template:
 
-   ```
+   ```text
    ### Cross-Domain Signals
    {N} ideas from other domains with possible functional overlap:
    - [{issue-key}]({Atlassian base URL from jira-config.md}/browse/{issue-key}) {Issue Title} ({Domain Label}) — {Signal type}: {Connection text — verbatim from artifact's **Connection:** field}
@@ -186,7 +187,7 @@ Self-heal procedure:
 
 **Self-heal scope:** This fallback only inserts a missing section. It does NOT re-curate cards that already have a section but with stale content (e.g., >5 signals, malformed entries). For those cases, the card edit is a manual operation outside this skill.
 
-**Step 3b: Disruptive Reframing section (mirror card or self-heal from artifact)**
+#### Step 3b: Disruptive Reframing section (mirror card or self-heal from artifact)
 
 The default path is card-canonical: if the card body has a `### Disruptive Reframing` section, transfer it verbatim into the JPD body as `## Disruptive Reframing` (heading level adjusted h3→h2; content preserved exactly), then append the `[Full development research](<<SIDECAR_URL>>)` link trailer below the distillation. The card carries the 2-3 sentence distillation produced by /develop Step 5d — JPD shows the same content. The link trailer is a JPD-only addition; the card version does not include it.
 
@@ -200,14 +201,14 @@ Self-heal procedure:
 
 3. Format the distillation into a `### Disruptive Reframing` section using the canonical card template:
 
-   ```
+   ```text
    ### Disruptive Reframing
    **{Disruptive Angle Title}** — {2-3 sentence insight summarizing the connection and what it opens up}
    ```
 
    No link trailer in the card section — that's a JPD-only addition.
 
-4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `### ` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using `mcp__obsidian__patch_note`. Anchor on the next `### ` heading after Thought Outline and insert the new section before it. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
+4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `###` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using `mcp__obsidian__patch_note`. Anchor on the next `###` heading after Thought Outline and insert the new section before it. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
 
 5. Re-read the card to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
 
@@ -219,7 +220,7 @@ Self-heal procedure:
 
 Avoid the word "leveraged" as a section heading — it's on the persona's kill list and conveys nothing concrete; "Disruptive Reframing" names what the section actually is.
 
-**Step 3c: Stage Research Sidecar content (first push only)**
+##### Step 3c: Stage Research Sidecar content (first push only)
 
 If this is a first push (no `jira-key` in frontmatter), stage the four sidecar `.md` files in memory here. Folder + file creation happens in Steps 5b/5c — after the JPD issue is created and `jira-key` is known — so each file's frontmatter can carry a working back-link to the JPD issue. The Drive MCP doesn't expose a content-edit tool, so each create_file call must be made with the JPD reference already substituted in.
 
@@ -257,7 +258,7 @@ generated: {YYYY-MM-DD via Bash(date:*)}
 **Per-stream slug + sources mapping:**
 
 | File name | stream slug | sources |
-|---|---|---|
+| --- | --- | --- |
 | `EdTech Market Analysis.md` | `edtech-market-analysis` | `- /edtech-sme agentic researcher (web research + competitor evaluation)`<br>`- <<RESEARCH_DB_REF>> — competitive landscape findings` |
 | `TAM Estimate.md` | `tam-estimate` | `- /tam-estimate agentic researcher (top-down + bottom-up market sizing)`<br>`- <<RESEARCH_DB_REF>> — market-sizing findings` |
 | `Educator Evaluation.md` | `educator-evaluation` | `- /educator-sme agentic researcher (classroom-reality evaluation)`<br>`- <<RESEARCH_DB_REF>> — customer-evidence findings` |
@@ -291,7 +292,7 @@ Use the impact dimensions as signals to select the best-fit objective from the m
 
 Present the complete proposed payload to the human:
 
-```
+```text
 **Push preview: {idea-name}**
 Type: {First push | Re-push to {jira-key}}
 
@@ -329,6 +330,7 @@ Confirm to push, or provide overrides (e.g., "change Surface Area to X", "change
 The description body built in Step 3 still contains the literal `<<SIDECAR_URL>>` token in the Research Summary's "Full development research:" link line. Submit it as-is — the placeholder gets replaced in Step 5c after the sidecar exists.
 
 Call `mcp__atlassian__createJiraIssue` with:
+
 - `cloudId`: Cloud ID from `jira-config.md > Connection`
 - `projectKey`: project key from `jira-config.md > Connection`
 - `issueTypeName`: `Idea`
@@ -348,6 +350,7 @@ Extract `jira-key` from the response. Build `jira-url` as `{Atlassian base URL f
 Build the folder name: `{jira-key} - {sanitized-idea-title}`. Sanitize the idea title by replacing forward slashes (`/`) with hyphens (`-`); preserve other characters including Unicode. Example: `PROJ-123 - Cache Route Optimization`.
 
 Submit to `mcp__claude_ai_Google_Drive__create_file`:
+
 - `title`: the sanitized folder name
 - `parentId`: `incubator.jpd_sidecars_folder_id` from CLAUDE.md
 - `contentMimeType`: `application/vnd.google-apps.folder`
@@ -358,12 +361,13 @@ Capture `id` and `viewUrl` from the response. The `viewUrl` is the `sidecar-fold
 **Step 5c — Create the four sidecar `.md` files in parallel:**
 
 For each of the four staged files from Step 3c, substitute the literal frontmatter placeholders:
+
 - Replace `<<JIRA_KEY>>` with `{jira-key}`
 - Replace `<<JIRA_URL>>` with `{jira-url}` (built as `{Atlassian base URL}/browse/{jira-key}`)
 
 Then submit four parallel `mcp__claude_ai_Google_Drive__create_file` calls — one per stream:
 
-```
+```text
 For each (filename, stream-slug, content):
   create_file:
     title: {filename}                              # e.g. "EdTech Market Analysis.md"
@@ -379,6 +383,7 @@ If any file create fails, note the failure and continue — partial sidecar is b
 **Step 5d — Edit JPD issue to substitute the sidecar folder URL:**
 
 Call `mcp__atlassian__editJiraIssue` with:
+
 - `cloudId`: Cloud ID from `jira-config.md > Connection`
 - `issueIdOrKey`: `{jira-key}` from Step 5a
 - `fields`: object with `description` set to the description body where every occurrence of `<<SIDECAR_URL>>` has been replaced with `{sidecar-folder-url}` (the placeholder appears twice — Research Summary trailer and Disruptive Reframing trailer; both must be substituted). The folder URL is the canonical sidecar reference, NOT a per-file URL.
@@ -390,6 +395,7 @@ Description-only edit — all other fields stay as set in Step 5a.
 Transition the issue to "1 - Opportunity Identification" using `mcp__atlassian__transitionJiraIssue` with the transition ID from `jira-config.md > Transition`. This moves the issue from the default "Backlog" status into the proper workflow state.
 
 Update the idea file frontmatter via `mcp__obsidian__update_frontmatter` (the vault redirect hook blocks generic Edit on vault `.md` files):
+
 - Add or update `jira-key: {jira-key}`
 - Add or update `jira-pushed-at: {today's date YYYY-MM-DD}` — use `Bash(date:*)` to get today's date
 - Add `jira-sidecar-url: {sidecar-folder-url}` (folder URL, not a single-file URL)
@@ -399,6 +405,7 @@ Update the idea file frontmatter via `mcp__obsidian__update_frontmatter` (the va
 The description body built in Step 3 uses `jira-sidecar-url` from idea frontmatter substituted directly into the Research Summary "Full development research:" link line — no `<<SIDECAR_URL>>` placeholder, no Drive call, no second editJiraIssue. Just one editJiraIssue.
 
 Call `mcp__atlassian__editJiraIssue` with:
+
 - `cloudId`: Cloud ID from `jira-config.md > Connection`
 - `issueIdOrKey`: the existing `jira-key` from frontmatter
 - `fields`: object containing fields being updated (`summary`, `description`, `labels`, plus any custom field changes — same structure as Step 5a's `additional_fields`)
@@ -424,7 +431,7 @@ If sidecar correction is the entire scope of the invocation (no card content cha
 
 ### Step 6: Report
 
-```
+```text
 Push successful: {idea-name}
 
 **JPD Issue:** {issue-key}
@@ -444,18 +451,20 @@ Local frontmatter updated:
 ## Re-push Guidance
 
 **Re-push warranted when:**
+
 - Strategic direction shifts
 - Impact dimensions change significantly
 - Human explicitly requests
 
 **Re-push NOT warranted when:**
+
 - Output doc gains detail (that's Stage 3+ work, separate from the card)
 - Minor wording refinements
 
 ## Error Handling
 
 | Condition | Behavior |
-|-----------|----------|
+| ----------- | ---------- |
 | No argument and no eligible ideas | Report "No developing-or-later ideas found" and exit |
 | Idea file not found | Report with available filenames, exit |
 | Idea at seed stage | Report "Idea is at seed stage — develop it first with /develop" and exit |
@@ -468,6 +477,7 @@ Local frontmatter updated:
 ## Scope Boundaries
 
 This skill does NOT:
+
 - Develop ideas (that's `/develop`)
 - Draft output documents (that's `/draft`)
 - Sync back from JPD (sync-back is conversational and ad-hoc)
