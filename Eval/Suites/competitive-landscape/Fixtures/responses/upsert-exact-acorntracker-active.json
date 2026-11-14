@@ -1,0 +1,6 @@
+[
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [{"ID": "c-acorntracker-001", "NAME": "AcornTracker", "CATEGORY": "core", "SEGMENTS": ["k-12"], "PRICING_MODEL": "per-student", "INTEGRATION_POSTURE": null, "MARKET_TIER": "tier-1", "INTELLIGENCE": {"body": "AcornTracker is the tier-1 incumbent single-signal location tracker."}, "LAST_RESEARCHED": "2026-06-01", "SUPERSEDED_BY": null}]
+]

@@ -1,0 +1,2 @@
+# Eval fixtures are test data: their shape is set by the skills that read and write them.
+Eval/Suites/*/Fixtures/

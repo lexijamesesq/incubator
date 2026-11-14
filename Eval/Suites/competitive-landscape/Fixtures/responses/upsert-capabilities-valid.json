@@ -1,0 +1,10 @@
+[
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [
+    {"ID": "cap-001", "SLUG": "cache-location-tracking"},
+    {"ID": "cap-002", "SLUG": "soil-signal"},
+    {"ID": "cap-003", "SLUG": "yield-forecasting"}
+  ]
+]

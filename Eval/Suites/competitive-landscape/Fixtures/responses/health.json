@@ -1,0 +1,13 @@
+[
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [{"status": "Statement executed successfully."}],
+  [{"CHECK_NAME": "stale_findings", "ID": "f-002", "CLAIM_PREVIEW": "NutCache Pro's yield prediction model shows 23% variance", "TTL_MONTHS": 6, "CREATED": "2026-01-15"}],
+  [{"CHECK_NAME": "orphan_competitors", "ID": "c-squirrelsense-003", "NAME": "SquirrelSense", "CATEGORY": "emerging", "MARKET_TIER": "tier-3"}],
+  [{"CHECK_NAME": "orphan_capabilities", "SLUG": "yield-forecasting", "COMPETITOR_COUNT": 2, "FINDING_COUNT": 0}],
+  [{"CHECK_NAME": "thin_competitors", "ID": "c-squirrelsense-003", "NAME": "SquirrelSense", "BODY_LEN": 0, "KEY_COUNT": 0}],
+  [{"CHECK_NAME": "unsourced_findings", "ID": "f-003", "CLAIM_PREVIEW": "stub placeholder unsourced claim", "CREATED": "2026-02-01"}],
+  [{"CHECK_NAME": "self_superseded_competitors", "ID": "c-000-legacy", "NAME": "Deprecated Cache Co", "CREATED": "2025-11-01"}],
+  [{"CHECK_NAME": "suspected_duplicate_competitors", "NAME_A": "AcornTracker", "NAME_B": "AcornTracker Pro", "CATEGORY_A": "core", "CATEGORY_B": "core"}],
+  [{"CHECK_NAME": "thin_capability_coverage", "SLUG": "soil-signal", "COMPETITOR_COUNT": 2}]
+]

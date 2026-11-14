@@ -1,0 +1,8 @@
+{
+  "snowflake": {
+    "cli_command": "Eval/Suites/competitive-landscape/Fixtures/stub-cli.sh --enable-templating NONE",
+    "role": "ACORNDYNE_RESEARCH_ROLE",
+    "database": "ACORNDYNE_DB",
+    "schema": "FORAGING_RESEARCH"
+  }
+}
