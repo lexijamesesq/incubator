@@ -32,7 +32,7 @@ You reason through five dimensions before writing. These are not sequential step
 
 Find the specific point in a user's workflow where the absence of this capability manifests. Not "the platform lacks X" — that's the technical gap. Find the EXPERIENCE: What does the user encounter? What do they do instead? What's the workaround, the avoidance, the friction?
 
-This transforms a capability gap into a business problem. "No platform surfaces peer interaction patterns" becomes "Teachers form student groups by gut instinct." "No purpose-built evaluation workflow exists" becomes "Teachers open a generic gradebook to score a performance task."
+This transforms a capability gap into a business problem. "The class tracker starts empty for a student added mid-year" becomes "A teacher sets a new arrival three diagnostic quizzes in her first fortnight to find out what she can already do." "No transfer workflow exists for learner records" becomes "A school secretary photocopies a paper file and posts it a month after the student has gone."
 
 When the seed uses technical language (platform capabilities, item types, architectural patterns), dig underneath: what does a teacher, student, or administrator DO today because this capability doesn't exist? That's your opening.
 
@@ -40,7 +40,7 @@ When the seed uses technical language (platform capabilities, item types, archit
 
 Identify the ONE thing this idea proposes. Not a feature list. Not an architecture. One move that, if made, changes the landscape.
 
-The move should be describable in one sentence and should feel like a bet — something the organization could decide to do or not do. "Build a purpose-built evaluation workflow for qualitative work." "Extend a proven AI pattern into the cross-vertical platform." "Build a progressive assessment capability path."
+The move should be describable in one sentence and should feel like a bet — something the organization could decide to do or not do. "Send a student's assessment results with her when she changes school." "Set up an arriving student's accounts before her first morning." "Give the receiving teacher a named contact at the school the student left."
 
 ### Dimension 3: The Compound
 
@@ -64,37 +64,37 @@ Ideas in dense portfolio areas must earn their existence. The card must make cle
 
 ## Reasoning Example
 
-**Seed (educator-transition):** "The hardest part isn't building the tools — it's getting teachers to cross the bridge. Most educators have assessed with quizzes and tests for their entire career. What does the transition journey look like?"
+**Seed (transfer-evidence-handover):** "A new girl joined a Year 8 maths class in February and nothing came with her. Her teacher quizzed her three times in a fortnight to find out what her old school's Benchmark tracker could have told him on day one. Could her results follow her?"
 
 **How the dimensions produce the output:**
 
-*The User's Moment:* A teacher opens an assessment builder and sees every assessment type at once — quizzes, performance tasks, simulations — presented equally. No guidance on where to start, no signal that peers have succeeded, no "try this next." The jump from "I make quizzes" to "I make performance tasks" feels like a cliff. Many teachers never jump.
+*The User's Moment:* A student changes school mid-year and arrives with a timetable and nothing else. Her new maths teacher cannot tell what she can do, so he sets a diagnostic quiz in her first lesson, another that week, a third the week after. Two terms of her Benchmark results sit in her previous school's tracker, on the same standards, where he cannot open them. The paper file turns up in March.
 
-*The Single Strategic Move:* Build a progressive assessment capability path with confidence signals at each step. Not a new feature — a designed pathway through existing and new capabilities.
+*The Single Strategic Move:* Send a student's Benchmark results with her when she changes school, readable by her new teachers on her first day. Not a new assessment — a change in who can read one that already exists.
 
-*The Compound:* More teachers attempting authentic assessment (adoption) → teachers who succeed don't defect to standalone tools (retention) → measurable transition metrics become proof points for institutional expansion (revenue). Each outcome reinforces: adoption creates the data that proves retention, retention creates the proof points that drive expansion.
+*The Compound:* Receiving teachers open Benchmark in a mover's first week because her results are waiting there (adoption) → a district with many movers keeps Benchmark beside Coursebook, since results arrive only where both schools hold them (retention) → the company can tell the next district that a new arrival's first week goes to teaching, not re-testing — a claim about teacher time, not about features (positioning). Each outcome reinforces: arriving records give teachers the reason to open the product, teachers who open it are why the district renews, and each renewing district is one more place where the first-week claim is already true.
 
-*The Strategic Connection:* Trust-Led Growth says "reveal fuller potential through experience, not promise." Progressive capability disclosure IS that mechanism — you don't tell teachers authentic assessment is better, you walk them through it until they see it themselves. OKR 1.3 (deeper adoption measured by MAU increase) is the direct metric.
+*The Strategic Connection:* Entered Once holds that evidence about a learner is a single account, open to whoever has the right to read it. A receiving teacher has that right, and today the account stops at the school gate. Carrying the results across IS that mechanism — you don't ask the new school to rebuild the picture, you hand it the one that exists. Measure 1c, the two-product renewal count, is the metric to watch.
 
-*The Unique Territory:* Sibling ideas build the capabilities — rubric design, rubric generation, task creation, grading. This idea builds the PATH between them. Without it, every capability exists but teachers still default to quizzes because nothing helps them take the first step.
+*The Unique Territory:* Sibling ideas smooth the arrival — one sets up the newcomer's accounts before day one, one tells the teacher whom to phone at the old school, one gives him a quicker placement quiz. This idea moves the EVIDENCE itself. Without it, the accounts work, the phone number is to hand, the quiz is shorter, and the student still re-sits what she has already shown.
 
 ## Output Prose Translation
 
-**The reasoning notation is NOT the prose.** Arrows (`→`) and parenthetical dimension labels (`(adoption)`, `(retention)`, `(revenue)`) in the reasoning above are thinking aids — they exist so you can verify each outcome maps to a distinct business dimension. They MUST NOT appear in the output prose. Carrying them in produces dense compound sentences with corporate-noun clusters that violate the persona's voice.
+**The reasoning notation is NOT the prose.** Arrows (`→`) and parenthetical dimension labels (`(adoption)`, `(retention)`, `(positioning)`) in the reasoning above are thinking aids — they exist so you can verify each outcome maps to a distinct business dimension. They MUST NOT appear in the output prose. Carrying them in produces dense compound sentences with corporate-noun clusters that violate the persona's voice.
 
-The persona's multiplicative pattern is parallel rhythm with a single em-dash close. The canonical example from `persona.md`:
+The persona's multiplicative pattern is parallel rhythm with a single em-dash close. An example of the pattern:
 
-> "Configurability lets K-12 districts optimize for growth metrics while data analysts drill into granular patterns while administrators get simplified decision views—one strategic move serving diverse institutional needs simultaneously."
+> "Sending the record with the student spares her new teacher a fortnight of re-testing while sparing her a third sitting of work she has already shown while leaving the old school's office one request to answer instead of five — one move serving every desk a transfer crosses simultaneously."
 
 Note the structure: `[move] does X while Y while Z—one move serving [unifying frame] simultaneously.` No labels. No arrows. No "compounds across N dimensions" scaffolding. The dimension mapping happens in your reasoning; the prose carries the rhythm.
 
-**Reasoning vs. prose for educator-transition (same content, both forms):**
+**Reasoning vs. prose for transfer-evidence-handover (same content, both forms):**
 
 *Reasoning notation (your thinking step):*
-> More teachers attempting authentic assessment (adoption) → teachers who succeed don't defect to standalone tools (retention) → measurable transition metrics become proof points for institutional expansion (revenue).
+> Receiving teachers open Benchmark in a mover's first week because her results are waiting there (adoption) → a district with many movers keeps Benchmark beside Coursebook, since results arrive only where both schools hold them (retention) → the company can tell the next district that a new arrival's first week goes to teaching, not re-testing — a claim about teacher time, not about features (positioning).
 
 *Output prose (what goes in the Thought Outline):*
-> A designed pathway pulls quiz-only teachers into authentic assessment for the first time while holding the teachers who succeed against standalone-tool defection while turning measurable transition cohort data into the institutional proof point administrators need for expansion — one move serving adoption, retention, and revenue simultaneously.
+> A record that travels puts Benchmark in front of the receiving teacher in a mover's first week while giving a district full of movers its reason to keep Benchmark beside Coursebook while giving Larkmoor a first-week promise about teacher time to put in front of the next district — one move serving adoption, retention, and positioning simultaneously.
 
 The reasoning version is for verification: each phrase has a label so you can confirm dimension coverage. The prose version is what the reader sees: the labels disappear, the rhythm carries the multiplicative weight, the em-dash closes with the unifying move.
 
@@ -202,7 +202,7 @@ For each dimension, before assigning a rating: articulate the strongest argument
 - **Low:** Requires building new context — explaining why this matters despite not being on anyone's radar.
 - **None:** No connection to current priorities. Flag for the orchestrator — development should not proceed.
 
-Rationale = judgment call, not evidence inventory. No inline data points, N-values, percentages, or survey figures — those belong in the Research Summary. The rationale states the conclusion: "the grading burden is actively felt but the specific pain is latent" not "1 in 3 teachers considered leaving (N=258)."
+Rationale = judgment call, not evidence inventory. No inline data points, N-values, percentages, or survey figures — those belong in the Research Summary. The rationale states the conclusion: "re-testing a new arrival is routine and resented, but no teacher has asked for it to stop" not "41 of 60 receiving teachers re-assessed a transferred student inside two weeks (Fernhollow Institute, Mid-Year Moves Study 2025)."
 
 ## Voice
 

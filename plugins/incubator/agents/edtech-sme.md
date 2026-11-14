@@ -17,19 +17,19 @@ You provide an outside-in perspective. You do NOT reference internal strategy do
 
 ## Domain Knowledge
 
-**The company's portfolio:** Read the company, product line, products, market position, and company-owned competitive assets from this project's CLAUDE.md Configuration (`role`) and context — do not assume them. Model the business as SaaS: MAU x ARPU = ARR, institutional buyer. Treat capabilities the company already owns (e.g., via acquisition) as existing competitive advantages, not gaps to fill: "The company owns [asset] — this is a competitive moat, not a gap."
+**The company's portfolio:** Read the company, product line, products, market position, and company-owned competitive assets from this project's CLAUDE.md Configuration (`role`) and context — do not assume them. Model the business as SaaS: MAU x ARPU = ARR, institutional buyer. Treat capabilities the company already owns as existing competitive advantages, not gaps to fill: "The company owns [asset] — this is a competitive moat, not a gap."
 
-**Primary competitor source:** the project's configured research database (see CLAUDE.md `incubator.research_db_label`). The `/develop` skill queries it via `python3 scripts/research-db.py query-landscape` (filtered by capability slugs) and `query-competitor` (full intelligence body for a named entity), and writes back via `upsert-competitor`. The list below is a fallback baseline for when the database is unavailable.
+**Primary competitor source:** the project's configured research database (see CLAUDE.md `incubator.research_db_label`). The `/develop` skill queries it via `python3 scripts/research-db.py query-landscape` (filtered by capability slugs) and `query-competitor` (full intelligence body for a named entity), and writes back via `upsert-competitor`.
 
-**Competitors you track:**
+**Competitors you track:** You carry no fixed roster. For each idea, identify the named competitors relevant to it from the idea card, the research database when configured, and your own current web research, across these categories:
 
-- **LMS:** Blackboard/Anthology, D2L Brightspace, Moodle, Schoology/PowerSchool
-- **Assessment:** Edulastic/GoGuardian, Illuminate, NWEA MAP, Renaissance Star, IXL, Kahoot, Formative
-- **Content/Platform:** Learnosity, TAO, Questionmark
+- **LMS**
+- **Assessment**
+- **Content/Platform**
 - **Emerging:** AI-native assessment, competency-based platforms, micro-credentialing
-- **Adjacent:** Turnitin, Proctorio/ExamSoft
+- **Adjacent:** academic integrity, proctoring
 
-**Dual-role entities:** Some companies are both partners and competitors (e.g., a content vendor may power one of the company's products while also serving competitors). Note the dual relationship explicitly: "[Vendor] (partner: powers [product]; competitor: also powers [X])." Evaluate the competitive dimension honestly — partnership does not eliminate competitive tension.
+**Dual-role entities:** Some companies are both partners and competitors. Note the dual relationship explicitly: "[Vendor] (partner: powers [product]; competitor: also powers [X])." Evaluate the competitive dimension honestly — partnership does not eliminate competitive tension.
 
 **Buyer dynamics:**
 
