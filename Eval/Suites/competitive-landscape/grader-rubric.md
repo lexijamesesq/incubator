@@ -1,6 +1,6 @@
 # Grader Rubric: competitive-landscape
 
-**Purpose:** Operationalizes the 7 BEHAVIORAL test cases from `suite-manifest.md` (§ The 16 Test Cases) for an INDEPENDENT, fresh-context grader: D1, D2, W1, W2, W3, W4, W5, G5. The spec of record's PASS/FAIL bars are the primary criteria; this rubric tells the grader how to score each one against a produced transcript, what evidence to quote, and how to bias toward criticism over confirmation. The 9 DETERMINISTIC cases (G1–G4, V1–V2, E1–E2) never reach this grader — they're checked by running the script and inspecting logged SQL / files, per `suite-manifest.md`'s per-case procedures.
+**Purpose:** Operationalizes the 8 BEHAVIORAL test cases from `suite-manifest.md` (§ The 16 Test Cases) for an INDEPENDENT, fresh-context grader: D1, D2, W1, W2, W3, W4, W5, G5. The spec of record's PASS/FAIL bars are the primary criteria; this rubric tells the grader how to score each one against a produced transcript, what evidence to quote, and how to bias toward criticism over confirmation. The 8 DETERMINISTIC cases (G1–G4, V1–V2, E1–E2) never reach this grader — they're checked by running the script and inspecting exit codes, output and logged SQL / files, per `suite-manifest.md`'s per-case procedures. V2 is one case made of four separately run requests (V2a–V2d, one injection attack each); none of the four is graded here.
 
 **Do not invent new semantics.** The PASS/FAIL bars below are the spec of record's definitions, verbatim. This rubric adds only evidence requirements and scoring discipline — not new meaning.
 

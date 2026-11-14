@@ -1,80 +1,177 @@
 # Transcript Fixture: malicious-input
 
 **Exercises:** V2 (injection regression — deterministic; see suite-manifest.md
-§ Test Cases for why V2 is graded by inspecting logged SQL, not by the
-independent transcript grader)
+§ Test Cases for why V2 is graded by inspecting exit codes and logged SQL, not
+by the independent transcript grader)
 **Config:** `Fixtures/configs/valid.json`
 **Universe:** Acorndyne (domain `acorndyne`)
 
 ## Scenario
 
-A capture request whose values carry SQL metacharacters — including a
-backslash-terminal payload that defeats quote-doubling-only escaping (see
-`research-db.py:72–76` `esc()` — doubles `'` only; Snowflake honors
-backslash as a string-literal escape character by default, so a value
-ending in a lone `\` right before the closing quote can escape the quote
-and bleed attacker content into raw SQL). This fixture supplies the exact
-payload values the deterministic V2 test runs against `write-finding`.
+Four capture requests, V2a–V2d. Each carries exactly one SQL metacharacter
+attack in an otherwise valid finding, and each is run and checked on its own.
 
-## User Opening Message (narrative framing, for future agent behavioral testing)
+They are separate requests because `cmd_write_finding` in `research-db.py`
+calls `_validate_finding` once and exits if it returns any error, before it
+builds any SQL. Packed into one payload, the non-numeric `ttl_months` is always
+rejected first, no SQL is generated, and the escaping of the other values is
+never examined.
+
+What the script does with each class:
+
+- **Quotes and backslashes** — `esc()` replaces `\` with `\\` and then `'`
+  with `''`. Snowflake honors backslash as a string-literal escape character
+  by default, so doubling quotes alone would let a value ending in a lone `\`
+  escape its closing quote. V2a–V2c check both halves at the sites
+  `cmd_write_finding` interpolates.
+- **`ttl_months`** — interpolated unquoted, so quoting cannot protect it.
+  `_validate_finding` coerces it with `int()` and rejects the request with
+  `ttl_months must be a numeric value` when that fails. V2d checks the
+  rejection.
+
+## User Opening Messages (narrative framing, for future agent behavioral testing)
+
+One message per request. Each starts a fresh conversation.
+
+**V2a:**
 
 > Log a finding for AcornTracker: capability slug
-> `cache-location-tracking' OR '1'='1`, claim "field notes say retrieval
-> lags in wet soil\", ttl_months "12); DROP TABLE research_findings; --".
+> `cache-location-tracking' OR '1'='1`, claim "AcornTracker field notes say
+> retrieval lags in wet soil conditions", ttl_months 12.
 
-## Fixture Data — canonical malicious payload (consumed directly by the V2 deterministic test)
+**V2b:**
+
+> Log a finding for AcornTracker under cache-location-tracking: claim
+> "AcornTracker field notes say retrieval lags in wet soil conditions\" —
+> keep the trailing backslash exactly as written — ttl_months 12.
+
+**V2c:**
+
+> Log a finding for AcornTracker: capability slug `soil-signal\` (the
+> trailing backslash is part of the slug), claim "AcornTracker field notes
+> say retrieval lags in wet soil conditions", ttl_months 12.
+
+**V2d:**
+
+> Log a finding for AcornTracker under cache-location-tracking: claim
+> "AcornTracker field notes say retrieval lags in wet soil conditions",
+> ttl_months "12); DROP TABLE research_findings; --".
+
+## Fixture Data — canonical payloads (consumed directly by the V2 deterministic test)
+
+Each payload is the same valid finding with one field changed. Save each to
+its own file; the `'` in these values breaks a single-quoted shell argument.
+In JSON source a single backslash is written `\\`.
+
+### V2a — quote breakout in a capability slug
 
 ```json
 {
   "topic": "competitive-landscape",
   "category": "capability",
-  "agent_type": null,
+  "claim": "AcornTracker field notes say retrieval lags in wet soil conditions",
+  "evidence": "Reported via Hazel Acorn's field notes",
+  "source_description": "Hazel Acorn field notes, verbal",
+  "confidence": "medium",
+  "ttl_months": 12,
+  "competitor_id": "c-acorntracker-001",
+  "capabilities": ["cache-location-tracking' OR '1'='1"]
+}
+```
+
+**Expected:** exit 0. The logged SQL contains
+`WHERE slug = 'cache-location-tracking'' OR ''1''=''1';` — every quote in the
+value doubled, so it stays one string literal.
+
+### V2b — backslash-terminal claim
+
+```json
+{
+  "topic": "competitive-landscape",
+  "category": "capability",
   "claim": "AcornTracker field notes say retrieval lags in wet soil conditions\\",
+  "evidence": "Reported via Hazel Acorn's field notes",
+  "source_description": "Hazel Acorn field notes, verbal",
+  "confidence": "medium",
+  "ttl_months": 12,
+  "competitor_id": "c-acorntracker-001",
+  "capabilities": ["cache-location-tracking"]
+}
+```
+
+**Expected:** exit 0. In the logged `INSERT INTO research_findings` statement
+the claim literal ends `conditions\\',` — the backslash doubled, so the quote
+after it still closes the literal.
+
+### V2c — backslash-terminal capability slug
+
+```json
+{
+  "topic": "competitive-landscape",
+  "category": "capability",
+  "claim": "AcornTracker field notes say retrieval lags in wet soil conditions",
+  "evidence": "Reported via Hazel Acorn's field notes",
+  "source_description": "Hazel Acorn field notes, verbal",
+  "confidence": "medium",
+  "ttl_months": 12,
+  "competitor_id": "c-acorntracker-001",
+  "capabilities": ["soil-signal\\"]
+}
+```
+
+**Expected:** exit 0. The logged SQL contains `WHERE slug = 'soil-signal\\';`.
+
+### V2d — non-numeric `ttl_months`
+
+```json
+{
+  "topic": "competitive-landscape",
+  "category": "capability",
+  "claim": "AcornTracker field notes say retrieval lags in wet soil conditions",
   "evidence": "Reported via Hazel Acorn's field notes",
   "source_description": "Hazel Acorn field notes, verbal",
   "confidence": "medium",
   "ttl_months": "12); DROP TABLE research_findings; --",
   "competitor_id": "c-acorntracker-001",
-  "capabilities": ["cache-location-tracking' OR '1'='1", "soil-signal\\"]
+  "capabilities": ["cache-location-tracking"]
 }
 ```
 
-Payload classes present (each MUST be defeated — quote-doubling alone is
-insufficient per the spec note):
+**Expected:** exit 1. stdout is
+`{"error": "validation_failed", "errors": ["ttl_months must be a numeric value"]}`.
+No SQL is generated: `last-query.sql` does not exist after the run.
 
-- **Quote-based injection:** `cache-location-tracking' OR '1'='1` (capability
-  slug), classic `'` breakout.
-- **Backslash-terminal payload:** `claim` field and the `soil-signal\`
-  capability slug both end in a lone backslash immediately before where the
-  closing `'` would land — this is the payload class `esc()`'s
-  quote-doubling-only approach does NOT neutralize, because Snowflake
-  honors `\` as the default string-literal escape character.
-- **Non-numeric `ttl_months`:** `"12); DROP TABLE research_findings; --"` —
-  `ttl_months` is interpolated unquoted/unvalidated
-  (`{args["ttl_months"]}` in `cmd_write_finding`), so a non-numeric string
-  here is a raw-injection vector, not a quoting problem.
+In all four, the `evidence` value also carries an apostrophe (`Acorn's`); in
+V2a–V2c it should appear in the logged SQL as `Acorn''s`.
 
 ## Deterministic Procedure (V2)
 
-1. Point `research-db-config.json` at `Fixtures/configs/valid.json` (stub
-   CLI, domain `acorndyne`).
-2. Invoke `python3 scripts/research-db.py write-finding --json '<payload
-   above>'`.
-3. Read `$STUB_LOG_DIR/last-query.sql` (default
-   `/tmp/research-db-stub-log/last-query.sql`).
-4. PASS requires ONE of:
-   - The command is rejected before any SQL reaches the stub (input
-     validated and refused — `ttl_months` numeric check would catch the
-     non-numeric case), OR
-   - The logged SQL shows dialect-complete escaping: quotes doubled AND
-     backslashes escaped/neutralized at every interpolation site
-     (capability slug, claim, ttl_months).
-5. FAIL if ANY metacharacter class passes through unescaped at ANY
-   interpolation site, OR if quote-doubling alone is treated as sufficient
-   while the backslash-terminal payload still breaks the literal boundary.
+Run from the repository root.
 
-**Known pre-implementation state (informational, not a G3-style required
-delta):** the current unmodified `research-db.py` has no `ttl_months`
-numeric validation and `esc()` performs quote-doubling only — this fixture
-is expected to demonstrate the gap V2 exists to catch, once the guard work
-(scoped to a later build item than this suite) lands.
+1. Set `RESEARCH_DB_CONFIG` to
+   `Eval/Suites/competitive-landscape/Fixtures/configs/valid.json` (stub CLI,
+   domain `acorndyne`) and `STUB_LOG_DIR` to a private temp directory — see
+   suite-manifest.md § How to Run. The real `scripts/research-db-config.json`
+   is not involved.
+2. For each request V2a, V2b, V2c, V2d in turn:
+   1. Clear the stub log: `rm -f "$STUB_LOG_DIR/last-query.sql"`. The stub
+      keeps the most recent call only, and V2d writes no log, so a log left
+      from the previous request would be misread as this one's.
+   2. Invoke `write-finding` with the payload file:
+      `python3 scripts/research-db.py write-finding --json "$(cat payload.json)"`.
+   3. Record the exit code and stdout, then read
+      `$STUB_LOG_DIR/last-query.sql` if it exists.
+   4. Compare against that request's **Expected** block above.
+3. V2 PASSES only if every request is either escaped completely in the
+   logged SQL (quotes doubled AND backslashes doubled) or rejected before any
+   SQL is generated. The **Expected** blocks say which of the two the current
+   script produces; a V2a–V2c request that is rejected with no log instead
+   still passes, and is noted in the run report as a change from this fixture.
+4. V2 FAILS if a quote or backslash reaches the log undoubled at an
+   interpolation site, if quote-doubling alone is present while a
+   backslash-terminal value still breaks its literal boundary, or if V2d
+   exits 0 or leaves SQL in the log.
+
+**Baseline:** these expected outcomes are derived from reading the current
+`research-db.py`. No run against it is on file — see suite-manifest.md
+§ Baseline Status.
