@@ -12,7 +12,8 @@ backlog-archive.json
 incubator-backlog-archive.json
 incubator-progress-archive.md
 Context/
-Eval/
+Eval/Runs/
+Eval/Suites/*/Runs/
 Knowledge/
 
 # === Private Configuration ===
