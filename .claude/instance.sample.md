@@ -110,9 +110,9 @@ If you do not use JPD, the /jpd-push and /cross-domain skills can be safely igno
 
 ### Research Database Integration (Optional)
 
-The /develop, /edtech-sme, and /educator-sme skills can optionally query a strategy research database (Snowflake or PostgreSQL) for structured competitive intelligence. The database augments the existing research pipeline — local shared research files and web research remain primary. The database provides a head start, enables mid-research deep-dives on known competitors, and receives write-back of durable findings for future runs.
+The /develop, /edtech-sme, and /educator-sme skills can optionally query a strategy research database (Snowflake) for structured competitive intelligence. The database augments the existing research pipeline — local shared research files and web research remain primary. The database provides a head start, enables mid-research deep-dives on known competitors, and receives write-back of durable findings for future runs.
 
-To set up: copy `scripts/research-db-config.sample.json` to `scripts/research-db-config.json` and fill in your database connection details. Set the `RESEARCH_DB_BACKEND` environment variable to `snowflake` or `postgresql`.
+To set up: copy `scripts/research-db-config.sample.json` to `scripts/research-db-config.json` and fill in your database connection details.
 
 If you do not set up the database, the skills work without it — they fall back to their pre-database research flow (local shared research files + web searches). No functionality is lost, but findings from previous runs won't carry over as structured intelligence.
 

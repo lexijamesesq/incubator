@@ -3,11 +3,17 @@ tags:
   - type/claude-repo
 description: "Claude Code skills for a strategic-ideas incubation pipeline — draft, develop, refine, and thesis-test ideas with agent-based market/competitive enrichment."
 docs_home: "{workspace_root}/Projects/Incubator"
+linear_project_id: "59a883ba-891d-4740-b463-507f30752319"
+linear_url: "https://linear.app/lexijamesesq/project/incubator-36f179a95864"
+notion_project: "https://app.notion.com/p/4175f53f7dbc81d39f7bd6356e2d3f2b"
+notion_knowledge: "collection://4185f53f-7dbc-815f-9a2b-000b54a0033e"
 ---
 
 # Incubator
 
 A Claude Code pipeline for strategic idea development: `/draft`, `/develop`, `/refine`, `/thesis-test`, plus enrichment agents (edtech-sme, educator-sme, tam-estimate, competitive-landscape, skeptic, artifact-critic, divergent-thinking, buildable-surface) and supporting skills (`cross-domain`, `jpd-push`). Public repo: a template other design/product leaders fork and configure for their own domain, not just this operator's pipeline. Also the source for the confirmed-shared skill/agent subset (8 skills, 6 agents) published as the `incubator` plugin and consumed elsewhere (Strategy, professional profile only) at user scope — not a symlink.
+
+The maintainer's own project documentation is in Notion and its work is tracked in Linear; the front matter above points to both. They are private: a fork has no access to them and does not need it.
 
 ## Setup
 
