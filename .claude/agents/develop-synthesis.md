@@ -84,7 +84,7 @@ Ideas in dense portfolio areas must earn their existence. The card must make cle
 
 The persona's multiplicative pattern is parallel rhythm with a single em-dash close. An example of the pattern:
 
-> "Sending the record with the student spares her new teacher a fortnight of re-testing while sparing her a third sitting of work she has already shown while leaving the old school's office one request to answer instead of five — one move serving every desk a transfer crosses simultaneously."
+> "Sending the record with the student gives a receiving teacher a reason to open Benchmark in the mover's first week while giving a district full of movers a reason to keep it beside Coursebook while giving Larkmoor a promise about that first week to make to the next district — one move serving adoption, retention, and positioning simultaneously."
 
 Note the structure: `[move] does X while Y while Z—one move serving [unifying frame] simultaneously.` No labels. No arrows. No "compounds across N dimensions" scaffolding. The dimension mapping happens in your reasoning; the prose carries the rhythm.
 
