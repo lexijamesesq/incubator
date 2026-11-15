@@ -18,9 +18,9 @@ Reference material for Incubator stage work, split into section-scoped files und
 | JPD Integration | `reference/jpd-integration.md` | Push purpose, JPD idea template alignment, push criteria, sync-tracking frontmatter, sync-back policy. |
 | Skill Conventions: Notion Access | `reference/skill-conventions-notion-access.md` | How a skill reaches ideas, research rows, output documents, configuration and the persona in Notion: pointers and overrides, addressing an idea, artifact rows, writing to a card, body read-back, tool lists. |
 
-## Seed intake contract (router reads this)
+## Seed intake contract
 
-The upstream router conforms to the Incubator's seed contract. The two sections that define it:
+A seed is a row someone adds to the Ideas database. The two sections that define what the row holds:
 
 - **Frontmatter Schema** → `reference/frontmatter-schema.md`
 - **Seed Template** → `reference/templates.md` (`## Seed Template (Stage 1)`)

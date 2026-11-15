@@ -4,7 +4,7 @@
 
 ## Intake
 
-Seeds arrive from the router as rows in the Ideas database, with their fields set and the Original Capture in the body. The router does not interpret the capture — /refine-seed handles that before /develop. Classification and routing behavior are the router's own; its spec is not part of this repo.
+A seed is a row someone adds to the Ideas database: a title, a Slug, `Stage` `seed`, and the raw thought kept word for word under an `### Original Capture` heading. Nothing classifies or routes a capture and no skill creates the row; a person adds it. The capture is not interpreted at intake — /refine-seed handles that before /develop.
 
 ## Refining a Seed (Stage 1 prep)
 

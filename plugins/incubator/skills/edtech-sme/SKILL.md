@@ -32,7 +32,7 @@ Two modes:
 - **Idea mode** (naked argument): the argument names an idea (its Slug in the Ideas database) or is the idea row's URL. Skill loads the idea and evaluates it. Writes its artifact as a row in the Research database (Research type `edtech-market-analysis`), related to the idea; that relation is what puts it on the idea's research list.
 - **Ad-hoc mode** (`--adhoc "subject"`): the flag carries a free-form subject string (competitor, technology, concept). Skill evaluates the subject on its own. No artifact row, nothing written to Notion. Findings still write back to the research database.
 
-Examples: `/edtech-sme foraging-intelligence`, `/edtech-sme --adhoc "Top Hat"`, `/edtech-sme --adhoc "adaptive learning platforms"`.
+Examples: `/edtech-sme foraging-intelligence`, `/edtech-sme --adhoc "Corvid Classroom"`, `/edtech-sme --adhoc "adaptive learning platforms"`.
 
 ## Where Things Are (idea mode)
 
@@ -145,7 +145,7 @@ Use `WebSearch` to gather current market intelligence. Execute 4-6 targeted sear
 
 **Search targets:**
 
-- **Registry-informed targeted searches:** For each registry-matched competitor (from Step 1), include at least one targeted search for that competitor's recent activity in the idea's capability domain. E.g., if the idea is about rubric design and FeedbackFruits is registry-matched, search for "FeedbackFruits rubric" or "FeedbackFruits assessment authoring 2025 2026". These targeted searches supplement — not replace — the generic searches below.
+- **Registry-informed targeted searches:** For each registry-matched competitor (from Step 1), include at least one targeted search for that competitor's recent activity in the idea's capability domain. E.g., if the idea is about sending a student's results on to her next school and Corvid Classroom is registry-matched, search for "Corvid Classroom student transfer" or "Corvid Classroom records export 2025 2026". These targeted searches supplement — not replace — the generic searches below.
 - Competitor features and recent product launches in the relevant category
 - Acquisitions, mergers, and strategic partnerships in edtech assessment
 - Analyst commentary (EdSurge, EdTech Magazine, Gartner, HolonIQ)

@@ -16,7 +16,7 @@ Ideas, research, output documents and your configuration live in Notion, so the 
 
 | Field | Location | What to set |
 | --- | --- | --- |
-| `role` | Configuration page | Your title and domain, e.g. "Director of Product Design (Assessments)" |
+| `role` | Configuration page | Your title and domain, e.g. "Head of Product Design (Coursebook)" |
 | `persona_skill` | Configuration page | Name of the skill holding your own voice and writing style guide |
 | `example_card` | Configuration page | URL of a Notion page holding an example developed card (start from `Examples/developing-card.sample.md`) |
 | `strategic_context.product_strategy` | Configuration page | Path and URL to your product strategy document |
@@ -177,7 +177,7 @@ Stress-test a developed card whose direction is contested, or an arbitrary subje
 
 ```text
 /thesis-test foraging-intelligence
-/thesis-test --subject "premium offering direction" --brief path/to/brief.md
+/thesis-test --subject "Foraging Intelligence platform vision" --brief path/to/brief.md
 ```
 
 Audit whether a developed card's claims still hold months later:

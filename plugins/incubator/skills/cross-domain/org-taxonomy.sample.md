@@ -1,69 +1,43 @@
 # Organizational Structural Reference
 
-Reference file for cross-domain discovery. Describes your JPD project's organizational taxonomy so the LLM can evaluate functional overlap from summary + structural metadata.
+A sample of the page `/cross-domain` reads when the Configuration key `cross_domain.org_reference` names one. It describes a JPD project's organizational taxonomy so the skill can judge functional overlap from an idea's summary and its field values. The company here, Larkmoor Learning, is invented.
 
-Put this content on a Notion page, fill in your organization's structure, and name the page's URL in the Configuration key `cross_domain.org_reference`. The reference is optional: without it `/cross-domain` judges from JPD's own summaries and field values.
+Put your own organization's structure on a Notion page in this shape and name the page's URL in `cross_domain.org_reference`. The reference is optional: without it `/cross-domain` judges from JPD's own summaries and field values.
 
 **Last updated:** YYYY-MM-DD
-**Update cadence:** When org changes are noticed (team renames, new squads, domain restructuring). Structure changes slowly.
 
 ---
 
 ## Product Brands
 
-List your organization's product brands. Mark your own brand for exclusion in cross-domain queries.
-
-- **Oakwood** — Route planning and navigation platform. Flagship product for territory management.
-- **Acorn** — Foraging and cache management products. **YOUR_BRAND — exclude in Phase 1.5 Step A.**
-- **Burrow** — Storage infrastructure, inventory tracking, seasonal logistics.
-- **Canopy** — Shared infrastructure: identity, APIs, data sync, developer tools. Cross-brand services.
+- **Coursebook** — where teachers plan units, set work and collect it.
+- **Benchmark** — classroom checks and the results tracker. **Our own brand: excluded in Phase 1.5 Step A.**
+- **Groundwork** — the shared services both products run on: enrolment, sign-in and messages to families.
 
 ## Product Domains
 
-Domains represent functional areas within brands. List the ones most relevant for cross-domain overlap with your work.
-
-- **Territory Management** — Oakwood core: routes, boundaries, seasonal mapping, resource tracking, collaboration. Highest overlap surface with foraging work.
-- **AI** — Canopy AI capabilities: predictive models, pattern recognition, agent infrastructure. Any AI-driven foraging idea likely intersects here.
-- **Analytics** — Reporting, dashboards, admin visibility. Overlaps when foraging ideas involve data, metrics, or colony-wide visibility.
-- **Canopy Platform** — Shared services: identity, APIs, data sync, developer tools, interoperability. Overlaps when ideas require infrastructure.
+- **Lesson Planning** — Coursebook: units, tasks, due dates. Overlaps with our work wherever a check is attached to a unit.
+- **Rostering** — Groundwork: who is enrolled where, and in which class. Overlaps whenever an idea depends on knowing which student is which.
+- **Family Messaging** — Groundwork: notices and consent requests sent to guardians. Overlaps whenever an idea shows a family something or needs their agreement.
 
 ## Squads
 
-Squads are the teams that build features. Knowing what a squad owns helps evaluate whether a JPD idea's summary indicates functional overlap.
+### Coursebook
 
-### Territory Management Squads
+- **Unit Builders** — the unit page and the tasks on it.
+- **Leavers and Joiners** — what a student takes from Coursebook when she changes school, and what a new arrival sees. **Highest overlap with any idea about a student who moves.**
 
-- **TM Evaluate** — Cache assessment, quality scoring, site ranking workflows. **Highest foraging overlap.** Any idea touching cache quality, site evaluation, or retrieval optimization likely intersects with this squad's work.
-- **TM Navigate** — Route planning, path optimization, territory traversal. Overlaps for foraging route efficiency, seasonal path adjustment.
-- **TM Resources** — Resource mapping, yield estimation, seasonal availability tracking. **High foraging overlap.** Resource forecasting, supply chain modeling.
-- **TM Collaborate** — Shared territory management, colony coordination. Overlaps for multi-forager coordination, territory sharing.
+### Groundwork
 
-### Canopy Platform Squads
-
-- **CP Identity** — Authentication, authorization, colony member management. Overlaps for access control, role management.
-- **CP Interop** — Third-party integration, partner tools, marketplace. **High marketplace overlap.** Any idea involving content marketplace, partner tools, or interoperability.
-- **CP Data** — Data analytics platform. Overlaps for foraging analytics, data infrastructure.
-
-### Analytics Squads
-
-- **AN Insights** — Admin analytics, colony-wide reporting. Overlaps for foraging reporting, dashboard visibility.
-- **AN Predictive** — AI-powered analytics. Overlaps for AI-driven foraging insights, predictive models.
-
-### Burrow Squads
-
-- **BU Storage** — Cache storage management, inventory systems. **High cache overlap.** Storage-based foraging ideas, inventory tracking.
-- **BU Seasonal** — Seasonal logistics, winter preparation workflows. Overlaps for seasonal foraging planning.
+- **Enrolment Sync** — keeps class lists in step with each district's own system, including moves between districts.
+- **Front Door** — sign-in for staff, students and guardians.
+- **Guardian Notices** — messages to families and the log of what each has agreed to.
 
 ## Product Surface Areas
 
-Surface areas are finer-grained feature zones within squads. Most relevant for foraging:
-
-- **OW Route Planner** — Oakwood route planning interface (TM Navigate)
-- **OW Site Scoring** — Oakwood cache site evaluation tools (TM Evaluate)
-- **OW Resource Map** — Oakwood resource availability mapping (TM Resources)
-- **CP Marketplace** — Partner tool marketplace (CP Interop)
-- **AN Dashboards** — Admin/colony dashboards (AN Insights)
-- **BU Inventory** — Cache inventory management (BU Storage)
+- **Unit Page** — where a teacher builds a unit (Unit Builders)
+- **Class List** — the enrolled students of a class (Enrolment Sync)
+- **Notice Composer** — where a message to families is written (Guardian Notices)
 
 ---
 
@@ -71,6 +45,6 @@ Surface areas are finer-grained feature zones within squads. Most relevant for f
 
 When filtering in Phase 1.5 Step A, exclude items with:
 
-- **Product Brand** = Acorn
+- **Product Brand** = Benchmark
 
-These are our own domain's items — not cross-domain signals.
+These are our own team's items, not cross-domain signals.

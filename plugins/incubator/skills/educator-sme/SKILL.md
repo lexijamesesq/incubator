@@ -32,7 +32,7 @@ Two modes:
 - **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): evaluates an idea. Writes its artifact as a row in the Research database (Research type `educator-sme-evaluation`), related to the idea; that relation is what puts it on the idea's research list.
 - **Ad-hoc mode** (`--adhoc "subject"`): evaluates a free-form subject (product, tool, methodology). No artifact row, nothing written to Notion. DB findings still captured.
 
-Examples: `/educator-sme foraging-intelligence`, `/educator-sme --adhoc "Top Hat"`, `/educator-sme --adhoc "standards-based grading"`.
+Examples: `/educator-sme foraging-intelligence`, `/educator-sme --adhoc "Corvid Classroom"`, `/educator-sme --adhoc "weekly low-stakes quizzing"`.
 
 ## Where Things Are (idea mode)
 
@@ -128,7 +128,7 @@ The "Strongest Use Case" and "Suggested Refinements" output sections synthesize 
 
 If the idea makes specific pedagogical claims or references methodologies that need validation, use `WebSearch` to check:
 
-- Educator sentiment on the specific methodology (e.g., "teacher opinions on standards-based grading")
+- Educator sentiment on the specific methodology (e.g., "teacher opinions on weekly low-stakes quizzing")
 - Research on similar interventions and their adoption rates
 - Adoption data for comparable edtech tools
 - Educator community discussions (Reddit r/Teachers, education blogs, union publications)
@@ -244,7 +244,7 @@ After presenting the above, review your findings against the shared research cap
 
 **Claim-content guardrail:** A finding's `claim` field must be a **substantive assertion** with content the reader can act on. The following are NOT findings — never write them as `claim`:
 
-- Search query strings (e.g., `"teacher experience using AI rubric generator 2025"`) — these are research metadata, not findings
+- Search query strings (e.g., `"teacher experience new student arriving mid-year 2025"`) — these are research metadata, not findings
 - Bare citations / titles (e.g., `[Title](URL)`) — a citation without an assertion is a bookmark, not a finding
 - Query-prefixed paragraphs where the leading quoted query is verbatim what you searched — strip the query; submit only the assertion
 

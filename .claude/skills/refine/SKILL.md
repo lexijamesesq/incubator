@@ -286,8 +286,8 @@ This skill does NOT:
 - Decide output format (human decision, set before /draft)
 - Modify the idea card body (TL;DR content) without human-confirmed direction shift
 - Mark Stage 5 without explicit human approval
-- Modify backlog.json or progress logs
-- Load full strategy docs into context (Grep only for product_strategy_assessments.md)
+- Modify session-tracking files or progress logs
+- Load full strategy docs into context (Grep only — the local files at the paths the `strategic_context.*` configuration keys give)
 - Push to Google Docs or external systems
 
 This skill DOES:

@@ -17,7 +17,7 @@ allowed-tools:
 
 Prepares a raw or loosely-structured seed for development by interpreting its intent, drafting header fields, surfacing related ideas, and aligning with the human. This is the interactive step where the human and model agree on what the seed means before /develop runs.
 
-Runs AFTER the router creates a seed (Stage 0→1) and BEFORE /develop transforms it (Stage 1→2). The seed may arrive with just its fields + Original Capture (from the router), or with draft header fields that need refinement (from manual creation or an earlier router version).
+Runs AFTER a person adds a seed to the Ideas database (Stage 0→1) and BEFORE /develop transforms it (Stage 1→2). The seed may arrive with just its fields + Original Capture, or with draft header fields that need refinement.
 
 ## Invocation
 
@@ -268,7 +268,7 @@ This skill does NOT:
 - Conduct research (that's /develop's job)
 - Assess impact dimensions (that's the synthesis agent's job)
 - Draft output documents (that's /draft's job)
-- Classify or route inbox items (that's the router's job)
+- Decide which captures become seeds (a person does, by adding the row)
 - Develop the seed beyond header fields (Core insight, Source, Strategic connection + related ideas)
 - Change the seed's stage (it stays at `seed` — /develop changes it to `developing`). The one Stage write it makes is `archived` on the secondary of a merge the human approved.
 - Make merge decisions autonomously (always presents to human)

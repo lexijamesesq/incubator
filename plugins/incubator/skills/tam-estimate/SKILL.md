@@ -32,7 +32,7 @@ Two modes:
 - **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): sizes the market for an idea. Writes its artifact as a row in the Research database (Research type `tam-estimate`), related to the idea; that relation is what puts it on the idea's research list.
 - **Ad-hoc mode** (`--adhoc "subject"`): sizes a free-form market category/segment. No artifact row, nothing written to Notion. Findings still write back to the research database.
 
-Examples: `/tam-estimate foraging-intelligence`, `/tam-estimate --adhoc "AI grading tools"`, `/tam-estimate --adhoc "K-12 authentic assessment"`.
+Examples: `/tam-estimate foraging-intelligence`, `/tam-estimate --adhoc "student record transfer tools"`, `/tam-estimate --adhoc "K-12 formative assessment platforms"`.
 
 ## Where Things Are (idea mode)
 
@@ -94,7 +94,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 - **Core insight** — from body content
 - **Problem it addresses** — from body content (if populated; may not exist at seed stage)
 
-**Ad-hoc mode:** The subject string is the market category to size. No idea row, no themes, no domain. Frame Step 2 market scope entirely from the subject string. Ad-hoc subjects are expected to be reasonably specific (e.g., "K-12 authentic assessment" not "edtech"); if the subject is too broad, Step 2's stop rule fires.
+**Ad-hoc mode:** The subject string is the market category to size. No idea row, no themes, no domain. Frame Step 2 market scope entirely from the subject string. Ad-hoc subjects are expected to be reasonably specific (e.g., "K-12 formative assessment platforms" not "edtech"); if the subject is too broad, Step 2's stop rule fires.
 
 **Company context (both modes):** the agent reads the company and its position from the Configuration key `role`. If the instruction file's front matter names `notion_config`, or a `notion_config=` argument is given, fetch that page and read `role` from its `yaml` block. Otherwise use the Configuration section of the project's instruction file, already in context.
 

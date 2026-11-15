@@ -6,8 +6,8 @@ Initiatives are structural parents — strategic containers that hold multiple r
 
 **Examples:**
 
-- "Authentic Assessment for BTS '27" holds 8 child ideas (grading, rubric design, scalability, etc.)
-- "Platform AI Intelligence Layer" holds ideas for intelligence models that compose into shared infrastructure
+- "Every Absence Covered" holds 5 child ideas (catch-up work, cover lessons, family alerts, etc.)
+- "A Calmer School Day" (`a-calmer-school-day`) holds ideas that each remove one daily scramble: room-change notices, trip clash warnings, parents' evening booking
 
 ## Initiative Frontmatter
 
@@ -44,7 +44,7 @@ blocked_by: null
 Child ideas reference their parent via the `Initiative` relation (the `initiative` front-matter key):
 
 ```yaml
-initiative: authentic-assessment-bts27  # Initiative filename without .md
+initiative: every-absence-covered  # Initiative filename without .md
 ```
 
 The initiative card maintains the authoritative `child-ideas:` list. One parent per idea.
@@ -83,5 +83,5 @@ Same convention as ideas for the Slug: kebab-case, no special suffix. Distinguis
 - ...
 
 ### Original Capture
-[Verbatim original capture if the initiative originated from inbox]
+[Verbatim original capture, if the initiative began as one]
 ```

@@ -1,2 +1,4 @@
 # Eval fixtures are test data: their shape is set by the skills that read and write them.
 Eval/Suites/*/Fixtures/
+# The example card has exactly the shape of a real card, which opens with a second-level heading.
+Examples/developing-card.sample.md

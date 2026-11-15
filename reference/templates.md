@@ -4,13 +4,13 @@
 
 ## Seed Template (Stage 1)
 
-Classification output from the router. Sets the row's fields and preserves the original capture verbatim in the row's body. Structured fields (core insight, source, strategic connection) are added later by /refine-seed.
+What a person adds to the Ideas database: a row with a title, a Slug and `Stage` `seed`, and the original capture kept verbatim in the row's body. Structured fields (core insight, source, strategic connection) are added later by /refine-seed.
 
 ```markdown
 ## [Idea Title]
 
 ### Original Capture
-[Verbatim original capture content — unedited raw thought from inbox. Preserved for context throughout the pipeline.]
+[Verbatim original capture content — the unedited raw thought. Preserved for context throughout the pipeline.]
 ```
 
 ## TL;DR Template (Stage 2)
