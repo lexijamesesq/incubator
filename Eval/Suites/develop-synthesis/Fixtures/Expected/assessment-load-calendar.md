@@ -9,7 +9,7 @@ themes:
   - student-workload
 customer-sentiment: low
 user-experience: medium
-revenue-potential: insufficient data
+revenue-potential: low
 industry-disruption: medium
 strategic-alignment: medium
 related-ideas: []
@@ -25,41 +25,40 @@ jira-sidecar-url: null
 ---
 ## Assessment Load Calendar
 
-**Core insight:** Coursebook holds every due date a year group has been set and shows the combined load to no one, so a head of year learns about a six-deadline Thursday after her students have lived it.
-**Problem it addresses:** Each teacher sets a reasonable date alone, the dates stack on one day, and the one adult placed to move them — the head of year — has no screen that shows the stack coming.
-**Who cares:** Students who carry the pile-up, heads of year who can ask a department to move a date, teachers who meet the result as late work and tired classes, and the team that owns Measure 3b.
-**Strategic connection:** Supports Measure 3b (students returning to Coursebook each week) by removing the pile-up days that precede a week of lower return; no product pillar covers student workload, and the seed's Fewer Tabs link does not hold because a deadline view saves no teacher a tab.
+**Core insight:** Six deadlines on one Thursday is no single teacher's doing, and the one adult who can spread them, the head of year, sets no due dates and sees none of them in Coursebook.
+**Problem it addresses:** A Year 10 student can face six deadlines on one Thursday in the week before reports, and the adults around her find out afterwards, as late work and a tired class.
+**Who cares:** Students who carry the pile-up and hand work in late, heads of year who are the only staff placed to ask a department to move a date, and teachers who see late work and tired classes without seeing the dates behind them.
+**Strategic connection:** Supports Measure 3b, students returning to Coursebook each week, by heading off the deadline pile-ups after which students open their learning platform less for a week.
 
 ### Opportunity Assessment
 
 | Dimension | Rating | Rationale |
 | ----------- | -------- | ----------- |
-| Customer sentiment | Low | The need is latent: the people Larkmoor surveys do not raise it, and the students who feel it are never asked. |
-| User experience | Medium | A head of year gains a forward view she lacks today, but a teacher setting a date does the same job as before and keeps the date. |
-| Revenue potential | Insufficient data | No buyer names the problem and no market sizing exists, so a rating here would be a guess. |
-| Industry disruption | Medium | A staff view of combined deadline load is new among learning platforms in the basin, and it sits inside the category as schools already define it. |
-| Strategic alignment | Medium | The case runs through one named measure and takes a step to explain; no pillar carries it and nobody has asked for it. |
+| Customer sentiment | Low | Students feel the pile-up, but the teachers and administrators Larkmoor surveys and sells to have never named it. |
+| User experience | Medium | The head of year gets a view of her year group's week that she has never had, but a student's Thursday only gets lighter when a department agrees to move a date. |
+| Revenue potential | Low | It ships inside Coursebook, no buyer asks for it, and any money arrives only through students returning each week and, after that, renewal. |
+| Industry disruption | Medium | No platform in the basin shows staff a class's combined load, though any rival that holds due dates could build the same view. |
+| Strategic alignment | Medium | The case runs through Measure 3b alone, because no pillar covers workload and Fewer Tabs does not stretch to a view that saves no teacher a tab. |
 
 ### Research Summary
 
-- On days when a student has four or more deadlines, 34% of that work comes in late, and the same students open their learning platform 22% less often the following week; this is one study across 14 schools. ([Fernhollow Institute, Student Week Study 2025](https://example.com/fernhollow-student-week-2025))
-- Quillfeather, a standalone homework planner where students type in their own deadlines, has 180,000 student accounts in 140 districts. ([Quillfeather, About](https://example.com/quillfeather-about))
-- No learning platform in the basin shows staff the combined deadline load on a class: Corvid Classroom shows a student their own deadlines with no staff view across courses, and Pennywhistle Assess has nothing comparable. ([Kestrel Ridge Research, Classroom Tools Scan 2026](https://example.com/kestrel-ridge-classroom-tools-2026))
-- None of the 212 basin district RFPs in the 2025–26 index mentions deadline spread or workload. (Basin district RFP index, 2025–26)
-- Coursebook NPS from teachers and administrators, April to September 2026, has zero mentions of deadline clashes, workload, or due-date spread; Larkmoor does not survey students. ([Coursebook NPS — September 2026 tab](https://example.com/coursebook-nps))
+- On days when a student has four or more deadlines, students hand in 34% of that work late and open their learning platform 22% less often in the following week; the finding comes from one study of 14 schools. ([Fernhollow Institute, Student Week Study 2025](https://example.com/fernhollow-student-week-2025))
+- No learning platform in the basin shows staff the combined deadline load on a class, and Corvid Classroom goes only as far as showing a student a calendar of her own deadlines. ([Kestrel Ridge Research, Classroom Tools Scan 2026](https://example.com/kestrel-ridge-classroom-tools-2026))
+- Quillfeather, a standalone homework planner, holds 180,000 student accounts in 140 districts, and its students type their deadlines in themselves. ([Quillfeather, About](https://example.com/quillfeather-about))
+- None of the 212 basin district RFPs in the 2025–26 index mentions deadline spread or workload. (EdTech SME market analysis, basin district RFP index 2025–26)
+- Coursebook's teacher and administrator NPS from April to September 2026 has zero mentions of deadline clashes, workload or due-date spread, and Larkmoor does not survey students. ([Coursebook NPS — September 2026 tab](https://example.com/coursebook-nps))
 
 ### Thought Outline
 
-The move is a forward view of a year group's combined deadline load, built for the head of year from due dates Coursebook already holds. The seed put the signal in front of the teacher setting a date; the research says that teacher keeps her Thursday, because her deadline was there first. The head of year is the person who acts, and today she has no reason to open Coursebook at all. A view that shows her the Thursday before reports two weeks out lets her ask two departments to move a date while her students hand work in on time while they keep opening Coursebook the week after — one move serving on-time work, weekly return, and a position no competing platform holds. The case is narrow and it is honest about that: demand shows only in students organising themselves in a separate app, one study carries the return effect, and no buyer has asked. Coursebook does not hold the school timetable or calendar, so the first version reads due dates alone and cannot see exam weeks, trips, or report deadlines.
+The move is to warn the head of year, two weeks ahead, when a day will put four or more deadlines on any of her students, so she can ask a department to move one. A warning on the due-date screen would change little, because a teacher shown a crowded Thursday keeps her Thursday; the head of year is the one adult who can act, and she sets no due dates, so she has no reason to open the screen where they are set. Coursebook already holds every due date and every enrolment, which is enough to count a student's deadlines on a day; exam weeks, trips and report deadlines stay out of the count, because the timetable lives in the district's student information system. The warning gives the head of year a reason to open Coursebook while keeping students coming back the week after a crowded day while making Coursebook the only platform in the basin that shows staff a class's whole week — one move serving the year office, the student and the sales team together. Each depends on the one before: dates move only if the head of year looks, and the claim to the next district holds only if students do come back. The weak point is demand: one study ties pile-ups to students coming back less, and no teacher, administrator or buyer has asked for this.
 
 ### Open Questions
 
-- Will a head of year who sets no due dates open Coursebook to look at this view?
-- Will schools allow one teacher or head of year to see deadlines set by other teachers?
-- Is a view built on due dates alone useful without the exam weeks, trips, and report deadlines held in the district's student information system?
-- What would a school pay for here, or what churn would it prevent?
-- Does Coursebook's own data show the drop in weekly return after a pile-up day that the Fernhollow study reports?
-- Would giving each student a small number of two-day extensions a term level the load better than a staff view?
+- Will a head of year ask a department to move a date, and will the department move it?
+- Do Coursebook students open it less in the week after a pile-up, as the one study found?
+- Will a year office trust a warning that cannot see exam weeks, trips or report deadlines?
+- Will schools let a head of year see every department's due dates for her year group?
+- Would a few two-day extensions a term, spent by students where their week is worst, spread the load better than a head of year can?
 
 ### Original Capture
 

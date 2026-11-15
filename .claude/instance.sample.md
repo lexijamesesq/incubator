@@ -33,9 +33,10 @@ The pipeline depends on multiple MCP servers. Verify connections before invoking
 
 | MCP Server | Used By | Failure Mode |
 | --- | --- | --- |
+| Notion | Every skill: ideas, research, output documents and the Configuration page are all read and written there | The skill cannot read the idea or the Configuration page and stops. Reconnect, then run it again. |
 | Atlassian | `/cross-domain` (read JPD), `/jpd-push` (write to JPD) | Skill-local failure with auth-flow recovery — surface the OAuth URL, retry once after user completes flow. |
 
-**Recommended start-of-session check:** Run `/mcp` to surface connection state. If Atlassian shows disconnected, reconnect before invoking pipeline skills. Skills will fail noisily with auth instructions if MCP is missing, but a pre-flight check avoids interrupting a running pipeline mid-stream.
+**Recommended start-of-session check:** Run `/mcp` to surface connection state. Every skill needs the Notion connector: if Notion shows disconnected, reconnect before invoking any skill. If Atlassian shows disconnected, reconnect before invoking pipeline skills. Skills will fail noisily with auth instructions if MCP is missing, but a pre-flight check avoids interrupting a running pipeline mid-stream.
 
 The optional research database is accessed via `python3 scripts/research-db.py`, not via MCP — separate auth path. See `scripts/research-db-config.sample.json` for setup.
 
@@ -52,7 +53,7 @@ The instruction file (`CLAUDE.md`, front matter) carries four pointers beside th
 The role skills act on behalf of. Referenced by /develop, /draft, and /refine.
 
 ```yaml
-role: "YOUR_ROLE — e.g., Director of Product Design (Assessments)"
+role: "YOUR_ROLE — e.g., Head of Product Design (Coursebook)"
 ```
 
 ### Voice and Format Reference
@@ -192,6 +193,17 @@ jira.domain_objectives:
 jira.transition_id: "YOUR_TRANSITION_ID"
 jira.transition_to_status: "YOUR_FIRST_WORKFLOW_STATUS"
 
+# The workflow status names of your JPD project, exactly as Jira shows them, ordered by how strong
+# a signal an idea in that status is: shipped work first, then work about to ship, work in active
+# development, work planned or explored, and queued work last. /cross-domain runs one query per
+# status and ranks its signals by this order. List every status you want searched.
+jira.statuses:
+  - "YOUR_SHIPPED_STATUS"
+  - "YOUR_ABOUT_TO_SHIP_STATUS"
+  - "YOUR_IN_DEVELOPMENT_STATUS"
+  - "YOUR_PLANNED_STATUS"
+  - "YOUR_QUEUED_STATUS"
+
 # The Product Brand value that marks your own team's ideas; /cross-domain excludes them.
 jira.own_brand: "YOUR_BRAND"
 
@@ -265,8 +277,6 @@ Before using this system, you must customize:
 
 ### Notes
 
-**Seed intake (Stage 0→1):** Items classified as strategy seeds by the inbox router are delivered here as seed rows in the Ideas database. Seeds require the full frontmatter schema (as the row's fields) and seed template defined in `incubator-reference.md` (sections: Frontmatter Schema, Seed Template). The router reads this contract and conforms — it does not carry its own copy of the schema.
+**Seed intake (Stage 0→1):** A seed is a row someone adds to the Ideas database: a title, a Slug, `Stage` `seed`, and the raw thought kept word for word under an `### Original Capture` heading. No skill creates seeds, and nothing classifies or routes a capture on the way in. The row's fields and the seed template are defined in `incubator-reference.md` (sections: Frontmatter Schema, Seed Template).
 
-**Signal-extracted seeds:** Ad-hoc captures with strategic signals also arrive as seeds via the same contract, with `source: slack`. Detection and extraction logic is the router's responsibility; the resulting row must conform to this project's seed contract.
-
-**What the Incubator does NOT define:** Classification taxonomy, signal detection criteria, Origin Handoff Contract provenance rules, and processing order. Those are router responsibilities defined in your inbox processing system's router spec.
+**What the Incubator does NOT define:** How a thought is captured before it becomes a row, and which thoughts are worth a row. Those are yours.

@@ -16,7 +16,7 @@ Defines pass/fail criteria for evaluating pipeline output quality. Used by the e
 
 ## Phase A: Seed Quality (Stage 0→1)
 
-Evaluates router seed creation output. Source constraints: Seed Template in `reference/templates.md`.
+Evaluates a newly added seed. Source constraints: Seed Template in `reference/templates.md`.
 
 ### Structural Criteria
 
@@ -36,7 +36,7 @@ Evaluates router seed creation output. Source constraints: Seed Template in `ref
 | A7 | Source | `[Where this came from]` | Accurate, specific | Vague or wrong |
 | A8 | Initial strategic connection | `[Which current priority or theme this relates to, if apparent]` | Names one priority/theme, or "None apparent" | Over-connected (3+ priorities), vague ("aligns with strategy") |
 | A9 | Original Capture | `[Verbatim original capture content]` | Complete, unmodified | Truncated, edited, reformatted, or missing |
-| A10 | No development | Router constraint: "Never develop, expand, or enrich" | Seed adds structure, not analysis | Contains opportunity assessment, research, or strategic arguments |
+| A10 | No development | Seed constraint: a seed holds the raw capture and nothing developed from it | Seed adds structure, not analysis | Contains opportunity assessment, research, or strategic arguments |
 
 ---
 

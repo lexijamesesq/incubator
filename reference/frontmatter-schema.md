@@ -14,11 +14,12 @@ output-format: null | strategy-doc | product-brief
 
 # Classification
 domain: assessments | platform | cross-product
-themes: []  # e.g., [authentic-assessment, marketplace, ai-capabilities]
+themes: []  # e.g., [learning-continuity, family-communication, ai-capabilities]
 # Theme governance:
+# - Themes are defined per instance: each portfolio names its own. The ones shown here are invented.
 # - Themes are provisional at Stage 1. /develop may add or remove at Stage 2 based on research.
 # - Vocabulary is closed at /develop time — only use themes already in the portfolio.
-#   New themes are created by the router at intake or by explicit human request.
+#   New themes are created when a person adds a seed, or by explicit human request.
 # - ai-capabilities drives JPD "AI Feature" checkbox. /develop must explicitly assess
 #   whether AI is load-bearing (see /develop Step 5d).
 # - Minimum one theme per idea.
@@ -31,7 +32,7 @@ industry-disruption: null | none | low | medium | high
 strategic-alignment: null | none | low | medium | high
 
 # Relationships (human-set only — agents surface candidates, human confirms)
-related-ideas: []  # idea filenames without path or extension, e.g., [ai-student-intelligence-model, ai-learning-pattern-recognition]
+related-ideas: []  # idea filenames without path or extension, e.g., [absence-alerts-for-families, lesson-recording-archive]
 initiative: null  # parent initiative filename without .md, null if standalone
 
 # Tracking

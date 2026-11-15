@@ -132,7 +132,7 @@ Fetch the seed row and the Configuration page first, then load the rest in paral
    python3 scripts/research-db.py query-gaps --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
 
-   Derive capability slugs from the seed's `Themes` and `core insight` using the vocabulary list — themes may map directly or expand (e.g., `ai-capabilities` → `ai-item-generation`, `ai-open-response-scoring`). Entries within TTL are baseline; entries past TTL are directional only and require reverification during Stream A/B research. Gap detection identifies where enrichment agents should focus live web research.
+   Derive capability slugs from the seed's `Themes` and `core insight` using the vocabulary list — themes may map directly or expand (e.g., `data-interoperability` → `roster-sync`, `results-export`). Entries within TTL are baseline; entries past TTL are directional only and require reverification during Stream A/B research. Gap detection identifies where enrichment agents should focus live web research.
 
 7. **Competitor registry** — Snowflake `competitors` table. Already covered by item 6 above's `query-landscape` call (returns name, category, market_tier, pricing_model, matched capabilities filtered by the seed's capability slugs). For competitors central to the seed's competitive frame, follow up with `query-competitor` for the full intelligence body and linked findings.
 
@@ -227,9 +227,9 @@ Stream A's remaining half — the shared-research reconciliation — genuinely d
   Derive 3-5 search terms from the seed's themes, core insight, and domain terms. Grep ALL `.md` files in each NPS directory for those terms. Record which files (months) contain matches and which do not. If zero files match across all months for a product, record: "Zero mentions of {topic} across {N} months of {product} NPS data ({date range})" — this distinguishes latent demand (observable in behavior, not voiced in feedback) from articulated demand, and directly informs the Customer Sentiment dimension.
 
   **Pass 2 — Targeted section reads:**
-  - **Always:** Read the **Top Pain Points** and **The Signal** sections from the **3 most recent** files per product (6 files total). These sections are small (~10-16 lines each) — use the Read tool with offset/limit to target them directly rather than grepping then conditionally reading.
-  - **If Pass 1 matched older files:** Also read **Top Pain Points**, **The Signal**, and **3 Things That Matter** from each matched file for verbatim quotes and trend context.
-  - Do not read Summary, What's Working, or Document Links sections. Do not read raw CSV data or full analysis files.
+  - **Always:** Read the section that lists the period's top pain points and the section that states its headline signal, under whatever headings your analysis files give them, from the **3 most recent** files per product (6 files total). These sections are small (~10-16 lines each) — use the Read tool with offset/limit to target them directly rather than grepping then conditionally reading.
+  - **If Pass 1 matched older files:** Also read those two sections, and the section that names the period's priorities if the file has one, from each matched file for verbatim quotes and trend context.
+  - Do not read a file's summary, its account of what is working, or its list of links. Do not read raw CSV data or full analysis files.
 
   NPS findings directly inform the Customer Sentiment dimension rating. Absence of signal across the full window is itself evidence — note it explicitly in the handoff.
 
@@ -523,7 +523,7 @@ Using the portfolio theme vocabulary collected in Step 1 and the research findin
 **General theme assessment:**
 
 - For each existing theme: does research confirm this idea is substantively about this theme, or was it a surface-signal classification? Remove if incidental.
-- For themes in the portfolio vocabulary NOT on the seed: did research reveal a genuine connection the router missed? Add if substantive. Only use existing themes — never invent new ones.
+- For themes in the portfolio vocabulary NOT on the seed: did research reveal a genuine connection the seed's themes missed? Add if substantive. Only use existing themes — never invent new ones.
 - Minimum one theme per idea.
 
 **ai-capabilities special case:**
@@ -542,7 +542,7 @@ Check the research before deciding — cross-domain signals, buildable surface c
 
 Assessment question: "If someone reads only this title and the Core insight sentence, do they get an accurate picture of what this idea is?"
 
-**Revise when:** research shifted the idea's center of gravity, the router title reflects raw capture framing rather than developed understanding, or the title is too generic to distinguish from other portfolio ideas.
+**Revise when:** research shifted the idea's center of gravity, the seed's title reflects raw capture framing rather than developed understanding, or the title is too generic to distinguish from other portfolio ideas.
 
 **Keep when:** title is still accurate and specific after research.
 
@@ -588,7 +588,7 @@ After addressing critic findings, check the completed TL;DR against these criter
 
 Fix all issues directly in the card before proceeding.
 
-**Human review awareness:** After presentation, the human evaluates using the Stage 2→3 review template (`Templates/review-templates.md`). That template focuses on: core framing accuracy, impact dimension credibility, strategic connection reality, output format readiness, and blocking unknowns. Anticipate these checks — if you know a dimension is shaky, say so in your confidence assessment rather than letting the human discover it.
+**Human review awareness:** After presentation, the human evaluates using the Stage 2→3 review template (the page linked as `template_review` on the Configuration page). That template focuses on: core framing accuracy, impact dimension credibility, strategic connection reality, output format readiness, and blocking unknowns. Anticipate these checks — if you know a dimension is shaky, say so in your confidence assessment rather than letting the human discover it.
 
 ### Step 8: Create Research Artifact and Verify Frontmatter
 
@@ -755,11 +755,11 @@ This skill does NOT:
 
 - Perform strategic synthesis — that is the develop-synthesis agent's job
 - Refine seeds, clarify intent, or resolve related ideas — that is `/refine-seed`'s job (run it first)
-- Create seed files (that is the router's job via `/process-inbox`)
+- Create seeds (a seed is a row a person adds to the Ideas database)
 - Decide output format — strategy doc vs. product brief (that is a human decision at Stage 2→3)
 - Draft the full document (that is the `/draft` skill, Stage 2→3)
 - Run the Sufficiency Evaluator (planned MLP-phase agent — not yet built)
-- Process inbox items (that is `/process-inbox`)
+- Capture or sort raw thoughts (no skill does; a person decides what becomes a seed)
 - Merge or consolidate ideas (that is `/refine-seed`'s job)
 - Load full strategy docs into context (Grep only — local files at the paths the Configuration page gives as `strategic_context.product_strategy` and `strategic_context.design_strategy`)
 - Invoke Gemini CLI (notes Atlassian references for manual lookup instead)

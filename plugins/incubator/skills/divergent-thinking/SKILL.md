@@ -32,7 +32,7 @@ Two modes:
 - **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): generates angles for an idea. Writes its artifact as a row in the Research database (Research type `divergent-angles`), related to the idea; that relation is what puts it on the idea's research list.
 - **Ad-hoc mode** (`--adhoc "subject"`): generates angles for a free-form topic/concept. No artifact row, nothing written to Notion.
 
-Examples: `/divergent-thinking foraging-intelligence`, `/divergent-thinking --adhoc "authentic assessment at scale"`.
+Examples: `/divergent-thinking foraging-intelligence`, `/divergent-thinking --adhoc "what a school learns about a student who arrives mid-year"`.
 
 ## Where Things Are (idea mode)
 

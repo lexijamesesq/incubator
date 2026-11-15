@@ -18,13 +18,13 @@ All Jira/JPD connection details, field IDs and option IDs are `jira.*` keys on t
 
 If your JPD project has an official idea template, align push output with its structure. Key fields to check:
 
-- **Required at which stages:** Some fields (Success Measure, Cost of Delay) may only be required at later stages, not at initial Opportunity Identification.
+- **Required at which stages:** Some fields may only be required at later workflow statuses, not at the first one.
 - **Executive Summary:** Typically a pinned field (its field ID is `jira.fields.executive_summary`)
 - **Description sections:** Usually What (problem statements & hypotheses), Who (audiences), Why (why worth solving), plus stage-specific fields
 
-**Alignment with Incubator push:** Our developing-stage push uses What/Who/Why matching this convention, plus Incubator additions (Opportunity Assessment, Research Summary, Cross-Domain Signals, Thought Outline, Open Questions). We exceed what's expected at Opportunity Identification. Success Measure and Cost of Delay are not relevant at developing stage but become required at Experimentation/GTM — see the stage-aware push note below.
+**Alignment with Incubator push:** Our developing-stage push uses What/Who/Why matching this convention, plus Incubator additions (Opportunity Assessment, Research Summary, Cross-Domain Signals, Thought Outline, Open Questions). We exceed what's expected at the first workflow status. Fields your template requires only at later statuses are not relevant at developing stage — see the stage-aware push note below.
 
-**Stage-aware push (future):** At later PDLC stages (Experimentation, GTM), re-push should add Success Measure and Cost of Delay per the standard template, condense Thought Outline/Open Questions as unknowns resolve, and link to a Google Doc output document rather than carrying full content inline.
+**Stage-aware push (future):** At later workflow statuses, re-push should add the fields the standard template requires there, condense Thought Outline/Open Questions as unknowns resolve, and link to a Google Doc output document rather than carrying full content inline.
 
 ## Push Criteria
 

@@ -31,7 +31,7 @@ Two modes:
 - **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): discovers cross-domain signals for an idea. Writes its artifact as a row in the Research database (Research type `cross-domain-signals`), related to the idea; that relation is what puts it on the idea's research list.
 - **Ad-hoc mode** (`--adhoc "subject"`): discovers JPD items overlapping with a free-form subject (capability, concept). No artifact row, nothing written to Notion.
 
-Examples: `/cross-domain foraging-intelligence`, `/cross-domain --adhoc "rubric-based grading infrastructure"`.
+Examples: `/cross-domain foraging-intelligence`, `/cross-domain --adhoc "shared rostering service"`.
 
 ## Where Things Are
 
@@ -85,6 +85,7 @@ Settle the pointers (an argument override where one is given, the `CLAUDE.md` fr
 | `jira.fields.squad` | Field ID of Squad | yes |
 | `jira.fields.product_surface_area` | Field ID of Product Surface Area | yes |
 | `jira.fields.quarter_active` | Field ID of Quarter Active | yes |
+| `jira.statuses` | The JPD project's workflow status names, a list ordered by signal weight, strongest first. Phase 1 runs one query per status; Phase 2 reads the order as the weight | yes |
 | `jira.own_brand` | The Product Brand value that marks your own team's ideas, excluded in Phase 1.5 Step A | yes |
 | `cross_domain.org_reference` | URL of a Notion page describing the organization's brands, domains, squads and surface areas | no |
 
@@ -118,17 +119,17 @@ Read the organizational structural reference, if one is configured: fetch the pa
 
 ### Phase 1: Status-Partitioned Retrieve
 
-Fetch all JPD ideas with structural metadata only (no descriptions). Use **status-partitioned queries** — one query per status — to avoid the 100-item-per-query ceiling that causes items to silently fall off the retrieval window.
+Fetch all JPD ideas with structural metadata only (no descriptions). Use **status-partitioned queries** — one query per status in `jira.statuses` — to avoid the 100-item-per-query ceiling that causes items to silently fall off the retrieval window.
 
-**Why partitioned:** The MCP tool caps responses at 100 items and does not return pagination tokens. A single `ORDER BY updated DESC` query loses older-but-relevant items when the project exceeds 100 items. Status partitioning ensures active statuses (Experimentation, GTM, Opportunity Identification) — where the highest-value signals live — get complete coverage even as the project grows.
+**Why partitioned:** The MCP tool caps responses at 100 items and does not return pagination tokens. A single `ORDER BY updated DESC` query loses older-but-relevant items when the project exceeds 100 items. Status partitioning ensures the statuses that hold work in flight — where the highest-value signals live — get complete coverage even as the project grows.
 
-Run these 5 queries (sequentially — MCP calls cannot be parallelized):
+Run one query for each status name in `jira.statuses`, in the order the list gives them (sequentially — MCP calls cannot be parallelized). `{status}` is the configured name, quoted exactly as it is written there:
 
 ```text
-// Query 1: Active development (highest-value signals)
+// One query per entry of jira.statuses
 mcp__atlassian__searchJiraIssuesUsingJql(
     cloudId={jira.cloud_id},
-    jql='project = {jira.project_key} AND status = "2 - Experimentation" ORDER BY updated DESC',
+    jql='project = {jira.project_key} AND status = "{status}" ORDER BY updated DESC',
     fields=["summary", "status",
             {jira.fields.product_brand}, {jira.fields.product_domain},
             {jira.fields.squad}, {jira.fields.product_surface_area},
@@ -136,25 +137,13 @@ mcp__atlassian__searchJiraIssuesUsingJql(
     maxResults=100,
     responseContentFormat="markdown"
 )
-
-// Query 2: Shipping imminently
-jql='project = {jira.project_key} AND status = "3 - GTM" ORDER BY updated DESC'
-
-// Query 3: Planned/explored
-jql='project = {jira.project_key} AND status = "1 - Opportunity Identification" ORDER BY updated DESC'
-
-// Query 4: Already shipped (strongest signal weight — leverage or duplication)
-jql='project = {jira.project_key} AND status = "Done" ORDER BY updated DESC'
-
-// Query 5: Queued (weakest signal weight)
-jql='project = {jira.project_key} AND status = "Backlog" ORDER BY updated DESC'
 ```
 
-All queries use the same `fields` array and `maxResults=100`. Field IDs come from the `jira.fields.*` configuration keys.
+All queries use the same `fields` array and `maxResults=100`; only the status changes. Field IDs come from the `jira.fields.*` configuration keys. A status the project has and the list leaves out is not retrieved.
 
 **Merge results:** Combine all nodes into a single list. No deduplication needed — status partitions are mutually exclusive.
 
-**Overflow detection:** If any individual query returns exactly 100 results, note it in the retrieval stats footer (e.g., "Done partition truncated at 100"). This is informational — the skill proceeds with what was retrieved. Active statuses (Experimentation, GTM, Opportunity Identification) are unlikely to overflow; Done and Backlog may.
+**Overflow detection:** If any individual query returns exactly 100 results, note it in the retrieval stats footer ("{status} partition truncated at 100"). This is informational — the skill proceeds with what was retrieved. Statuses that hold work in flight are unlikely to overflow; the statuses that hold shipped and queued work may.
 
 **Error handling at this phase:**
 
@@ -177,7 +166,7 @@ Two-step in-memory filter on Phase 1 results.
 **Step B — Keyword auto-pass + LLM lightweight relevance scan:**
 
 **B.1 — Extract key terms from the idea:**
-From the idea's core insight, themes, domain, problem, who-cares, strategic connection, and original capture, extract a set of key terms — concept nouns, product names, capability words, and domain terms. Include both the specific terms (e.g., "Rubrics", "SpeedGrader", "grading") and their close variants. These are the terms that make a candidate worth looking at in Phase 2.
+From the idea's core insight, themes, domain, problem, who-cares, strategic connection, and original capture, extract a set of key terms — concept nouns, product names, capability words, and domain terms. Include both the specific terms (e.g., for an idea about sending results with a student who changes school: "transfer", "Benchmark", "enrolment") and their close variants. These are the terms that make a candidate worth looking at in Phase 2.
 
 **B.2 — Keyword auto-pass:**
 Any candidate whose summary contains one or more key terms (case-insensitive) passes automatically to Phase 2 without LLM judgment. This prevents the LLM from applying precision-level reasoning to candidates with obvious lexical overlap.
@@ -216,7 +205,7 @@ If Phase 1.5 yields more than 25 survivors, batch into multiple queries of 25.
 **Relevance classification:** Classify each candidate as one of:
 
 - **Direct overlap** — another team building the same capability (duplication risk, collaboration opportunity)
-- **Enabler/dependency** — infrastructure this idea depends on or must coordinate with, where the human would need to engage with the other team or make a design decision based on the dependency. General platform improvements that benefit many ideas (responsive design, accessibility compliance, shipped foundational improvements) go into the artifact as reference context but are excluded from the Phase 3 output — unless the improvement is specifically load-bearing for THIS idea's core capability (e.g., rubric infrastructure improvements for a grading idea, content editor improvements for an authoring idea whose primary surface is the editor)
+- **Enabler/dependency** — infrastructure this idea depends on or must coordinate with, where the human would need to engage with the other team or make a design decision based on the dependency. General platform improvements that benefit many ideas (responsive design, accessibility compliance, shipped foundational improvements) go into the artifact as reference context but are excluded from the Phase 3 output — unless the improvement is specifically load-bearing for THIS idea's core capability (e.g., a change to how student identities are matched across districts, for an idea that sends a record from one district to another)
 - **Convergence** — same user problem, different angle
 - **Not relevant** — plausible structural match but no meaningful connection (silently dropped)
 
@@ -226,9 +215,9 @@ Only Direct overlap, Enabler, and Convergence results are surfaced.
 
 **Domain label derivation:** For each relevant signal, derive a domain label for reader orientation using this priority chain:
 
-1. **Product Brand** (field ID `jira.fields.product_brand`) — if populated, use as domain label (e.g., "the LMS product", "the credentials product")
-2. **Product Domain** (field ID `jira.fields.product_domain`) — if Brand is null but Domain is populated, use it (e.g., "Learning Management", "AI")
-3. **Squad** (field ID `jira.fields.squad`) — if Brand and Domain are both null but Squad is populated, infer the domain from the squad name using the organizational structural reference (e.g., "CEC CLX" → "Career"). If inference is not confident, or no reference is configured, use the squad name as-is.
+1. **Product Brand** (field ID `jira.fields.product_brand`) — if populated, use as domain label (e.g., "Coursebook", "Benchmark")
+2. **Product Domain** (field ID `jira.fields.product_domain`) — if Brand is null but Domain is populated, use it (e.g., "Rostering", "Family Messaging")
+3. **Squad** (field ID `jira.fields.squad`) — if Brand and Domain are both null but Squad is populated, infer the domain from the squad name using the organizational structural reference (e.g., a squad the reference lists under the Rostering domain → "Rostering"). If inference is not confident, or no reference is configured, use the squad name as-is.
 4. **All null** — omit domain label entirely for this signal
 
 Record the derived domain label in the research artifact alongside the raw field values.
@@ -237,13 +226,17 @@ If all candidates are "Not relevant," report a confident negative with retrieval
 
 **Status signal weight** (for output ordering and reader interpretation):
 
-| Status | Signal Weight | Interpretation |
+The order of `jira.statuses` is the weight: the first status in the list is the strongest signal and the last is the weakest. The configuration lists them by what each status means, in this order:
+
+| What the status means | Signal Weight | Interpretation |
 | --- | --- | --- |
-| Done | Strongest | Another team already built this — assess for leverage or duplication |
-| 3 - GTM | Strong | Shipping imminently — high-confidence organizational investment |
-| 2 - Experimentation | Medium-strong | Active development — team is committed |
-| 1 - Opportunity Identification | Medium | Planned/explored — interest confirmed, investment not yet committed |
-| Backlog | Weak | Queued but potentially stale — include for completeness, reader should discount |
+| Shipped | Strongest | Another team already built this — assess for leverage or duplication |
+| About to ship | Strong | Shipping imminently — high-confidence organizational investment |
+| In active development | Medium-strong | Active development — team is committed |
+| Planned or explored | Medium | Planned/explored — interest confirmed, investment not yet committed |
+| Queued | Weak | Queued but potentially stale — include for completeness, reader should discount |
+
+A project with more or fewer statuses keeps the rule: earlier in the list is stronger. In the output, give each signal the status name as JPD returns it.
 
 Order output signals by status weight (strongest first).
 
@@ -256,9 +249,9 @@ Phase 2 may classify more signals as relevant than the reader needs. This phase 
 **Ranking dimensions** (apply these as reasoning lenses, not a scoring formula):
 
 - **Actionability:** Would the reader need to coordinate with, align to, or build on this team's work? Direct overlap and convergence rank highest. Enablers rank higher when they represent a specific integration decision than when they're general infrastructure.
-- **Status weight:** Done and GTM items are stronger signals (proven organizational investment). Opportunity Identification is interest, not commitment. Backlog is weakest.
+- **Status weight:** Items in the statuses listed first in `jira.statuses` (shipped, about to ship) are stronger signals (proven organizational investment). A planned-or-explored status is interest, not commitment. The last status in the list is weakest.
 - **Domain breadth:** Signals from different domains are more valuable together than multiple signals from one team's roadmap. Prefer breadth over depth.
-- **Connection specificity:** A named integration point ("must accommodate multi-criteria scoring in grade passback") outranks a thematic similarity ("also works with assessments").
+- **Connection specificity:** A named integration point ("must check the family consent log before a record leaves the school") outranks a thematic similarity ("also works with student records").
 
 **Convergence curation:** Maximum 1 convergence group in the output. Select the group that spans the most domains and adds the strongest cross-cutting insight. The convergence synthesis line must state something the individual entries do not — a shared organizational need or strategic implication that emerges from the combination. If the synthesis would merely restate signal types and issue keys already visible in the entries, omit the convergence block.
 
@@ -374,7 +367,7 @@ This is NOT a confident negative. Cross-domain signals were not evaluated.
 | MCP not authenticated (auth flow not yet attempted) | MCP tools unavailable on first query, no auth flow in progress | Surface auth URL, wait for user to complete OAuth, then retry the failed query once. Only stop if the retry also fails. | "Cross-domain discovery requires Atlassian MCP authentication. Open the auth URL, complete the flow, and the skill will retry automatically. If the retry fails, run `/mcp` to verify connection and re-invoke the skill." |
 | MCP not authenticated (retry exhausted) | First query failed, auth flow completed by user, retry also failed | Stop | "Cross-domain discovery unavailable — Atlassian MCP authenticated but query still failed. Run `/mcp` to verify connection, then re-run." |
 | MCP timeout | MCP call returns timeout error on any query | Stop. Do not retry. | "Could not check — Atlassian MCP timed out. Cross-domain signals were not evaluated. Restart Claude Code to refresh connection." |
-| All partitions return 0 | All 5 status queries return empty | Warn — JPD should contain ideas | "Warning: JPD queries returned 0 results across all statuses. This is unexpected — verify MCP connection. Cross-domain signals could not be evaluated." |
+| All partitions return 0 | Every status query returns empty | Warn — JPD should contain ideas | "Warning: JPD queries returned 0 results across all statuses. This is unexpected — verify MCP connection. Cross-domain signals could not be evaluated." |
 | Some partitions fail | Some status queries succeed, others error | Continue with partial results | Note failed partitions in retrieval stats: "Note: {status} partition failed — {reason}." |
 | Status partition truncated | A status query returns exactly 100 results | Continue, note informational | Note in retrieval stats: "{status} partition truncated at 100." |
 | All results are own brand | Phase 1.5 Step A removes all candidates | Confident negative | Standard output with retrieval stats showing the drop |
@@ -404,8 +397,8 @@ This skill does NOT:
 ## Quality Standards
 
 - **Precision over recall.** A false positive is worse than a missed connection.
-- **Specific functional connections.** "Also uses AI" is not a connection. "Also building rubric evaluation for qualitative work" is.
-- **Status-aware.** Done items signal existing capability to leverage. Backlog items signal interest, not commitment.
+- **Specific functional connections.** "Also uses AI" is not a connection. "Also building a handover of a student's work to her next school" is.
+- **Status-aware.** Shipped items signal existing capability to leverage. Queued items signal interest, not commitment.
 - **Honest confidence.** "Could not check" is never confused with "checked and found nothing."
 - **Convergence is the highest-value signal.** Multiple teams solving the same problem independently means organizational energy is being spent — that is strategic intelligence.
 - **Maximum 5 signals, maximum 1 convergence group.** The artifact keeps everything for /jpd-push. The output is curated for a product leader who scans and decides.
@@ -414,23 +407,22 @@ This skill does NOT:
 
 ## Worked Example
 
-The cache-route-optimization idea (`cache-route-optimization`) produced this output, using the fictional brand vocabulary from `org-taxonomy.sample.md` (Oakwood, Acorn, Burrow, Canopy). Study the reasoning, not just the format.
+An invented idea, `transfer-evidence-handover` (a student's Benchmark results travel with her when she changes school), produced this output. The idea belongs to the Benchmark team, so `jira.own_brand` is Benchmark and the candidates come from the Coursebook brand and from Groundwork, the brand for the shared services both products run on (the brands and squads are those of `org-taxonomy.sample.md`). Each status is described by what it means; a real run prints the name from `jira.statuses`. Study the reasoning, not just the format.
 
-**6 candidates evaluated. 4 selected, 2 excluded.**
+**5 candidates evaluated. 3 selected, 2 excluded.**
 
 Selected:
 
-- Multi-stop Route Builder Phase 2 (Oakwood, Done) — Enabler: adds intermediate-stop scheduling, directly enables the cache-checkpoint sequencing this idea requires. *Selected because: specific integration point, Done status (proven investment).*
-- Enhanced Cache Tags Phase 3 (Acorn, Done) — Enabler: cache metadata schema improvements, foundational to any cache-route join logic. *Selected because: specifically load-bearing for a cache-routing idea — not general infrastructure.*
-- Map Layer rotated terrain views (Oakwood, GTM) — Enabler: aligns territory views with seasonal foraging direction, exactly the orientation this idea's checkpoint scheduling depends on. *Selected because: specific to this idea's spatial layer, shipping imminently.*
-- Burrow Inventory & Cache integration (Burrow, Opportunity Identification) — Convergence: Burrow building cross-cache inventory tracking — different angle on the same need for trustworthy cache state at routing time. *Selected because: different domain, same underlying need.*
+- District-to-district roster transfer (Groundwork, shipped) — Enabler: moves a student's enrolment to her new district and matches her to one identity across both, which is the identity her results would have to arrive on. *Selected because: this idea cannot deliver anything without that match, and the work is shipped, so it is there to build on.*
+- Coursebook leaver's pack (Coursebook, in active development) — Direct overlap: bundles a departing student's Coursebook work for her next school, the same handover built for a different record. *Selected because: two handovers built apart would give one receiving teacher two documents about one student.*
+- Family consent log for record sharing (Groundwork, planned) — Enabler: records which family has agreed to which record leaving a school, and a results transfer has to check it before sending. *Selected because: it forces a design decision on this idea now, even though the other team has not committed to building it.*
 
 Excluded:
 
-- Enhanced Cache Tags pre-GA Tasks (Acorn, Done) — duplicative with Enhanced Cache Tags Phase 3, null description, low incremental value.
-- Responsive Map UI (Oakwood, Done) — general UI infrastructure (responsive design, accessibility). Benefits every map feature, not specific to cache-route optimization.
+- Sign-in refresh (Groundwork, shipped) — general sign-in infrastructure. Every product gains from it and nothing in it is specific to a transfer.
+- Roster transfer bulk-import fixes (Groundwork, shipped) — follow-up work by the squad that owns the selected roster item, with no description. One team's roadmap, already represented.
 
 Convergence group:
-> Trustworthy cache state for downstream decisions — Multi-stop Route Builder Phase 2 (Oakwood), Enhanced Cache Tags Phase 3 (Acorn), Burrow Inventory & Cache (Burrow). Oakwood is investing in route infrastructure while Burrow is building cross-cache inventory — both need cache state to be trustworthy enough to drive downstream decisions, creating shared organizational interest that this idea can leverage.
+> A move is being assembled in pieces — District-to-district roster transfer (Groundwork), Coursebook leaver's pack (Coursebook). One team has moved the enrolment and another is moving the coursework; neither carries assessment results, and no team owns the whole move, so a third handover built alone leaves the receiving school three places to look.
 
-*Why this convergence group works: the synthesis line states something the individual entries do not — "shared organizational interest" across domains. It answers "so what?" for the reader.*
+*Why this convergence group works: the synthesis line states something the individual entries do not — nobody owns the whole move. It answers "so what?" for the reader. The consent log is left out of the group: it is a dependency of all three, not a third attempt at the same need.*

@@ -1,56 +1,63 @@
 ---
 type: incubator/idea
 stage: developing
-created: '2026-01-15'
-updated: '2026-01-20'
-output-format: strategy-doc
+created: '2026-10-05'
+updated: '2026-10-21'
+output-format: null
 domain: platform
 themes:
-  - ai-capabilities
-  - foraging-optimization
+  - feedback
+  - learning-continuity
 customer-sentiment: medium
 user-experience: high
-revenue-potential: medium
-industry-disruption: high
+revenue-potential: low
+industry-disruption: medium
 strategic-alignment: high
 related-ideas:
-  - seasonal-cache-prediction
+  - comment-bank-for-teachers
 initiative: null
-source: inbox
+source: conversation
 output-file: null
 research:
-  - Research/sample-foraging-intelligence/development-research.md
+  - Research/feedback-carried-forward/synthesis-handoff.md
+  - Research/feedback-carried-forward/development-research.md
+research-ids: []
 blocked_by: null
 jira-key: null
 jira-pushed-at: null
+jira-sidecar-url: null
 ---
-## Adaptive Foraging Route Intelligence
+## Feedback That Carries Forward
 
-**Core insight:** Squirrels cache thousands of nuts annually but rely on spatial memory alone — an AI-powered foraging platform could optimize cache distribution, predict seasonal yield, and reduce retrieval failure rates from ~25% to under 5%.
-**Problem it addresses:** Squirrels lose a quarter of their cached food each season because no platform surfaces soil quality data, competitor activity patterns, or microclimate conditions at cache time — every burial is a guess.
-**Who cares:** Urban squirrels navigating fragmented green spaces (highest retrieval failure), park rangers managing rodent-ecosystem balance, wildlife researchers studying scatter-hoarding optimization, and backyard gardeners losing tulip bulbs to cache misplacement.
-**Strategic connection:** Directly extends Foraging Decision Support — the product strategy names "where to cache" as a core squirrel decision the platform should optimize, and route intelligence is the next layer beyond individual cache-site suggestions.
+**Core insight:** A teacher's comment on a piece of work is the most specific thing Coursebook knows about a student, and it is shown once, beside the grade, and never again.
+**Problem it addresses:** A student starts the next essay without the advice written on the last one, and the teacher ends up writing the same comment twice.
+**Who cares:** Students who are told the same thing every term, teachers who write a comment on each of thirty scripts, and heads of department who are asked whether feedback changes anything.
+**Strategic connection:** Extends Entered Once to the comments teachers write, so that a comment is written one time and shown wherever the next piece of work begins.
 
 ### Opportunity Assessment
+
 | Dimension | Rating | Rationale |
-|-----------|--------|-----------|
-| Customer sentiment | Medium | Squirrels actively cache but haven't experienced platform-assisted recommendations to articulate the need for optimization. |
-| User experience | High | Transforms the daily foraging decision from spatial memory roulette to data-informed route planning with real-time competitor awareness. |
-| Revenue potential | Medium | Strengthens the AI value proposition in competitive woodland deals but requires ecosystem partnerships to monetize independently. |
-| Industry disruption | High | No major foraging platform offers multi-signal cache optimization — competitors track individual nut locations but ignore soil chemistry, competitor density, and seasonal yield prediction entirely. |
-| Strategic alignment | High | Product strategy names "where to cache" under Foraging Decision Support; OKR 2.1 targets high-value AI capabilities measured by retrieval success rate. |
+| ----------- | -------- | ----------- |
+| Customer sentiment | Medium | Teachers describe repeating themselves, and none has asked for an old comment to reappear. |
+| User experience | High | A student opens a new task and the last advice on that skill is already beside it. |
+| Revenue potential | Low | It ships inside Coursebook and gives no district a new line to buy. |
+| Industry disruption | Medium | Competitors help a teacher reuse a comment, and none shows a student the comments already received. |
+| Strategic alignment | High | A comment that stays with the learner is Entered Once applied to the record teachers write most often. |
 
 ### Research Summary
-- Field studies show squirrels retrieve only 74% of cached nuts, with urban squirrels performing worse (68%) due to habitat fragmentation and higher competitor density ([Journal of Mammalogy, 2024](https://example.com/journal-mammalogy-2024))
-- Soil moisture and temperature at cache time predict retrieval success better than spatial memory alone — caches in loamy soil with consistent moisture have 3x higher recovery rates ([Ecology Letters, 2023](https://example.com/ecology-letters-2023))
-- No competing platform integrates multi-signal foraging data — AcornTracker, NutCache Pro, and SquirrelSense all offer single-signal tracking (location only) without environmental context
-- Cross-domain: Two teams independently building adjacent capabilities — Avian Division working on seed-dispersal prediction, Chipmunk Squad prototyping underground cache mapping
+
+- Students acted on a written comment in 3 of 10 cases when it appeared only beside the grade, and in 6 of 10 when it was shown again as the next task opened. ([Fernhollow Institute, Written Feedback Study 2026](https://example.com/fernhollow-written-feedback-2026))
+- Corvid Classroom's comment bank lets a teacher reuse a saved comment; neither it nor Pennywhistle Assess shows a student a comment from an earlier task. ([Kestrel Ridge Research, Classroom Platform Scan, March 2026](https://example.com/kestrel-ridge-classroom-platform-scan-2026))
+- 14 of 20 teachers interviewed had written the same comment to the same student in consecutive terms. ([Larkmoor teacher interviews, September 2026](https://example.com/larkmoor-teacher-interviews-2026-09))
+- Coursebook stores every comment against a submission and tags every task with a skill, so an old comment can be matched to a new task from data already held. ([Coursebook data model notes, 2026](https://example.com/coursebook-data-model-notes))
 
 ### Thought Outline
-This is a differentiation play built on data the platform already collects but doesn't use for route optimization. Cache locations, soil sensors, weather patterns, competitor sighting reports — these signals exist across the ecosystem. The move is connecting them into a foraging recommendation engine that serves squirrels at the moment they're deciding where to bury the next acorn. One capability — multi-signal cache optimization — compounds across seasonal planning (winter prep), territorial defense (competitor-aware spacing), and retrieval efficiency (shortest-path routes to highest-yield caches). It depends on the soil sensor network existing first but delivers unique value no competitor currently offers.
+
+The move is to show a comment again at the moment it can be used. Coursebook already keeps every comment and already knows which skill each task practises, so when a student opens a new task the last advice on that skill sits beside the brief, and the teacher marking it sees what was said before. That gets students opening Coursebook's feedback every time they start a task while taking a repeated comment off the teachers whose goodwill decides a renewal while giving a district the evidence of feedback use it now asks vendors to show — one move serving adoption, retention, and positioning together. Nothing new is asked of the teacher. The open decision is how much history to show: the last comment, or the pattern across a year.
 
 ### Open Questions
-- What environmental data does the platform actually capture today? Is soil chemistry available or does new instrumentation need to be deployed?
-- Does this require the ecosystem intelligence layer to exist first, or can it be built as a standalone feature on existing location data?
-- How do squirrels feel about algorithm-suggested routes? Is there resistance to "the platform telling me where to dig"?
-- What's the privacy model? Sharing cache locations across the network raises competitive concerns between squirrels.
+
+- Does a student read a comment shown before a task, or scroll past it as they do the grade?
+- Will teachers write differently once they know a comment will be seen again?
+- Are tasks tagged with skills consistently enough to match an old comment to a new task?
+- Does a comment written in one teacher's class make sense when a different teacher sets the next task?

@@ -7,8 +7,8 @@ The pipeline uses a two-track model:
 **Track 1: Idea Cards (Stages 0→1→2) — Progressive Enhancement**
 The idea — a row in the Ideas database in Notion, whose page body is the card and whose fields are what was front matter — progressively accumulates content. Each stage adds structure on top of what came before — nothing is discarded or overwritten.
 
-- **Stage 0 (Capture):** Raw thought arrives from inbox — unstructured, unedited
-- **Stage 1 (Seed):** Router sets the row's fields and preserves the original capture in `### Original Capture` section. /refine-seed interprets the capture and adds structured fields (core insight, source, strategic connection) before /develop runs.
+- **Stage 0 (Capture):** A raw thought is written down — unstructured, unedited
+- **Stage 1 (Seed):** Someone adds a row to the Ideas database with a title, a Slug and `Stage` `seed`, and keeps the raw thought word for word in the `### Original Capture` section. /refine-seed interprets the capture and adds structured fields (core insight, source, strategic connection) before /develop runs.
 - **Stage 2 (Developing):** /develop adds TL;DR sections (opportunity assessment, research summary, thought outline, open questions). Original capture persists at the bottom.
 
 The idea card is the scannable, shareable artifact. It can be duplicated to Google Docs for peer/VP/ELT visibility into the idea portfolio. The card body freezes by default at Stage 2 — Stages 3+ create linked output documents rather than modifying the card.
@@ -39,7 +39,7 @@ When drafting begins, /draft creates a separate output document (strategy doc or
 
 Three natural opportunities for grouping related items:
 
-- **Captures → Seed (0→1):** Router identifies related inbox items and proposes grouping into one seed. Human confirms.
+- **Captures → Seed (0→1):** The person adding a seed can put related captures into one row. Nothing proposes the grouping for them.
 - **Seeds → Developing (1→2):** Related-ideas matching and merge/keep-separate decisions happen in /refine-seed, before development begins. /develop Step 3 verifies the refinement is present — it checks that the `Related ideas` relation is resolved and stops if it is not. Human decides during /refine-seed.
 - **Output documents (Stage 3+):** Multiple TL;DR cards can feed into a single output document. This is the natural synthesis point — a strategy doc can draw from several related idea cards. The human decides at drafting time which cards to combine.
 

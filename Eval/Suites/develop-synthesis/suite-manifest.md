@@ -44,35 +44,43 @@ The eval reads the handoffs directly; nothing is re-derived from a `development-
 
 Developed cards — the regression bar.
 
-**These four files are recorded reference runs, dated 2026-11-14.** Each is the output of one `develop-synthesis` run on its seed and handoff, unedited except that one strategy-pillar name was changed afterwards, in the cards and their handoffs alike. Run conditions:
+**These four files are recorded reference runs, dated 2026-11-14.** Each is the output of one `develop-synthesis` run on its seed and handoff, and the card's words are unedited. Run conditions:
 
-- **How it was run:** a fresh-context agent session per idea followed `.claude/skills/develop-synthesis/SKILL.md` and adopted `.claude/agents/develop-synthesis.md`, in a staging copy holding only the seed, the handoff, the skill, the agent definition, the persona guide, and the format example. It was not invoked through the Skill tool's `context: fork`.
-- **Model:** `claude-fable-5-2`. The agent definition asks for `opus`; this run did not use it.
-- **Commit ref:** `44a4945` (skill and agent definition as of that commit).
-- **Persona guide:** staged from the `persona.sample.md` the repo shipped at that commit, a stub with no voice guidance (since removed). Voice came from the agent definition's Voice and Output Prose Translation sections.
-- **Format example:** staged from `Examples/developing-card.sample.md`.
-- **Grading:** each card was scored by a separate fresh-context grader that read only the card, the handoff, and `grader-rubric.md`. The graders ran on the same model at a reduced reasoning-effort setting.
-- **Copy check:** each file was copied from staging after its run reported completion and compared byte for byte with the staged result, before that rename. Each Original Capture is byte-identical to its seed's.
+- **How it was run:** each seed and its handoff were loaded as rows in the scratch Ideas and Research databases (Loading a fixture, below), the seed under its slug with `-base` added. The skill was then invoked headless from a working copy of this repo, one idea at a time: `claude -p "/develop-synthesis {slug}-base notion_ideas=… notion_research=… notion_config=… persona_file=…"`, with the six tools in the skill's `allowed-tools` allowed and no permission prompts. Each run loaded the project-level skill and forked under the `develop-synthesis` agent (`subagent_type` in the run's stream).
+- **Model:** `claude-opus-5-5` wrote every card: it is the model on every message of the forked agent. The agent definition asks for `opus`. The parent session's own model was also `claude-opus-5-5`, so the stream does not show whether the agent's `model:` was applied or the session's model inherited; either way the model is the same. The session these runs used also had an advisor tool switched on in its own settings, served by `claude-fable-5-2`, and the agent consulted it in all four runs. That is a condition of the session, not of the skill or the agent definition; a session without it may write differently.
+- **Commit ref:** `994286c613a179263a871593c0d92bce04c1df18`, with uncommitted changes that became the next commit (the skill, the agent definition and the format example as that commit has them).
+- **Persona guide:** a stand-in, passed as `persona_file=`: a short plain style guide written for this run (direct, concrete, no jargon), not a real persona guide. It is not kept in the repo.
+- **Format example:** `Examples/developing-card.sample.md` as that commit has it, copied to the scratch page the scratch Configuration's `example_card` names.
+- **Grading:** each card was scored once by a separate fresh-context grader, spawned with model `opus`, that read only the card, the handoff, and `grader-rubric.md`. No card was run again after grading: the reference is what the skill produced, and a failed signal is recorded below as the baseline's known state.
+- **Copy check:** each file was built from a fetch of the finished row: the front matter is the seed's, with `stage`, `updated` and the five ratings taken from the row's fields, and the body is the row's body converted back to Markdown (`<br />` to line breaks, `<b>` to `**`, escapes removed, the table's separator row written in the form the earlier Expected files used). Each body above the Original Capture matches, word for word, the text the run sent to Notion, and each Original Capture is byte-identical to its seed's. `related-ideas` is the seed's list: the sibling ideas are not rows in the scratch database, so the row's relation was empty.
 
-| Fixture | Iterations | Grader result | Dimensions (CS/UX/RP/ID/SA) |
+| Fixture | Runs | Grader result | Dimensions (CS/UX/RP/ID/SA) |
 | --- | --- | --- | --- |
-| absence-catch-up-pack | 2 | Iteration 1: FAIL (Multiplicative Framing). Iteration 2: PASS, all five | Medium / Medium / Medium / Medium / High |
-| substitute-day-handover | 1 | PASS, all five | Medium / High / Low / Low / High |
-| conference-evidence-sheet | 2 | Iteration 1: FAIL (Multiplicative Framing). Iteration 2: PASS, all five | High / Medium / Medium / Low / High |
-| assessment-load-calendar | 1, on a revised handoff | PASS, all five | Low / Medium / Insufficient data / Medium / Medium |
+| absence-catch-up-pack | 1 | **FAIL (Multiplicative Framing).** PASS on the other four | Medium / Medium / Medium / Medium / High |
+| substitute-day-handover | 1 | PASS, all five | Medium / Medium / Low / Medium / High |
+| conference-evidence-sheet | 1 | PASS, all five | High / Medium / Medium / Low / High |
+| assessment-load-calendar | 1 | PASS, all five | Low / Medium / Low / Medium / Medium |
 
-What the iterations were:
+Signal by signal:
 
-- `absence-catch-up-pack` and `conference-evidence-sheet` each failed Multiplicative Framing on the first run. In both, the grader found the Thought Outline fanned one move out to three audiences instead of three business outcomes. The Expected file is the second run, made from the same seed and handoff with the grader's finding as an added input, which is the revision loop this suite prescribes. A second fresh grader passed all five signals on each. These two files are therefore not single clean passes.
-- `assessment-load-calendar` was run twice on different inputs. The first handoff gave the idea no strategic connection that held and nothing tying it to a business outcome; the run wrote that the move "does not yet compound", and the grader failed Multiplicative Framing and Mechanism-Naming. That was a fixture too thin for the bar, so the handoff was revised (one study added, and a measure it connects to) and the idea was run again from the seed with no grader input. The Expected file is that run.
+| Fixture | Experience Lens | Multiplicative Framing | Research Specificity | Honest Calibration | Mechanism-Naming |
+| --- | --- | --- | --- | --- | --- |
+| absence-catch-up-pack | PASS | FAIL | PASS | PASS | PASS |
+| substitute-day-handover | PASS | PASS | PASS | PASS | PASS |
+| conference-evidence-sheet | PASS | PASS | PASS | PASS | PASS |
+| assessment-load-calendar | PASS | PASS | PASS | PASS | PASS |
 
-Known limits of these recordings:
+Known state of this baseline:
 
-- `assessment-load-calendar` has `revenue-potential: insufficient data` in its frontmatter. The agent definition tells the agent to mark a dimension "Insufficient data" when research cannot support a rating; `reference/frontmatter-schema.md` allows only null, none, low, medium, high. The card records what the agent does. The two documents disagree and this suite does not settle it. The behaviour is also not stable: the earlier run of this idea, on the first handoff and under the same unavailable market sizing, rated revenue potential Low instead.
-- All four cards run 695 to 795 words above the Original Capture, counted with table syntax and link URLs. `Eval/eval-criteria.md` B20 asks for 400. That criterion is outside this suite's five signals; it is recorded here, not fixed.
-- `substitute-day-handover` and `assessment-load-calendar` each carry six Open Questions; `Eval/eval-criteria.md` B14 asks for three to five.
-- The graders' passes are provisional by the rubric's own weighting. The thinnest pass on every card was Multiplicative Framing.
-- The graders noted small drifts that did not fail a signal: in `conference-evidence-sheet` a competitor the handoff tags "(discovered)" is cited to the competitive registry; in `substitute-day-handover` twelve comments are described as all saying what the handoff says most of them say.
+- **`absence-catch-up-pack` fails Multiplicative Framing, and the Expected file is that failing card.** The grader found that the Thought Outline fans one move out to three people ("one move serving student, teacher and district simultaneously") and never traces it to distinct business outcomes: the district's dated record is not tied to the renewals and RFPs the handoff names. A run that reproduces this card reproduces a fail. The other three Thought Outlines close on the same "one move serving…" sentence shape, which the format example also uses; they passed because the outcomes behind the names are distinct.
+- **The format example changed after these cards were recorded.** When they were recorded, the shipped example card's Thought Outline ended on three people the move serves, not three business dimensions, and all four cards copied that sentence shape; it is the pattern the absence card fails on. The example now ends on adoption, retention and positioning. A card from a later run may therefore pass Multiplicative Framing where the absence card here fails it; that would be the example doing its job, not a regression.
+- `assessment-load-calendar` rates Revenue potential Low, with the handoff's market sizing unavailable. The agent definition allows "Insufficient data" there, which leaves the field empty; this run did not use it, and an earlier recording of the same idea did. The behaviour is not stable.
+- All four cards run 735 to 825 words above the Original Capture, counted with table syntax and link URLs. `Eval/eval-criteria.md` B20 asks for 400. That criterion is outside this suite's five signals; it is recorded here, not fixed.
+- `conference-evidence-sheet` carries six Open Questions; `Eval/eval-criteria.md` B14 asks for three to five. The other three carry five.
+- `substitute-day-handover` repeats both questions from its seed's capture word for word in Open Questions.
+- In two runs (`absence-catch-up-pack`, `substitute-day-handover`) the agent made a third write after the body and the fields, a small edit made after its own read-back: one Thought Outline sentence split in two in the first, three words changed in a Research Summary bullet in the second. The Expected file is the row after that edit.
+- The graders' passes are provisional by the rubric's own weighting. The thinnest pass on every passing card was Multiplicative Framing: on `substitute-day-handover` the grader called the competitive leg the softest, since the handoff calls that gap unvalued, and on `conference-evidence-sheet` it noted that renewal and parity overlap.
+- The graders noted drifts that did not fail a signal: `substitute-day-handover` rates Industry disruption Medium with no caveat, where the handoff calls the gap "Confirmed, and unvalued". Two cards cite an unlinked finding to a source name the handoff does not give in those words: `conference-evidence-sheet` ("EdTech SME market intelligence, November 2026") and `assessment-load-calendar` ("EdTech SME market analysis, basin district RFP index 2025–26").
 
 ---
 
@@ -86,10 +94,10 @@ The card frames strategy through how users encounter the capability gap, not thr
 
 **Signal per card:**
 
-- **Absence pack:** "A student back from a week out queues at six desks to find out what they missed"
-- **Substitute handover:** "A teacher spends her sick morning rewriting what Coursebook already holds into notes the school office prints, and the substitute who receives them has no login to see the lesson itself."
-- **Conference sheet:** "Twice a year a teacher screenshots one tracker row per student, pastes it into a document and types the context underneath"
-- **Load calendar:** "a head of year learns about a six-deadline Thursday after her students have lived it"
+- **Absence pack:** "a student back from a week of flu has to ask six teachers what she missed"
+- **Substitute handover:** "A teacher who is ill writes her cover notes at five in the morning, the school office prints them, and on most covered days the class does work unrelated to its unit."
+- **Conference sheet:** "Before each conference round a teacher opens the Benchmark tracker for every student in turn, screenshots the row, pastes it into a document and types two sentences beneath it."
+- **Load calendar:** "A Year 10 student can face six deadlines on one Thursday in the week before reports, and the adults around her find out afterwards, as late work and a tired class."
 
 ### 2. Multiplicative Framing
 
@@ -97,10 +105,10 @@ The Thought Outline shows one strategic move compounding across 2-3 business dim
 
 **Signal per card:**
 
-- **Absence pack:** one page per returning student → answers the district's absence-continuity RFP (renewal revenue) → brings the student back into Coursebook on the first day back (weekly engagement) → moves past the competitor's list before its announced bundles (competitive position). The card states which links the research does not show.
-- **Substitute handover:** a one-day, one-class link → the teacher gets her sick morning back (teacher goodwill) → the class does the planned lesson (lesson continuity) → the class stays in Coursebook that day (weekly return). No revenue leg, and the card says so.
-- **Conference sheet:** one editable page per student → teachers prepare conferences in Benchmark (adoption) → families get the single account buyers now expect (competitive parity) → one reason for dropping Benchmark goes (renewal). The card names the last link as the weakest.
-- **Load calendar:** a forward view of deadline load for the head of year → work handed in on time → students keep opening Coursebook the following week (weekly return) → a position no competing platform holds. One study carries the middle link, and the card says so.
+- **Absence pack (recorded as a FAIL):** one page of a returning student's missed days → the student has one place to start → her teachers are spared a rebuild by hand → the district's attendance lead has a dated record of the provision. Three people, not three business outcomes; the card does not tie the record to renewals or RFPs.
+- **Substitute handover:** a one-class, one-day link → the teacher gets her sick morning back (teacher goodwill) → the class does the planned lesson and the teacher has a reason to keep her week in Coursebook (retention) → the only cover access built for one class and one day (standing against Corvid). No revenue leg, and the card says so: "It will not pay for itself."
+- **Conference sheet:** an editable one-page draft per student → two weekends become an evening of edits (teacher time) → districts that weigh parent reporting have a reason to keep Benchmark (renewal) → the gap Corvid opened in March closes (competitive parity). The card calls it "a catch-up move".
+- **Load calendar:** a warning to the head of year two weeks ahead → she has a reason to open Coursebook → students keep coming back the week after a crowded day (weekly return) → the only platform in the basin that shows staff a class's whole week. The card states the dependency ("Each depends on the one before") and that one study carries it.
 
 ### 3. Research Specificity
 
@@ -108,10 +116,10 @@ Outputs cite specific findings with concrete details — names, numbers, named c
 
 **Examples of specificity that must survive:**
 
-- "57 of 212 basin district RFPs issued in 2025–26"
+- "57 of 212 basin district RFPs issued in 2025–26 ask for absence-continuity features."
 - "A basin teacher is out a median 8 days a year, and on 61% of covered days the class does work unrelated to the current unit."
-- "Corvid Classroom shipped Conference Cards in March 2026, a one-page summary per student translated into six home languages"
-- "Quillfeather, a standalone homework planner where students type in their own deadlines, has 180,000 student accounts in 140 districts."
+- "Corvid Classroom shipped Conference Cards in March 2026: a one-page summary per student, translated into six home languages."
+- "Quillfeather, a standalone homework planner, holds 180,000 student accounts in 140 districts, and its students type their deadlines in themselves."
 
 A finding the handoff gives without a link is cited by source name, unlinked. Each handoff has at least one.
 
@@ -121,10 +129,10 @@ Ratings show evidence of downside consideration. PASS if (a) at least one impact
 
 **Calibration points in the recorded cards:**
 
-- Absence pack: no dimension rated Low/None — carried via grounded caveats on every Medium, for example Industry disruption=Medium ("Corvid already ships the simple list and has announced the next step") and User experience=Medium ("the teacher trades the paper tray for a new marking step on a day they are already behind"). The stream disagreement is kept, not averaged.
-- Substitute handover: Revenue potential=Low ("every substitute login adds support cost without adding a paid seat") and Industry disruption=Low ("being first earns no competitive ground"). User experience=High is the one High the grader pressed on; it passed with the access risk carried in Open Questions.
-- Conference sheet: Industry disruption=Low ("A competitor already ships this, so the sheet closes a gap and opens no lead."). Revenue potential=Medium carries its caveat ("the evidence that family reporting decides a renewal is slim").
-- Load calendar: Customer sentiment=Low ("the students who feel it are never asked"). Revenue potential=Insufficient data ("a rating here would be a guess"). Strategic alignment=Medium, not High.
+- Absence pack: no dimension rated Low/None — carried via grounded caveats on every Medium, for example Industry disruption=Medium ("Corvid already ships the simpler list and has announced bundles, so the lead is months, not years") and User experience=Medium ("nobody knows yet whether a fourteen-year-old will open the page").
+- Substitute handover: Revenue potential=Low ("each substitute is a login that adds support cost and no seat"). Customer sentiment=Medium carries its caveat ("no district or substitute has raised it"). Industry disruption=Medium carries none, which the grader noted.
+- Conference sheet: Industry disruption=Low ("Corvid already prints a translated sheet for every student, so this brings Benchmark level rather than ahead."). Revenue potential=Medium carries its caveat ("a case that rests on thin evidence").
+- Load calendar: Customer sentiment=Low ("the teachers and administrators Larkmoor surveys and sells to have never named it"). Revenue potential=Low ("no buyer asks for it"). Strategic alignment=Medium, not High.
 
 ### 5. Mechanism-Naming Strategic Connections
 
@@ -132,10 +140,10 @@ Strategic connection field names the priority AND the mechanism. Not "aligns wit
 
 **Signal per card:**
 
-- **Absence pack:** "Advances No Lost Week, which names a student's return from absence as the first break to fix, by joining the attendance record to what each class posted"
-- **Substitute handover:** "Closes the second of the three breaks No Lost Week names, a teacher's absence, by turning what the teacher has already posted into a one-day, one-class view"
-- **Conference sheet:** "Implements Entered Once on the occasion the pillar itself names as the place today's record fails most visibly, by making one student's Benchmark evidence read as one account a parent can hold"
-- **Load calendar:** "Supports Measure 3b (students returning to Coursebook each week) by removing the pile-up days that precede a week of lower return". The verb is "Supports"; the grader passed it on the named mechanism.
+- **Absence pack:** "Implements No Lost Week at the first break it names, a student's absence, by joining the attendance record to what each class posted"
+- **Substitute handover:** "Carries No Lost Week into its second break, a teacher's absence, by handing the lesson already posted in Coursebook to whoever covers it, for one class and one day only."
+- **Conference sheet:** "Implements Entered Once at the parent conference, the occasion the pillar names as its most visible failure, by putting the account Benchmark already holds onto one page per student"
+- **Load calendar:** "Supports Measure 3b, students returning to Coursebook each week, by heading off the deadline pile-ups after which students open their learning platform less for a week." The verb is "Supports"; the grader passed it on the named mechanism.
 
 ---
 
@@ -186,5 +194,6 @@ Each run exercises one fixture end-to-end against its durable handoff, then scor
 
 ## Version History
 
-- **2026-11-14** — Fixtures written as fiction in an invented education market: four seeds, four handoffs, four Expected cards. The Expected cards are recorded reference runs of 2026-11-14, each graded by a fresh-context grader; two took a second iteration and one was re-run on a revised handoff. Per-card signal instances and calibration points are quoted from those cards. Stale paths corrected. No signal definition changed.
+- **2026-11-14** — Expected cards re-recorded: each is one headless run of the skill against scratch Notion rows, forked under the `develop-synthesis` agent on `claude-opus-5-5`, graded once by a fresh-context grader and not run again. `absence-catch-up-pack` is recorded failing Multiplicative Framing. Run conditions, per-card signal results, quotes and counts rewritten from the new cards. No signal definition changed.
+- **2026-11-14** — Fixtures written as fiction in an invented education market: four seeds, four handoffs, four Expected cards. Stale paths corrected. No signal definition changed.
 - **2026-07-07** — Honest Calibration defined with two paths: a Low/None rating where warranted, or a grounded caveat on every rating the research complicates.

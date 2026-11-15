@@ -134,7 +134,7 @@ Report which type this is before proceeding.
 
 Extract and transform the idea content into JPD fields:
 
-**Summary:** The idea title from the H2 heading (e.g., `## Cohort and Peer Intelligence` becomes `Cohort and Peer Intelligence`).
+**Summary:** The idea title from the H2 heading (e.g., `## Results That Follow the Student` becomes `Results That Follow the Student`).
 
 **Description:** Restructure the TL;DR body into JPD-compatible headings. Content is transferred verbatim — no generative rewriting. Only the heading structure changes. The body as fetched carries Notion's markup; convert it back to Markdown first (conventions, How Notion returns text) — that conversion restores the card's own text and is not rewriting. Exclude `### Original Capture` (internal provenance only). If a Cross-Domain Signals section will be included (see Step 3a), strip any cross-domain bullets from the Research Summary to avoid redundancy — the dedicated section is the single place for that data in JPD.
 
@@ -177,7 +177,7 @@ The `<<SIDECAR_URL>>` token is a literal placeholder. On first push, Step 3c sta
 {Content — verbatim from card}
 ```
 
-"Strip bold label prefix" means: `**Core insight:** Assessment platforms treat...` becomes `Assessment platforms treat...` — remove the `**Label:**` prefix since the heading now provides the context.
+"Strip bold label prefix" means: `**Core insight:** A student who changes school...` becomes `A student who changes school...` — remove the `**Label:**` prefix since the heading now provides the context.
 
 **Link translation:** Idea cards may use internal file paths for strategy doc references. Before building the description, replace these with external URLs so links resolve in Jira. The link translation table is the Configuration page's `strategic_context.*` and `metrics.*` entries — each includes both a local `path` and an `external_url`. Match on the local path substring within markdown links and replace with the corresponding external URL, preserving the link text.
 
@@ -346,14 +346,14 @@ Type: {First push | Re-push to {jira-key}}
 {the extracted description, shown in full}
 
 ---
-Confirm to push, or provide overrides (e.g., "change Surface Area to X", "change Roadmap Priority to Y").
+Confirm to push, or provide overrides (e.g., "change the surface area to X", "change the roadmap priority to Y").
 
 **Placeholders in description preview:** On first push, the preview shows `<<SIDECAR_URL>>` in two places — the Research Summary trailer and the Disruptive Reframing trailer (both render as `[Full development research](<<SIDECAR_URL>>)`). Both placeholders are replaced with the real Drive folder URL in Step 5d after the sidecar folder is created — the JPD issue will land with working links, not literal tokens. The same applies to `<<JIRA_KEY>>` and `<<JIRA_URL>>` in the staged sidecar file frontmatter (substituted in Step 5c once `jira-key` is known). Mention this in the review output so the user isn't surprised.
 ```
 
 **Wait for human confirmation.** Do not push without explicit approval.
 
-**Overrides:** If the human provides overrides for Surface Area (`product_surface_area`), Roadmap Priority (`roadmap_priority`), or Domain Objective, apply them. The human may also edit the description body or Executive Summary before push.
+**Overrides:** If the human provides overrides for the surface area (`product_surface_area`), the roadmap priority (`roadmap_priority`), or the Domain Objective, apply them. The human may also edit the description body or Executive Summary before push.
 
 ### Step 5: Push
 

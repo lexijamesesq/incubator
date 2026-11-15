@@ -280,7 +280,7 @@ Create the output document as a new row in the Outputs database:
 
 | Field | Value |
 | ------- | ------- |
-| `Name` | `{idea Slug}-{output-format}` — example: `ai-as-cognitive-liberation-in-edtech-strategy-doc` |
+| `Name` | `{idea Slug}-{output-format}` — example: `transfer-evidence-handover-strategy-doc` |
 | `Idea` | the idea row's URL (this relation is what links the document to its idea) |
 | `Format` | `strategy-doc` or `product-brief` |
 | `Stage` | `drafting` |
@@ -398,17 +398,17 @@ When stopping, state explicitly:
 
 This skill does NOT:
 
-- Create seeds (that is the router's job via `/process-inbox`)
+- Create seeds (a seed is a row a person adds to the Ideas database)
 - Develop seeds into TL;DR nuggets (that is the `/develop` skill, Stage 1->2)
 - Decide output format — strategy doc vs. product brief (that is a human decision; the Output format field must be set before invocation)
 - Refine the draft (that is Stage 4, driven by human + agent collaboration)
 - Approve the final document (that is Stage 5, human approval required)
-- Process inbox items (that is `/process-inbox`)
+- Capture or sort raw thoughts (no skill does; a person decides what becomes a seed)
 - Merge or consolidate ideas autonomously
 - Load full strategy docs into context (Grep only — paths given by the `strategic_context.*` configuration keys)
 - Invoke Gemini CLI
 - Create TL;DR snapshots — the idea card body is not replaced, so no snapshot is needed
-- Modify `incubator-backlog.json` or `incubator-progress.md` — those are session orchestration files
+- Modify session-tracking files — nothing outside the idea row and the Outputs row is this skill's to write
 - Modify the idea card body — the TL;DR is the permanent scannable artifact. /draft only updates the idea row's fields (Stage, Updated; the Outputs relation follows from the new row).
 - Proceed past first draft — presents for human review and stops. Never proceed from Stage 3->4 without human review.
 

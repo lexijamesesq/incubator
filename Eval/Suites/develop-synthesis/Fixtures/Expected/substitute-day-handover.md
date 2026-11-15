@@ -9,9 +9,9 @@ themes:
   - staff-cover
   - learning-continuity
 customer-sentiment: medium
-user-experience: high
+user-experience: medium
 revenue-potential: low
-industry-disruption: low
+industry-disruption: medium
 strategic-alignment: high
 related-ideas:
   - absence-catch-up-pack
@@ -27,41 +27,40 @@ jira-sidecar-url: null
 ---
 ## Substitute Day Handover
 
-**Core insight:** Coursebook holds the whole lesson and still cannot hand one day of one class to the adult standing in front of it, so the cover day runs on a printed email and the class watches a film.
-**Problem it addresses:** A teacher spends her sick morning rewriting what Coursebook already holds into notes the school office prints, and the substitute who receives them has no login to see the lesson itself.
-**Who cares:** Teachers who lose a sick morning to cover notes, substitutes who walk into a room knowing nothing about the class, students who lose the planned lesson for the day, and school offices that print and relay the notes.
-**Strategic connection:** Closes the second of the three breaks No Lost Week names, a teacher's absence, by turning what the teacher has already posted into a one-day, one-class view for the person covering the lesson.
+**Core insight:** The lesson a substitute needs is already in Coursebook, and she still walks in with a printed email, because Coursebook cannot let someone who is not on staff into one class for one day.
+**Problem it addresses:** A teacher who is ill writes her cover notes at five in the morning, the school office prints them, and on most covered days the class does work unrelated to its unit.
+**Who cares:** Teachers who spend a sick morning writing notes, substitutes who arrive at a strange school fifteen minutes before the first period, students who lose a day of their unit, and the school office left printing it all.
+**Strategic connection:** Carries No Lost Week into its second break, a teacher's absence, by handing the lesson already posted in Coursebook to whoever covers it, for one class and one day only.
 
 ### Opportunity Assessment
 
 | Dimension | Rating | Rationale |
 | ----------- | -------- | ----------- |
-| Customer sentiment | Medium | Teachers name the pain in their own words, but it is felt on a handful of mornings a year and neither the district office nor the substitute has said a word about it. |
-| User experience | High | The cover day becomes a different activity: the teacher presses one button instead of writing notes while ill, and the substitute runs the planned lesson instead of filling time. |
-| Revenue potential | Low | Nobody buys this, nobody has priced it, and every substitute login adds support cost without adding a paid seat. |
-| Industry disruption | Low | Day-scoped access is a tighter form of guest access that no learning-platform buyer is asking for, so being first earns no competitive ground. |
-| Strategic alignment | High | The product strategy names a teacher's absence as a break in the week, and nothing in Coursebook serves the person covering the lesson. |
+| Customer sentiment | Medium | Teachers name the sick-morning notes without being asked, but it comes round only a few mornings a year and no district or substitute has raised it. |
+| User experience | Medium | The handover keeps its shape, but the teacher stops rewriting what Coursebook holds and the substitute teaches from the posted lesson instead of a printout. |
+| Revenue potential | Low | No district pays for cover through a learning platform, and each substitute is a login that adds support cost and no seat. |
+| Industry disruption | Medium | Nobody gives a cover teacher one class for one day, and the nearest thing, Corvid's guest invitation, hands a stranger the whole course. |
+| Strategic alignment | High | A teacher's absence is one of the breaks No Lost Week names, so a lesson that still runs that day is the strategy doing its job. |
 
 ### Research Summary
 
 - A basin teacher is out a median 8 days a year, and on 61% of covered days the class does work unrelated to the current unit. ([Fernhollow Institute, Cover Lesson Study 2025](https://example.com/fernhollow-cover-lesson-2025))
-- Corvid Classroom's guest access is the nearest existing capability, and it gives an invited guest the whole course for 30 days rather than one class for one day. ([Corvid Classroom help, Guest access](https://example.com/corvid-guest-access))
-- Brindle Cover, the staffing platform districts use to book substitutes, carries a free-text "notes for cover" field and no link to any learning platform. ([Brindle Cover product page](https://example.com/brindle-cover))
-- None of the 212 basin district RFPs issued for a learning platform in 2025–26 mentions substitute access. ([Ledgerline RFP Index 2026](https://example.com/ledgerline-rfp-index-2026))
-- Twelve Coursebook teacher comments between April and September 2026 describe spending a sick morning writing substitute notes; no district office and no substitute has been heard from. ([Coursebook NPS — September 2026 tab](https://example.com/coursebook-nps))
+- Corvid Classroom's guest access, the nearest thing to a cover login, invites a guest by email and opens the whole course to them for 30 days. ([Corvid Classroom help, Guest access](https://example.com/corvid-guest-access))
+- Brindle Cover, a staffing platform used to book substitutes, has a free-text "notes for cover" field and no link to any learning platform. ([Brindle Cover product page](https://example.com/brindle-cover))
+- None of the 212 basin district RFPs issued in 2025–26 for a learning platform mentions substitute access. ([Ledgerline RFP Index 2026](https://example.com/ledgerline-rfp-index-2026))
+- Coursebook's NPS from April to September 2026 holds 12 teacher comments about writing cover notes, most of the form "I spend my sick morning writing sub notes", and nothing from a district office or from substitutes, who are never surveyed. ([Coursebook NPS — September 2026 tab](https://example.com/coursebook-nps))
 
 ### Thought Outline
 
-The move is one button: a teacher who is out sends a link that opens one day of one class on a phone, with no account, and stops working when the day ends. Everything behind the link is already posted in Coursebook, so the build is the access and not the content. That link gives the teacher her sick morning back while putting the planned lesson in front of the class instead of a film while keeping the class inside Coursebook on a day it leaves today — one move serving teacher goodwill, lesson continuity, and weekly return simultaneously. This is a strategy bet and not a revenue bet: no district buys it, each substitute login costs support, and no competitor is moving, so nothing forces the date. The case rests on one fact: a strategy that names a teacher's absence as a break cannot leave that day to a printed email. The reframing of substitutes as a rated service with a standing identity stays out of this card, because it multiplies the access problem this idea has yet to solve.
+The move is to let a teacher hand one class, for one day, to whoever covers it. She presses one button from bed. The substitute opens a link on her phone, with no password, and sees each period's room, the task already posted, and where the class left off yesterday. She sees student names and nothing more, and the link closes when the day ends. Everything in the five o'clock notes except the seating plan is already in Coursebook; the button sends it. That spares the teacher her sick morning while keeping the class on the planned lesson instead of a film while giving Coursebook the only cover access built for one class and one day — one move serving the teacher, the class, and Coursebook's standing against Corvid together. Each payoff feeds the next: the handover is only as good as what the teacher has posted, which gives her a reason to keep her week in Coursebook, and a week that survives her absence is No Lost Week holding on the day it is hardest to hold. It will not pay for itself. The cover budget sits in a staffing office Larkmoor does not sell to, and every substitute is a login that earns nothing, so the return is goodwill with teachers, not seats.
 
 ### Open Questions
 
 - What is the smallest thing a substitute needs on the day?
 - Can someone without a staff account be let in for one day and no longer?
-- How does a substitute get seating notes and the names of students who need watching when the Learner Data Charter limits a non-staff adult to student names?
-- Who sends the link when the teacher is too ill to press the button, and does the school office have to approve it that morning?
-- What share of cover days are booked the same morning?
-- Will any district pay for this, or is its whole return goodwill with teachers?
+- What replaces the seating note, if a stranger's phone may show nothing beyond names?
+- Who sends the link: the teacher from bed, or the staffing office with the booking?
+- Will any district pay for cover access, or does it only ever earn teacher goodwill?
 
 ### Original Capture
 
