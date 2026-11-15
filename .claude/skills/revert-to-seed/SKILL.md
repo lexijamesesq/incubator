@@ -140,7 +140,9 @@ When /refine-seed presents its interpretation and drafted fields, compare them a
 - **If aligned** (same intent, same strategic direction, wording may differ): confirm autonomously. The developed card's header fields serve as the human's "yes, that's the right direction" signal.
 - **If divergent** (different intent, different strategic connection, or nature classification changed): stop and surface to the human. The re-interpretation disagrees with the original development direction — the human needs to decide.
 
-After /refine-seed completes, the seed is ready for `/develop`.
+A merge is never confirmed autonomously: if /refine-seed proposes merging this idea with another seed, stop and put it to the human. If the human merges this idea into the other seed, /refine-seed archives this idea and continues on the surviving seed; this idea is then out of the pipeline and is not reported as ready.
+
+After /refine-seed completes, the seed it finished on is ready for `/develop`: this idea, or the surviving seed if this idea was merged away.
 
 ### Step 5: Present
 
@@ -151,7 +153,7 @@ Revert complete: {idea-name}
 **Research cleaned:** {list of the research rows moved to the trash — Name and URL; recoverable from Notion's trash for 30 days}
 **Shared research preserved:** {note that research rows shared with another idea are not trashed — list any that were unlinked from this idea, or "none"}
 
-**Refinement result:** {aligned — auto-confirmed | divergent — human decision needed on {specifics}}
+**Refinement result:** {aligned — auto-confirmed | divergent — human decision needed on {specifics} | merged into {surviving slug} and archived, on the human's decision}
 
 **Header fields (post-refinement):**
 - Core insight: {current}
@@ -160,6 +162,8 @@ Revert complete: {idea-name}
 
 Ready for /develop.
 ```
+
+If the idea was merged away in Step 4, the header fields shown are the surviving seed's and the last line names it: `Ready for /develop: {surviving slug}. '{idea-name}' is archived.`
 
 ## Error Handling
 

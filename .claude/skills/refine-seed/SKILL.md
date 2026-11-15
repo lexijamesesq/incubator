@@ -34,7 +34,7 @@ Runs AFTER the router creates a seed (Stage 0→1) and BEFORE /develop transform
 Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
 - **Pointers:** `notion_ideas`, `notion_config`.
-- **Rows it touches:** reads the whole Ideas view once (name resolution and the portfolio index) and the idea row; writes the idea row's body above `### Original Capture` and its `Updated`, `Themes` and `Related ideas` fields; sets `Related ideas` on the rows it relates to; on a merge, writes the primary seed and sets the secondary's Stage to `archived`.
+- **Rows it touches:** reads the whole Ideas view once (name resolution and the portfolio index) and the idea row; writes the idea row's body above `### Original Capture` and its `Updated`, `Themes` and `Related ideas` fields; sets `Related ideas` on the rows it relates to; on a merge, writes the primary seed and sets the secondary's Stage to `archived`, and from then on writes only the primary.
 - **Configuration keys:** `persona_skill`.
 
 ## Arguments
@@ -156,9 +156,16 @@ Present:
 
 Wait for human decision on merge/keep and related-ideas updates before proceeding.
 
-**Relationship write-back:** After human confirms, update the Related ideas relation on all affected rows (`update_properties`; the value is the full list of related row URLs — the ones already there plus the ones added).
+**Relationship write-back:** After human confirms, update the Related ideas relation on all affected rows (`update_properties`; the value is the full list of related row URLs — the ones already there plus the ones added). A seed the human has chosen to merge away is not an affected row: its relation is not written, and it is not added to another row's relation.
 
 **Merge mechanics** (when human says merge): Follow the same protocol as the current /develop Step 3 — primary selection, field merge, body merge with dual Original Captures, secondary archived. The merge mechanics are in `reference/architecture.md`. Write the primary first: its fields, then the secondary's Original Capture appended to the end of its body with `insert_content` under the heading `### Original Capture (merged from: {secondary slug})`. Fetch the primary and confirm that section is there. Only then archive the secondary: one `update_properties` call on the secondary's row setting `Stage` `archived` and `date:Updated:start` today (with `date:Updated:is_datetime` 0), and nothing else. Its body is left as it is and the row is never trashed. From then on the secondary is out of every seed list, name resolution and portfolio index (conventions, Addressing an idea); the primary's merged-from heading is the record of where it went.
+
+**Which seed the run continues on.** The human picks the primary, and it can be either seed. After the merge the run continues on the primary, which now holds both captures (`reference/architecture.md`, Merge Mechanics, step 5):
+
+- **The seed being refined is the primary:** go on to Step 5 with it.
+- **The seed being refined is the secondary** (the human merged it into the other seed): it is archived, and this run is finished with it. Say so: `Seed '{secondary slug}' was merged into '{primary slug}' and is archived. Continuing on '{primary slug}'.` Drop the interpretation and the header fields drafted for it in Step 3. The primary is now the seed being refined: fetch its row, validate it (Step 2), interpret it from its body as it now stands, both captures included (Step 3), surface its related ideas from the index already loaded, the archived secondary left out (Step 4), and take Steps 5 and 6 on it. If the primary fails Step 2, or the human does not want to go on, end the run with `Seed '{secondary slug}' was merged into '{primary slug}' and is archived. Refine '{primary slug}' next: /refine-seed {primary slug}.`
+
+Either way the archived secondary gets no write after the one call that archived it: no header, no fields, no relation. It is never presented in Step 5, never written in Step 6 and never reported as refined or ready.
 
 ### Step 5: Present Refined Seed
 
@@ -196,7 +203,7 @@ This is the alignment step. Take the time to get it right — /develop depends o
 
 ### Step 6: Write Refined Seed
 
-After human approval, update the idea row.
+After human approval, update the idea row: the row of the seed the run is on now, which after a merge is the primary (Step 4, Which seed the run continues on). A row at Stage `archived` is never written; if the fresh fetch below shows the row is archived, stop and report `Idea '{slug}' is archived.`
 
 Write the body first, then the fields.
 
@@ -219,7 +226,7 @@ Work from a fresh fetch of the row and change only the blocks above the `### Ori
 - the first block after the title (the draft header fields, where the seed has them) → the three approved header lines, written as one paragraph with a single line break between lines (Notion returns them joined by `<br />`)
 - any further block above `### Original Capture` → an empty `new_str`, which removes it
 
-If the body has nothing above `### Original Capture`, put the title heading and header paragraph in with `insert_content` at position `start`.
+If the body has nothing above `### Original Capture`, put the title heading and header paragraph in with `insert_content` at position `start`. If it has only the title heading above `### Original Capture`, which is what a fresh seed from the template has, replace that heading with the heading followed by the header paragraph in one operation.
 
 Never put the `### Original Capture` heading or anything below it in an `old_str` or a `new_str`: text that is never sent cannot be altered. That is how the capture is preserved verbatim.
 
@@ -230,7 +237,7 @@ Never put the `### Original Capture` heading or anything below it in an `old_str
 - `Related ideas` — updated per Step 4
 - Any other field adjustments agreed with human (within each field's options)
 
-Report: "Seed refined: {idea-name}. Ready for /develop."
+Report: "Seed refined: {idea-name}. Ready for /develop." `{idea-name}` is the slug of the row just written. After a merge that is the primary, and the report adds: "Merged in and archived: {secondary slug}."
 
 ## Stop Rules
 
@@ -239,6 +246,7 @@ Report: "Seed refined: {idea-name}. Ready for /develop."
 | No Original Capture | Cannot refine — nothing to interpret. Exit. |
 | Idea not at seed stage | Report current stage. Exit. |
 | Seed is a clear duplicate of an existing idea | Present the duplicate, recommend merge (which archives the secondary) or keeping both. Wait for human. |
+| The human merges the seed being refined into another seed | It is archived. Stop refining it and say so; continue on the primary, or end naming the primary as the seed to refine next (Step 4). Never write to it again or report it ready. |
 | Core insight too vague to draft after reading capture | Ask the human: "What's the one-sentence version of this idea?" Use their answer. |
 
 ## Error Handling
