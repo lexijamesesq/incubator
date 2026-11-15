@@ -31,26 +31,11 @@ Runs AFTER the router creates a seed (Stage 0→1) and BEFORE /develop transform
 
 ## Where Things Are
 
-Ideas, research, output documents and configuration live in Notion. The repo's instruction file (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at the repo root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md`; read it before the first step. In short:
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
-| Pointer | What it is |
-| --- | --- |
-| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
-| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
-
-A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
-
-Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, and `notion-update-page`.
-
-**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
-
-**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
-
-**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch.
-
-**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
-
-**Configuration keys this skill reads:** `persona_skill`.
+- **Pointers:** `notion_ideas`, `notion_config`.
+- **Rows it touches:** reads the whole Ideas view once (name resolution and the portfolio index) and the idea row; writes the idea row's body above `### Original Capture` and its `Updated`, `Themes` and `Related ideas` fields; sets `Related ideas` on the rows it relates to; on a merge, writes the primary seed and sets the secondary's Stage to `archived`.
+- **Configuration keys:** `persona_skill`.
 
 ## Arguments
 
@@ -83,7 +68,7 @@ Resolve the idea once, against one read of the Ideas database, and keep the row'
 Load in parallel:
 
 1. **Seed row** — fetch the resolved row: its fields and full body
-2. **Portfolio index** — Read the Ideas database (see Reading a database): every row with its fields. Then apply tiered reading:
+2. **Portfolio index** — Read the Ideas database (conventions, Reading a database): every row that is not at Stage `archived`, with its fields. Then apply tiered reading:
    - **Complete-stage ideas:** Fields only, from the database read. Extract: Stage, Themes, Domain.
    - **All other stages:** Fetch each row (in parallel) and take its body up to the first `###` heading. Extract: fields + header fields.
    From the loaded index, extract the **portfolio theme vocabulary** (all unique Themes values).
@@ -127,7 +112,7 @@ Using the Original Capture and the nature classification, draft:
 
 ### Step 4: Surface Related Ideas
 
-Using the portfolio index from Step 1, find related ideas at **seed, developing, drafting, or refining** stages. **Exclude complete-stage ideas** from merge/keep — they are finished work.
+Using the portfolio index from Step 1, find related ideas at **seed, developing, drafting, or refining** stages. **Exclude complete-stage ideas** from merge/keep — they are finished work. Archived ideas are not in the index at all.
 
 **Match criteria** — an idea is "related" if:
 
@@ -173,7 +158,7 @@ Wait for human decision on merge/keep and related-ideas updates before proceedin
 
 **Relationship write-back:** After human confirms, update the Related ideas relation on all affected rows (`update_properties`; the value is the full list of related row URLs — the ones already there plus the ones added).
 
-**Merge mechanics** (when human says merge): Follow the same protocol as the current /develop Step 3 — primary selection, field merge, body merge with dual Original Captures, secondary archived. The merge mechanics are in `reference/architecture.md`. In Notion there is no Archive folder and the Stage field has no `archived` option, so the secondary is not moved or restaged: leave its row as it is and tell the human it is merged into the primary and has to be archived by hand.
+**Merge mechanics** (when human says merge): Follow the same protocol as the current /develop Step 3 — primary selection, field merge, body merge with dual Original Captures, secondary archived. The merge mechanics are in `reference/architecture.md`. Write the primary first: its fields, then the secondary's Original Capture appended to the end of its body with `insert_content` under the heading `### Original Capture (merged from: {secondary slug})`. Fetch the primary and confirm that section is there. Only then archive the secondary: one `update_properties` call on the secondary's row setting `Stage` `archived` and `date:Updated:start` today (with `date:Updated:is_datetime` 0), and nothing else. Its body is left as it is and the row is never trashed. From then on the secondary is out of every seed list, name resolution and portfolio index (conventions, Addressing an idea); the primary's merged-from heading is the record of where it went.
 
 ### Step 5: Present Refined Seed
 
@@ -253,7 +238,7 @@ Report: "Seed refined: {idea-name}. Ready for /develop."
 | ----------- | -------- |
 | No Original Capture | Cannot refine — nothing to interpret. Exit. |
 | Idea not at seed stage | Report current stage. Exit. |
-| Seed is a clear duplicate of an existing idea | Present the duplicate, recommend merge or archive. Wait for human. |
+| Seed is a clear duplicate of an existing idea | Present the duplicate, recommend merge (which archives the secondary) or keeping both. Wait for human. |
 | Core insight too vague to draft after reading capture | Ask the human: "What's the one-sentence version of this idea?" Use their answer. |
 
 ## Error Handling
@@ -277,5 +262,5 @@ This skill does NOT:
 - Draft output documents (that's /draft's job)
 - Classify or route inbox items (that's the router's job)
 - Develop the seed beyond header fields (Core insight, Source, Strategic connection + related ideas)
-- Change the seed's stage (it stays at `seed` — /develop changes it to `developing`)
+- Change the seed's stage (it stays at `seed` — /develop changes it to `developing`). The one Stage write it makes is `archived` on the secondary of a merge the human approved.
 - Make merge decisions autonomously (always presents to human)

@@ -35,11 +35,10 @@ Examples: `/cross-domain foraging-intelligence`, `/cross-domain --adhoc "rubric-
 
 ## Where Things Are
 
-Both modes read the Jira connection values from the Configuration page in Notion (Phase 0). Ad-hoc mode reads no idea and writes nothing to Notion. In idea mode the idea is a row in the Ideas database, and the artifact this skill writes is a row in the Research database related to that idea (Research type `cross-domain-signals`). The shared mechanics — the pointers and their overrides, addressing an idea, creating an artifact row, how Notion returns text — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before Step 0 when it is present. In short:
+Both modes read the Jira connection values from the Configuration page in Notion (Phase 0). Ad-hoc mode reads no idea and writes nothing to Notion. Idea mode reads and writes Notion, and how a skill does that is stated once, in `reference/skill-conventions-notion-access.md` in the Incubator repo: read it before Step 0 and follow it. If idea mode cannot read that file (the session is not in the Incubator repo and has no copy), stop and say so. Only what is specific to this skill is stated here.
 
-- **Pointers.** `notion_ideas` and `notion_research` are database URLs, and `notion_config` is the Configuration page's URL, in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in. `notion_ideas=`, `notion_research=` and `notion_config=` arguments override them; a test run passes scratch databases this way. A caller that has already fetched the Research database may also pass `research_data_source=<collection:// URL>`, the parent for the artifact row. If a pointer the run needs has neither an argument nor a front-matter value (`notion_config` in both modes; the other two in idea mode), report "/cross-domain needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument)." and exit.
-- **Calls.** `notion-fetch` for a row or a database; `notion-query-data-sources` in view mode only (fetch the database, query the view it lists, page while `has_more`); `notion-create-pages` with a data-source parent to create the artifact row. Never SQL or rows mode.
-- **Text.** Notion returns bold as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. The words are preserved; read through the markup.
+- **Pointers:** `notion_config` in both modes; `notion_ideas` and `notion_research` in idea mode. A caller that has already fetched the Research database may pass `research_data_source=<collection:// URL>`. A pointer the run needs and does not have: report "/cross-domain needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument)." and exit.
+- **Rows it touches (idea mode):** reads the idea row; creates one Research row related to it, Research type `cross-domain-signals`.
 
 ## Arguments
 
@@ -52,7 +51,7 @@ Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, 
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Read the Ideas view, present titles, ask user to select |
+| Empty | Read the Ideas view, present the titles of the rows not at Stage `archived`, ask user to select |
 | A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
 | `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
 | No exact match | Case-insensitive substring match against the Slug and Name of all rows |
@@ -95,7 +94,7 @@ Settle the pointers (an argument override where one is given, the `CLAUDE.md` fr
 2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution. Proceed to Phase 0.5.
 3. **Otherwise (idea mode):**
    - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
-   - If empty: read the Ideas view, present all ideas with stage, ask user to select. If none exist, exit.
+   - If empty: read the Ideas view, present all ideas with stage, ask user to select Leave out rows at Stage `archived`. If none exist, exit.
    - Try exact match on the Slug field (strip `.md` first)
    - If no exact match, case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it

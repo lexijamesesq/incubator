@@ -35,40 +35,12 @@ This mirrors the idea-vs-adhoc split the enrichment lenses already use (`/edtech
 
 ## Where Things Are
 
-Ideas, research, output documents and configuration live in Notion. The instruction file of the project the session runs in (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at that project's root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before the first step when it is present. In short:
+Subject-mode reads and writes local files only and makes no Notion call beyond the Configuration page. Card-mode reads and writes Notion, and how a skill does that is stated once, in `reference/skill-conventions-notion-access.md` in the Incubator repo: read it before the first step and follow it. If card-mode cannot read that file (the session is not in the Incubator repo and has no copy), stop and say so. Only what is specific to this skill is stated here.
 
-| Pointer | What it is |
-| --- | --- |
-| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
-| `notion_research` | The Research database. One row per research artifact, related to its idea through the row's Idea relation. |
-| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
-
-A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
-
-Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, `notion-create-pages` (a new research row) and `notion-update-page`.
-
-**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
-
-**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
-
-**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch. A new row is created with `notion-create-pages`, its parent the database's data source, its fields and Markdown body in the one call, with `allow_async` false so the new row's URL comes back.
-
-**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
-
-**Research rows this skill reads and writes.** A card-mode artifact is a Research row related to the idea. It is found through the idea row's Research relation and the row's Research type, never by a folder or file name. A new artifact is a new row; an existing row is never overwritten.
-
-| Artifact | Research type | Name |
-| --- | --- | --- |
-| Thesis brief | `thesis-brief` | `thesis-brief ({slug})` |
-| Reuse / re-run partition table | `thesis-test-partition` | `thesis-test-partition-{date} ({slug})` |
-| Lens artifact (one per lens) | `thesis-test-lens` | `thesis-test-{lens}-{date} ({slug})` |
-| Synthesis | `thesis-test-synthesis` | `thesis-test-{date} ({slug})` |
-| Falsification record | `falsification-record` | `falsification-record-{date} ({slug})` |
-| Research handoff | `synthesis-handoff` | `Research Handoff: {slug}` |
-
-Every row this skill creates carries: `Name` as above, `Idea` (the idea row's URL — this relation is what puts the row in the idea's Research relation), `Research type`, `date:Created:start` (today), and `Agent` where the author is one of that field's options (`orchestrator` for the rows the orchestrator writes). Set no other field. Where several rows of one type exist, the current one is the one with the latest Created; if two share the latest date, the one edited later (`page_last_edited_at`); if that does not separate them, list them and ask the human. If Notion refuses a create because Research type lacks the option, report which option is missing and put the artifact in the output so the work is not lost; never create the row under another type or without one.
-
-**Configuration keys this skill reads:** `role`, `incubator.learning_outcome_break_condition`.
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_config`.
+- **Rows it touches:** reads the idea row and the rows in its Research relation; creates Research rows of the types `thesis-brief`, `thesis-test-partition`, `thesis-test-synthesis` and `falsification-record` (Names in the conventions' Research artifacts table), and the lens skills it starts create the `thesis-test-lens` rows; appends to the idea's `synthesis-handoff` row; writes the idea row's body and fields; at the human gate, sets the idea row's Stage to `archived` when the human chooses Shelve.
+- **`Agent` field:** a row the orchestrator writes carries `Agent` `orchestrator`; another author is set only where it is one of that field's options. Set no field beyond `Name`, `Idea`, `Research type`, `Created` and `Agent`.
+- **Configuration keys:** `role`, `incubator.learning_outcome_break_condition`.
 
 ## Arguments
 
@@ -81,7 +53,7 @@ Parse `$ARGUMENTS` to determine mode:
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Read the Ideas database, present titles + stages, ask user to select a `developing`+ idea |
+| Empty | Read the Ideas database, present titles + stages of the rows not at Stage `archived`, ask user to select a `developing`+ idea |
 | `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
 | A Notion page URL | Use that row directly |
 | No exact match | Case-insensitive substring match against the Slug and Name of every row |
@@ -107,7 +79,7 @@ You are working on behalf of the role the `role` configuration key names.
 `incubator-reference.md` is a thin section index. Load only these section files:
 
 - `reference/stage-model.md` — the `developing`+ gate (card-mode).
-- `reference/architecture.md` — Archive Conventions, for the shelve disposition (total-break gate).
+- `reference/architecture.md` — Archive Conventions, for the shelve disposition (total-break gate): Stage `archived`.
 - `reference/frontmatter-schema.md` — card field validity (the "Thesis Test Results" section and falsification link must leave the row's fields valid).
 - `reference/shared-research.md` — the lens fan-out holds back `research-db.py` writes-of-record and the capture heuristic; citation rules for any research the synthesis cites.
 
@@ -123,7 +95,7 @@ Execute in order. Stop and report at any step rather than continuing with bad da
 2. Otherwise card-mode: resolve the idea row per the fail-closed table above.
 3. **Card-mode stage gate.** Fetch the resolved idea row (fields and body). If Stage is `seed` (or the card is otherwise pre-`developing`), STOP:
    > Idea '{name}' is at stage '{stage}'. /thesis-test is a second-pass operation — it needs the empirical findings a `/develop` run produces. Run `/develop {name}` first (or `/refine-seed` then `/develop`), then re-run /thesis-test.
-   Thesis-test tests a position; there is no position to test on a raw seed. Stages `developing`, `drafting`, `refining`, `complete` all pass the gate.
+   Thesis-test tests a position; there is no position to test on a raw seed. Stages `developing`, `drafting`, `refining`, `complete` all pass the gate. A row at Stage `archived` does not: report `Idea '{slug}' is archived.` and stop.
 
 ### Step 1: Locate or Co-Draft the Thesis Brief
 
@@ -165,7 +137,7 @@ This is never a fixed rule. Divergent-thinking and cross-domain artifacts are *u
 
 Three lenses run in parallel, each charged to **test** the theses — attempt to break them — not to enrich: `edtech-sme`, `tam-estimate`, `educator-sme`.
 
-**Mechanism — reuse /develop's pattern, do not duplicate it.** Launch the three as parallel background subagents in a SINGLE message via the Agent tool, `subagent_type` set to the lens name, using the pointer-prompt pattern in `.claude/skills/develop/SKILL.md` Step 4 Phase 1 (read-your-own-SKILL.md pointer + execution contract that overrides the slash-command assumptions, holds back writes-of-record, and bounds web research). Apply the same **model-override policy** `/develop` Step 4 Phase 1 specifies — per-lens overrides are persona-rubric-gated there, and a lens that fails its rubric inherits the session model; /develop's Model overrides paragraph is the single source of truth for which lens currently runs on what. Do not restate the /develop template here — point at it and apply the thesis-test deltas below.
+**Mechanism — reuse /develop's pattern, do not duplicate it.** Launch the three as parallel background subagents in a SINGLE message via the Agent tool, `subagent_type` set to the lens name, using the pointer-prompt pattern in `.claude/skills/develop/SKILL.md` Step 4 Phase 1 (read-your-own-SKILL.md pointer + execution contract that overrides the slash-command assumptions, holds back writes-of-record, and bounds web research). Apply the same **model-override policy** `/develop` Step 4 Phase 1 specifies — per-lens overrides are persona-rubric-gated there, and a lens that fails its rubric inherits the session model; /develop's Model overrides paragraph is the single source of truth for which lens currently runs on what. Do not restate the /develop template here — point at it and apply the thesis-test deltas below. The plugin registers its agents under its own name, so the agent type to pass is `incubator:<agent>` (for example `incubator:edtech-sme`); the bare name does not resolve to the plugin's agent.
 
 **Thesis-test deltas to the pointer prompt (per lens):**
 
@@ -234,7 +206,7 @@ Required operations:
 1. Write a **falsification record** as a new `falsification-record` Research row related to the idea: the theses tested, the break evidence per thesis, and the recomposed reframe if Step 5 produced one.
 2. Add a dated `### Thesis Test Results` section to the card noting the falsification and linking the record (the record row's URL). Put it above `### Original Capture` with one `update_content` operation: `old_str` is the last block above that heading as a fresh fetch returns it, `new_str` is that block followed by the new section. Never put the `### Original Capture` heading or anything below it in an `old_str` or a `new_str`. If the card has no Original Capture section, append the section with `insert_content`. Keep the row's fields valid (the card stays at its current stage; do not silently regress it).
 3. **HALT for the human gate.** Lead with: the thesis did not survive — that is a real result, not a failed run; here is the break evidence and the reframe if one emerged. Present the options with their consequences; the human decides — the skill NEVER auto-shelves:
-   - **Shelve** — the idea leaves the active pipeline. The Ideas database has no archive location and no `archived` Stage option (`reference/architecture.md`, Archive Conventions), so the skill makes no write for it: say that the row stays where it is, at its current Stage, until the human archives it by hand in Notion.
+   - **Shelve** — archive the idea (`reference/architecture.md`, Archive Conventions). Only when the human chooses this: one `update_properties` call on the idea row setting `Stage` `archived` and `date:Updated:start` today (with `date:Updated:is_datetime` 0), and nothing else; the body, with the `### Thesis Test Results` section and its link to the falsification record, stays as the reason. Consequence: the idea leaves the active pipeline; every skill's listing, name resolution and portfolio read skips it from then on, and only a person changing its Stage in Notion brings it back.
    - **Adopt the reframe** — the recomposed position becomes a new thesis brief; re-runs Steps 3–5 (≈half a /develop). Consequence: a new brief enters the test loop.
    - **Accept a marked-down survivor** — offer ONLY when a WEAKENS or CONDITIONAL thesis actually exists. If the human judges it worth carrying with conditions, route it via the surviving-thesis path above. Consequence: a conditioned position, not a clean one, enters the card.
    - **Another round under a new frame** — re-test at a changed altitude, or run a counteraction round (the market's response modeled as the next turn). Consequence: a reframed or second-move brief enters the test loop.
@@ -243,7 +215,7 @@ Required operations:
 
 | Condition | Action |
 | ----------- | -------- |
-| Empty argument, no `--subject` | Card-mode: read the Ideas database, present titles + stages, ask user to select. |
+| Empty argument, no `--subject` | Card-mode: read the Ideas database, present titles + stages (archived rows left out), ask user to select. |
 | Idea row not found | Report with closest candidates; suggest `--subject`. Exit. |
 | Card not at `developing`+ (card-mode) | Stop. Report stage; point to `/develop {name}` first (Step 0 gate). Exit. |
 | No brief and human declines to co-draft | Stop. "A thesis-test needs a committed thesis. Nothing to test without a brief." Exit. |
@@ -265,6 +237,6 @@ This skill does NOT:
 - **Generate theses.** Thesis authorship is human-owned; the skill tests, it does not invent. Step 1 may co-draft structure interactively, but every strategic claim is the human's.
 - Enrich (that is `/develop` and the enrichment lenses in their default mode).
 - Develop a seed (run `/develop` first — this is a second-pass operation).
-- Auto-shelve or auto-transition a card on a null result (the human gate decides).
+- Auto-shelve or auto-transition a card on a null result (the human gate decides; Stage `archived` is written only on the human's Shelve).
 - Modify the card body by hand — a surviving thesis routes through develop-synthesis; a total break gets a linked results section only.
 - Set output-format or push to JPD (human decisions downstream).

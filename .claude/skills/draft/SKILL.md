@@ -34,28 +34,11 @@ Transforms a developed idea (Stage 2, TL;DR complete) into a first template-alig
 
 ## Where Things Are
 
-Ideas, research, output documents and configuration live in Notion. The repo's instruction file (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at the repo root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md`; read it before the first step. In short:
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
-| Pointer | What it is |
-| --- | --- |
-| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
-| `notion_research` | The Research database. One row per research artifact, related to its idea through the row's Idea relation. |
-| `notion_outputs` | The Outputs database. One row per output document, related to its idea: the document is the row's body. |
-| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
-
-A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
-
-Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, `notion-create-pages` (the output document's row) and `notion-update-page`.
-
-**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
-
-**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
-
-**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch. A new row is created with `notion-create-pages`, its parent the database's data source, its fields and Markdown body in the one call, with `allow_async` false so the new row's URL comes back.
-
-**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
-
-**Configuration keys this skill reads:** `role`, `persona_skill`, `approach`, `template_strategy_doc`, `template_product_brief`, `template_review`, `strategic_context.okrs`, `strategic_context.product_strategy`, `strategic_context.design_strategy`. The four `approach` and `template_*` keys name Notion pages. The `strategic_context.*` keys give paths to local files, which stay local: read them with Read and Grep at the path given.
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_outputs`, `notion_config`.
+- **Rows it touches:** reads the idea row and every row in its Research relation; creates one row in the Outputs database (the output document); sets the idea row's `Stage` and `Updated`. It never writes the idea row's body.
+- **Configuration keys:** `role`, `persona_skill`, `approach`, `template_strategy_doc`, `template_product_brief`, `template_review`, `strategic_context.okrs`, `strategic_context.product_strategy`, `strategic_context.design_strategy`. The four `approach` and `template_*` keys name Notion pages; the `strategic_context.*` keys give paths to local documents.
 
 ## Arguments
 
@@ -105,7 +88,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 0: Parse Arguments
 
 1. Read `$ARGUMENTS`. Settle the four pointers: an override where one is given, the `CLAUDE.md` front matter otherwise.
-2. If no idea is named: read the Ideas database (see Reading a database) and keep the rows whose Stage is `developing`. Present them to the user and ask them to select one. If no developing-stage ideas exist, report "No developing-stage ideas found in the Ideas database" and exit.
+2. If no idea is named: read the Ideas database (conventions, Reading a database) and keep the rows whose Stage is `developing`. Present them to the user and ask them to select one. If no developing-stage ideas exist, report "No developing-stage ideas found in the Ideas database" and exit.
 3. If provided: resolve the argument to an Ideas row
    - A Notion page URL is used directly
    - Otherwise read the Ideas database and try an exact match on Slug first (with and without `.md` extension)

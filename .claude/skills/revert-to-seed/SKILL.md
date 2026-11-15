@@ -30,24 +30,11 @@ Reverts a developing-stage idea card to seed stage so it can be re-developed wit
 
 ## Where Things Are
 
-Ideas, research, output documents and configuration live in Notion. The repo's instruction file (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at the repo root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md`; read it before the first step. In short:
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
-| Pointer | What it is |
-| --- | --- |
-| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
-| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
-
-A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
-
-Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, `notion-update-page`, and — in Step 2 only — `notion-delete-pages`, which moves rows to Notion's trash.
-
-**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
-
-**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
-
-**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch.
-
-**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
+- **Pointers:** `notion_ideas`, `notion_config`. Both, and any `persona_file=`, are passed on to `/refine-seed` in Step 4.
+- **Rows it touches:** reads the idea row and every row in its Research relation; moves the idea's own Research rows to the trash and empties the idea's Research relation; unlinks a shared Research row from this idea; rewrites the idea row's body above `### Original Capture` and resets its fields.
+- **The trash:** this is the one skill that calls `mcp__notion__notion-delete-pages`. What that tool does, its `user_confirmed` argument, its limit of 20 rows a call, the 30 days a trashed row can be restored, and why the tool is in no `allowed-tools` list are in the conventions (Calls, The trash; Tool lists).
 
 ## Arguments
 
@@ -89,7 +76,7 @@ Move the idea's own research rows to Notion's trash. Preserve research shared wi
 
 1. Read the idea row's Research relation. Fetch each related row.
 2. Only rows related to this idea are touched, and a row is this idea's own only if its Idea relation holds this idea and no other. A row whose Idea relation also holds another idea is shared: it is never trashed.
-3. Move the idea's own research rows to the trash (the handoff, development research, cross-domain signals, and any enrichment artifacts from prior runs — every own row, whatever its Research type). This is destructive: list the rows to the human (Name, Research type, URL), say that they go to Notion's trash and can be restored from it for 30 days, get their explicit confirmation, then call `notion-delete-pages` with those rows' page IDs and `user_confirmed: true` — at most 20 IDs per call, so several calls for a longer list (the tool is deliberately left out of `allowed-tools`, so this skill never pre-approves it: whether the harness also prompts is decided by the session's own permission settings, not by this skill). Never set `user_confirmed: true` before the human has confirmed this exact list. If confirmation is declined or not given, stop: leave the research rows and the idea's Research relation exactly as they are, report that the revert did not run, and do not continue to Step 3.
+3. Move the idea's own research rows to the trash (the handoff, development research, cross-domain signals, and any enrichment artifacts from prior runs — every own row, whatever its Research type). This is destructive: list the rows to the human (Name, Research type, URL), say that they go to Notion's trash and can be restored from it for 30 days, get their explicit confirmation, then call `mcp__notion__notion-delete-pages` with those rows' page IDs and `user_confirmed: true`, as the conventions describe it (Calls, The trash: at most 20 IDs a call; the tool is in no `allowed-tools` list). Never set `user_confirmed: true` before the human has confirmed this exact list. If confirmation is declined or not given, stop: leave the research rows and the idea's Research relation exactly as they are, report that the revert did not run, and do not continue to Step 3.
 4. Shared research rows are NOT trashed — they are durable contributions another idea still uses. Unlink each from this idea only: set the shared row's Idea relation to its other ideas, leaving this one out.
 
 After the trash calls, fetch the idea row again. A trashed row stays listed in the idea's Research relation, so empty the relation yourself (the counterpart of `research: []`): write it as the same list without the trashed rows (`update_properties`; `[]` when every row was trashed), and say in Step 5 that a row restored from the trash will then need relating to the idea again.

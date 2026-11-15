@@ -3,7 +3,7 @@ name: artifact-critic
 description: Checks strategy artifacts (TL;DR cards, output documents) for structural conformance, voice conformance, and rating calibration. Invoked by /develop and /draft after artifact generation.
 argument-hint: "[idea-row-url | artifact-file-path] [notion_config=...] [persona_file=...]"
 context: fork
-agent: artifact-critic
+agent: incubator:artifact-critic
 allowed-tools:
   - Read
   - Grep

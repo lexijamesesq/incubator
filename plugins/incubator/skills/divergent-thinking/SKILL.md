@@ -3,7 +3,7 @@ name: divergent-thinking
 description: This skill should be used when the user asks to "think divergently about [idea]", "brainstorm angles for [idea/subject]", "nonlinear thinking on [idea/subject]", "explore creative connections for [idea/subject]", or "divergent analysis of [subject]". Generates 3-5 unexpected, nonlinear connections for a strategic idea OR an arbitrary subject by following structural pattern similarity across domains.
 argument-hint: "[idea-name | idea-row-url | --adhoc \"subject\"] [notion_ideas=...] [notion_research=...]"
 context: fork
-agent: divergent-thinking
+agent: incubator:divergent-thinking
 disable-model-invocation: false
 allowed-tools:
   - Read
@@ -36,11 +36,10 @@ Examples: `/divergent-thinking foraging-intelligence`, `/divergent-thinking --ad
 
 ## Where Things Are (idea mode)
 
-Ad-hoc mode makes no Notion call. In idea mode the idea is a row in the Ideas database, and the artifact this skill writes is a row in the Research database related to that idea (Research type `divergent-angles`). The shared mechanics — the pointers and their overrides, addressing an idea, creating an artifact row, how Notion returns text — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before Step 0 when it is present. In short:
+Ad-hoc mode makes no Notion call. Idea mode reads and writes Notion, and how a skill does that is stated once, in `reference/skill-conventions-notion-access.md` in the Incubator repo: read it before Step 0 and follow it. If idea mode cannot read that file (the session is not in the Incubator repo and has no copy), stop and say so. Only what is specific to this skill is stated here.
 
-- **Pointers.** `notion_ideas` and `notion_research` are database URLs in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in. `notion_ideas=` and `notion_research=` arguments override them; a test run passes scratch databases this way. A caller that has already fetched the Research database may also pass `research_data_source=<collection:// URL>`, the parent for the artifact row. If idea mode has neither an argument nor a front-matter value for a pointer it needs, report "Idea mode needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument). For a subject that is not an idea, use --adhoc." and exit.
-- **Calls.** `notion-fetch` for a row or a database; `notion-query-data-sources` in view mode only (fetch the database, query the view it lists, page while `has_more`); `notion-create-pages` with a data-source parent to create the artifact row; `notion-update-page` `update_properties` to set a field. Never SQL or rows mode.
-- **Text.** Notion returns bold as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. The words are preserved; read through the markup.
+- **Pointers (idea mode):** `notion_ideas`, `notion_research`. A caller that has already fetched the Research database may pass `research_data_source=<collection:// URL>`. A pointer idea mode needs and does not have: report "Idea mode needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument). For a subject that is not an idea, use --adhoc." and exit.
+- **Rows it touches (idea mode):** reads the idea row; creates one Research row related to it, Research type `divergent-angles`; sets the idea row's `Updated`.
 
 ## Arguments
 
@@ -53,7 +52,7 @@ Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, 
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Read the Ideas view, present titles, ask user to select |
+| Empty | Read the Ideas view, present the titles of the rows not at Stage `archived`, ask user to select |
 | A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
 | `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
 | No exact match | Case-insensitive substring match against the Slug and Name of all rows |
@@ -75,7 +74,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution.
 3. **Otherwise (idea mode):** settle the pointers (an argument override where one is given, the `CLAUDE.md` front matter otherwise), then:
    - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
-   - If empty: read the Ideas view for Name and Stage, present all ideas, ask user to select. If none exist, exit.
+   - If empty: read the Ideas view for Name and Stage, present all ideas, ask user to select Leave out rows at Stage `archived`. If none exist, exit.
    - Try exact match on the Slug field (strip `.md` first)
    - If no exact match, case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it

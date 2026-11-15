@@ -10,7 +10,7 @@ Seeds arrive from the router as rows in the Ideas database, with their fields se
 
 **Trigger:** Human says "refine-seed [idea name]" or equivalent. Run before /develop.
 
-**What it does:** Interprets the raw seed's intent — determines whether the idea is a capability gap or an experience improvement, drafts header fields (core insight, problem, who cares, strategic connection), surfaces related ideas for potential consolidation, and aligns with the human before /develop runs. This is where ambiguous seeds get clarified so the synthesis agent has clean inputs.
+**What it does:** Interprets the raw seed's intent — determines whether the idea is a capability gap or an experience improvement, drafts header fields (core insight, problem, who cares, strategic connection), surfaces related ideas for potential consolidation, and aligns with the human before /develop runs. This is where ambiguous seeds get clarified so the synthesis agent has clean inputs. When the human approves a merge of two seeds, the secondary's row is set to `Stage` `archived` and drops out of the seed list (`reference/architecture.md`, Archive Conventions).
 
 ## Developing an Idea (Stage 1→2)
 

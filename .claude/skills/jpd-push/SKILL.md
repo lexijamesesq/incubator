@@ -34,25 +34,11 @@ Pushes a developed idea to JPD for stakeholder visibility. One-directional — n
 
 ## Where Things Are
 
-Ideas, research, output documents and configuration live in Notion. The repo's instruction file (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at the repo root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md`; read it before the first step. In short:
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
-| Pointer | What it is |
-| --- | --- |
-| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
-| `notion_research` | The Research database. One row per research artifact, related to its idea through the row's Idea relation. |
-| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
-
-A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
-
-Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, and `notion-update-page`.
-
-**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
-
-**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
-
-**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch.
-
-**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_config`.
+- **Rows it touches:** reads the idea row and every row in its Research relation; sets the idea row's `Jira key`, `Jira pushed` and `Jira sidecar URL`; adds a `### Cross-Domain Signals` or `### Disruptive Reframing` section to the card only through the Step 3a and 3b self-heals. It never writes a Research row.
+- **Outside Notion:** it creates and edits an issue in Jira and a folder of documents in Google Drive. Text fetched from Notion is converted back to Markdown before it is sent to either (conventions, How Notion returns text).
 
 **Configuration keys this skill reads:**
 
@@ -75,7 +61,7 @@ Which fields and statuses the tracker has, and what they are called, belongs to 
 
 Parse `$ARGUMENTS` to resolve the target idea and any flags.
 
-**Argument structure:** `[idea-name] [flags]` — idea-name is the positional argument; flags are space-separated and follow. A `key=value` token is a pointer override (see Where Things Are), not a flag.
+**Argument structure:** `[idea-name] [flags]` — idea-name is the positional argument; flags are space-separated and follow. A `key=value` token is a pointer override (`notion_ideas=`, `notion_research=`, `notion_config=`), not a flag.
 
 **Recognized flags:** None currently.
 
@@ -87,7 +73,7 @@ Unknown flags should be reported as an error and exit before resolution proceeds
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Read the Ideas database, list the rows at Stage `developing` or later, ask user to select |
+| Empty | Read the Ideas database, list the rows at Stage `developing`, `drafting`, `refining` or `complete` (never `seed` or `archived`), ask user to select |
 | `idea-name` | Resolve to the Ideas row whose Slug is `idea-name` |
 | `idea-name.md` | Strip `.md`, resolve as above |
 | A Notion page URL | Use that row directly |
@@ -107,7 +93,7 @@ Resolve the idea once, against one read of the Ideas database, and keep the row'
 
 ### Step 0: Load Configuration
 
-Fetch the Configuration page (the `notion_config` pointer; see Where Things Are). All Jira connection details, field IDs, and option IDs used in this skill come from its `jira.*` keys. Do not proceed if the page cannot be fetched or a `jira.*` key this push needs is missing — name the missing key.
+Fetch the Configuration page (the `notion_config` pointer). All Jira connection details, field IDs, and option IDs used in this skill come from its `jira.*` keys. Do not proceed if the page cannot be fetched or a `jira.*` key this push needs is missing — name the missing key.
 
 Also read from it `incubator.jpd_sidecars_folder_id` (used in Step 3c), `incubator.research_db_label` (used in Step 3c sidecar substitution), and the strategy doc `path` → `external_url` mappings under `strategic_context.*` and `metrics.*` (used in Step 3 link translation).
 
@@ -150,7 +136,7 @@ Extract and transform the idea content into JPD fields:
 
 **Summary:** The idea title from the H2 heading (e.g., `## Cohort and Peer Intelligence` becomes `Cohort and Peer Intelligence`).
 
-**Description:** Restructure the TL;DR body into JPD-compatible headings. Content is transferred verbatim — no generative rewriting. Only the heading structure changes. The body as fetched carries Notion's markup; convert it back to Markdown first (see Where Things Are) — that conversion restores the card's own text and is not rewriting. Exclude `### Original Capture` (internal provenance only). If a Cross-Domain Signals section will be included (see Step 3a), strip any cross-domain bullets from the Research Summary to avoid redundancy — the dedicated section is the single place for that data in JPD.
+**Description:** Restructure the TL;DR body into JPD-compatible headings. Content is transferred verbatim — no generative rewriting. Only the heading structure changes. The body as fetched carries Notion's markup; convert it back to Markdown first (conventions, How Notion returns text) — that conversion restores the card's own text and is not rewriting. Exclude `### Original Capture` (internal provenance only). If a Cross-Domain Signals section will be included (see Step 3a), strip any cross-domain bullets from the Research Summary to avoid redundancy — the dedicated section is the single place for that data in JPD.
 
 Map the TL;DR sections into this structure:
 
@@ -282,7 +268,7 @@ The sidecar architecture is **one folder per pushed idea, four `.md` files per f
 
 2. Skip any artifact that doesn't exist (the corresponding /develop agent must have failed). Note any skipped artifacts in the review gate output for transparency.
 
-3. For each artifact, take the row's body, convert it back to Markdown (see Where Things Are), and prepend a sidecar-specific frontmatter block. A research row's body carries no front matter of its own — that is in the row's fields — so there is none to strip. If the body does not open with an H1, open it with `# {row Name}`. The frontmatter uses literal placeholders for both the JPD reference (`<<JIRA_KEY>>`, `<<JIRA_URL>>` — substituted in Step 5c) and the research database label (`<<RESEARCH_DB_REF>>` — substituted at staging time using `incubator.research_db_label` from the Configuration page). The body keeps the artifact's existing H1 and content untouched.
+3. For each artifact, take the row's body, convert it back to Markdown (conventions, How Notion returns text), and prepend a sidecar-specific frontmatter block. A research row's body carries no front matter of its own — that is in the row's fields — so there is none to strip. If the body does not open with an H1, open it with `# {row Name}`. The frontmatter uses literal placeholders for both the JPD reference (`<<JIRA_KEY>>`, `<<JIRA_URL>>` — substituted in Step 5c) and the research database label (`<<RESEARCH_DB_REF>>` — substituted at staging time using `incubator.research_db_label` from the Configuration page). The body keeps the artifact's existing H1 and content untouched.
 
 When staging, replace `<<RESEARCH_DB_REF>>` in each row's `sources` block with the value of `incubator.research_db_label` from the Configuration page. This abstraction keeps the public skill file free of installation-specific database identifiers while letting the generated sidecar content carry the concrete reference stakeholders need. If the config key is missing, omit the entire research-database source line for that file (the `/edtech-sme`, `/tam-estimate`, or `/educator-sme` line stays — only drop the database row).
 
@@ -530,7 +516,7 @@ This skill does NOT:
 - Develop ideas (that's `/develop`)
 - Draft output documents (that's `/draft`)
 - Sync back from JPD (sync-back is conversational and ad-hoc)
-- Push seeds (must be developing or later)
+- Push seeds or archived ideas (Stage must be `developing`, `drafting`, `refining` or `complete`)
 - Push without human review
 - Modify the idea card body, with two exceptions — the Step 3a self-heal fallback may insert a `### Cross-Domain Signals` section if it's missing from the card and the artifact exists, and the Step 3b self-heal fallback may insert a `### Disruptive Reframing` section if it's missing from the card and the divergent-angles artifact exists (both architecture migration handling). All other body content is left untouched. Field updates on the idea row remain limited to Jira key, Jira pushed, and Jira sidecar URL.
 - Manage initiative hierarchy in JPD (initiatives are local only)

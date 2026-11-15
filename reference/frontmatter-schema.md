@@ -7,7 +7,7 @@ In Notion each key below is a field of the idea's row in the Ideas database, and
 ```yaml
 ---
 type: incubator/idea
-stage: seed | developing | drafting | refining | complete
+stage: seed | developing | drafting | refining | complete | archived  # archived = out of the pipeline (merged or shelved); see architecture.md, Archive Conventions
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 output-format: null | strategy-doc | product-brief

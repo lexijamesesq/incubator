@@ -36,11 +36,12 @@ Transforms a seed-stage idea into a researched, assessed TL;DR nugget. Researche
 
 ## Where Things Are
 
-Ideas and research live in Notion: an idea is a row in the Ideas database (the card is the row's body, the front matter is its fields), and every research artifact is a row in the Research database related to its idea. Instance values are on the Configuration page. The shared mechanics — the pointers and their overrides, addressing an idea, creating and finding research rows, writing to a card, how Notion returns text, configuration and local documents, the persona — are stated once in `reference/skill-conventions-notion-access.md`. Read it before Step 0; the steps below name only what is specific to this skill.
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
 
-The strategy, OKR and NPS documents are not in Notion: they are local files at the paths the Configuration page gives, read with `Grep` and `Read`.
-
-This skill is the orchestrator: it resolves the idea once and passes the idea row's URL, the row URL of any artifact a callee must read, and every pointer in effect down to each skill and agent it starts.
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_config`.
+- **Rows it touches:** reads the whole Ideas view once (name resolution and the portfolio index) and the idea row; creates the idea's `synthesis-handoff` and `development-research` Research rows and corrects them in place; writes the idea row's body and fields. Every other Research row is created by the skill or agent it starts.
+- **Local documents:** the strategy, OKR and NPS documents are local files at the paths the Configuration page gives, read with `Grep` and `Read`.
+- **Orchestrator:** it resolves the idea once and passes the idea row's URL, the row URL of any artifact a callee must read, and every pointer in effect down to each skill and agent it starts.
 
 ## Arguments
 
@@ -120,6 +121,7 @@ Fetch the seed row and the Configuration page first, then load the rest in paral
 4. **OKRs** — Read the OKRs document (the local file at the path the Configuration page gives as `strategic_context.okrs`)
 5. **Idea index** — from the Ideas view rows read in Step 0, which carry every idea's fields and no bodies. Apply tiered reading:
    - **Complete-stage ideas:** fields only. Extract: `Stage`, `Themes`, `Domain`. These provide theme vocabulary only — complete ideas are excluded from Step 3 matching.
+   - **Archived ideas:** left out of the index altogether (conventions, Addressing an idea).
    - **All other ideas (seed, developing, drafting, refining):** fields from the view (`Stage`, `Themes`, `Domain`, `Name`, `Slug`). The header fields (Core insight, Problem, Who cares, Strategic connection) are in the card bodies, which the view does not return: fetch the rows in the seed's `Related ideas` relation, and only those, and take each body up to the first `###` heading. Used by Step 3 to verify refine-seed's related-ideas resolution AND portfolio context in the synthesis handoff.
    From the loaded index, extract all unique `Themes` values across all idea rows into a **portfolio theme vocabulary** — the canonical set of themes in use. Used in Step 5e to ensure theme reuse.
 6. **Shared research baseline** — Query the strategy research database for structured competitive intelligence, customer evidence, and market sizing relevant to this idea's capabilities:
@@ -169,7 +171,7 @@ Conduct five research streams. Streams B-E invoke specialized agents; Stream A i
 
 #### Phase 1: Agent Research (parallel fan-out)
 
-Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, tam-estimate — as parallel background subagents in a SINGLE message via the Agent tool: one `Agent` call per stream, all in the same message, with `subagent_type` set to the matching agent name. They run concurrently in isolated contexts; no agent depends on another's output. Each creates its research artifact as a Research row related to the idea and returns that row's URL, together with its held-back writes-of-record as payloads for the orchestrator to apply in Phase 1.5.
+Launch FOUR research agents — divergent-thinking, educator-sme, edtech-sme, tam-estimate — as parallel background subagents in a SINGLE message via the Agent tool: one `Agent` call per stream, all in the same message, with `subagent_type` set to the matching agent name. They run concurrently in isolated contexts; no agent depends on another's output. Each creates its research artifact as a Research row related to the idea and returns that row's URL, together with its held-back writes-of-record as payloads for the orchestrator to apply in Phase 1.5. The plugin registers its agents under its own name, so the agent type to pass is `incubator:<agent>` (for example `incubator:edtech-sme`); the bare name does not resolve to the plugin's agent.
 
 **Status ping:** immediately post one line to the human — "4 research streams launched (divergent, educator, edtech, tam), ~5–8 min in background; next human touchpoint is Step 9." Post a second one-liner when synthesis returns (Step 5).
 

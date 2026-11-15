@@ -74,7 +74,7 @@ When the human decides to merge two seeds:
    [Secondary's original capture]
    ```
 
-4. **Secondary disposition:** Don't delete — provenance survives. Under files the secondary moved to `Archive/` with `stage: archived` and `archived-reason: merged-into-{primary-name}`. Notion has neither (see Archive Conventions): /refine-seed leaves the secondary row as it is and tells the human it is merged into the primary and has to be archived by hand.
+4. **Secondary disposition:** Don't delete — provenance survives. Once the primary is written and its merged-from section confirmed, /refine-seed sets the secondary row's `Stage` to `archived` and its `Updated` to today, and changes nothing else on it (see Archive Conventions). The primary's `### Original Capture (merged from: {secondary-name})` heading is the record of where the secondary went; under files that was the `archived-reason: merged-into-{primary-name}` key.
 5. **Continue:** Development proceeds on the primary seed with enriched context.
 
 **Merge scope:** Seed + Seed only. Two developing cards don't merge — they stay separate and converge at the output doc layer if the human decides they belong in the same strategy doc or brief.
@@ -83,10 +83,13 @@ When the human decides to merge two seeds:
 
 Completed idea cards stay in the Ideas database with `Stage` `complete`. Completed output documents stay in the Outputs database.
 
-Under files, an `Archive/` directory held the ideas that exited the pipeline without completing — merged items and shelved items — with `stage: archived` and an `archived-reason`. Notion has no equivalent: there is no Archive database, the `Stage` field has no `archived` option, and no row has an archived-reason field. What the skills do now:
+An idea that exits the pipeline without completing is archived: its row stays in the Ideas database with `Stage` `archived`. Under files this was a move to an `Archive/` directory with `stage: archived` and an `archived-reason`; the row keeps its body, its fields and its research, so provenance survives. Two things archive an idea, each on a human decision:
 
-- **Merged items:** /refine-seed merges into the primary and leaves the secondary row unchanged, at its current Stage; it tells the human the row has to be archived by hand.
-- **Shelved items:** /thesis-test's shelve disposition (a human decision to park an idea) makes no write; it tells the human the row stays where it is until they archive it by hand.
-- **Research:** /revert-to-seed moves an idea's own research rows to Notion's trash, where they can be restored for 30 days. No skill trashes an idea row.
+- **Merged items:** when the human approves a seed merge, /refine-seed writes the primary and then sets the secondary's `Stage` to `archived`. The reason is on the primary: its `### Original Capture (merged from: {secondary-name})` section.
+- **Shelved items:** when the human chooses Shelve at /thesis-test's gate, the skill sets the idea's `Stage` to `archived`. The reason is on the idea: its `### Thesis Test Results` section and the falsification record that section links to.
 
-A row a human has trashed is out of every skill's view: it is not in the Ideas view, so related-ideas matching does not see it.
+There is no archived-reason field. Both writes also set `Updated` to today and touch nothing else.
+
+**Archived ideas are out of every skill's view.** Name resolution, the lists a skill offers when given no argument, the portfolio index and theme vocabulary of /refine-seed and /develop, and related-ideas matching all skip rows at `Stage` `archived`; a skill handed an archived row's URL reports it and stops (`reference/skill-conventions-notion-access.md`, Addressing an idea). No skill un-archives: a person changes the Stage in Notion.
+
+**Research:** /revert-to-seed moves an idea's own research rows to Notion's trash, where they can be restored for 30 days. No skill trashes an idea row. A row a human has trashed is not in the Ideas view at all.

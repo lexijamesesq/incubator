@@ -1,9 +1,0 @@
-{
-  "exemptions": [
-    {
-      "path": "persona\\.sample\\.md",
-      "rule": "sample-placeholder",
-      "reason": "deprecated stub, superseded by the lexi-persona skill; no fill-in values left to mark"
-    }
-  ]
-}

@@ -34,7 +34,11 @@ This is an enrichment agent, not a stage transition workflow. It does not change
 
 ## Where Things Are
 
-The idea card is a row in the Ideas database in Notion; its research artifacts are rows in the Research database, related to it. The shared mechanics — the pointers and their overrides, addressing an idea, writing to a card, how Notion returns text, configuration, the persona — are stated once in `reference/skill-conventions-notion-access.md`. Read it before Step 0. This skill uses two pointers from the instruction file (`CLAUDE.md`, front matter): `notion_ideas` and `notion_config`.
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
+
+- **Pointers:** `notion_ideas`, `notion_config`.
+- **Rows it touches:** reads the idea row and every row in its Research relation; adds the `### Buildable Surface` section to the idea row's body. It changes no field.
+- **Configuration keys:** `persona_skill`.
 
 ## Arguments
 
