@@ -6,7 +6,8 @@ The attack palette for break-condition authoring and the synthesis battery — d
 
 An SME lens runs these when one is handed to it as a break condition. Each is a one-line question.
 
-**Market / competitive**
+**Market / competitive:**
+
 - **No-procurement-category** — does any buyer vocabulary or RFP language name this category? No buyer words, no procurement home.
 - **Incumbent-already-leads** — is the position open, or unspoken hygiene an incumbent already ships?
 - **Vertical-incumbent displacement** — can entry dislodge a deep incumbent (density, satisfaction, switching cost)?
@@ -16,11 +17,13 @@ An SME lens runs these when one is handed to it as a break condition. Each is a 
 - **Integration-layer monetization** — does connective tissue command a premium, or get absorbed into platform expectations?
 - **Market-not-sized** — if no analyst sizes the category, does commercial scale exist?
 
-**Sizing / economics**
+**Sizing / economics:**
+
 - **Sub-market ACV economics** — does the narrower buyer actually pay more, or is the sub-market bundled, smaller, and cheaper?
 - **Willingness-to-pay observables** — separate stated demand from procurement demand: who has actually paid, at what observable price?
 
-**Adoption / practice**
+**Adoption / practice:**
+
 - **Protagonist workflow-reality** — walk a named human's real workflow; does it depend on this?
 - **Adoption-motivation inversion** — the same statistic reads two ways: do they want it better, or want less of it?
 - **Cultural-resistance** — does adoption fight identity or autonomy, not just features?
@@ -33,7 +36,7 @@ An SME lens runs these when one is handed to it as a break condition. Each is a 
 
 Orchestrator-run in the Step 5 battery; lenses individually pass what these catch.
 
-- **Learning-outcome through-line** — permanent; phrasing from CLAUDE.md config key `incubator.learning_outcome_break_condition`.
+- **Learning-outcome through-line** — permanent; phrasing from the Configuration page key `incubator.learning_outcome_break_condition`.
 - **Evidence-vs-interpretation** — show the seam between what a lens found and what you conclude.
 - **Collapse-into-sibling** — a distinct bet, or a re-description of another portfolio item?
 - **Altitude reframe** — is this a bigger thing at a different altitude? Re-size under the larger frame before ranking.

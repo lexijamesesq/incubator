@@ -1,13 +1,14 @@
 ---
 name: artifact-critic
 description: Checks strategy artifacts (TL;DR cards, output documents) for structural conformance, voice conformance, and rating calibration. Invoked by /develop and /draft after artifact generation.
-argument-hint: [idea-file-path]
+argument-hint: "[idea-row-url | artifact-file-path] [notion_config=...] [persona_file=...]"
 context: fork
-agent: artifact-critic
+agent: incubator:artifact-critic
 allowed-tools:
   - Read
-  - Glob
   - Grep
+  - Skill
+  - mcp__notion__notion-fetch
 ---
 
 # /artifact-critic — Structural and Voice Conformance Check
@@ -17,23 +18,26 @@ Check the specified artifact against structural, voice, and rating calibration c
 ## Invocation
 
 ```text
-/artifact-critic [idea-file-path]
+/artifact-critic [idea-row-url | artifact-file-path]
 ```
 
-- Required argument: path to the idea card file to check (e.g., `Ideas/foraging-intelligence.md`)
-- If no argument provided: report "No artifact path provided. Usage: /artifact-critic [idea-file-path]" and exit.
+- Required argument: the artifact to check. Either the Notion URL of the row that holds it — the idea row whose card is to be checked (how `/develop` calls this skill), or a Research or Outputs row (how `/thesis-test` passes a card-mode lens artifact) — or the path of a local file (a `/thesis-test` subject-mode artifact).
+- Optional overrides, as `key=value`: `notion_config=<page URL>` (use this Configuration page instead of the pointer) and `persona_file=<file path>` (read the voice guide from this file instead of loading the persona skill).
+- If no argument provided: report "No artifact provided. Usage: /artifact-critic [idea-row-url | artifact-file-path]" and exit.
 
 ## Execution
 
-Read these three files in parallel with parallel `Read` calls. `Read` takes a full disk path: `{workspace_root}` is the vault root from the global Claude Code configuration block, and a vault-relative `$ARGUMENTS` is joined to it the same way.
+Load these three in parallel. The format example and the voice guide are named on the Configuration page: the page the `notion_config` pointer names in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in, or the `notion_config=` override. If neither is present, report "notion_config pointer missing — cannot load the format example and voice guide." and exit. `reference/skill-conventions-notion-access.md` in the Incubator repo states the shared mechanics (pointers, how Notion returns text, the persona).
 
-1. The artifact file at `$ARGUMENTS`
-2. The format example: `{workspace_root}/Projects/Incubator/Examples/developing-card.md`
-3. The voice guide: `{workspace_root}/Projects/Incubator/persona.md`
+1. The artifact named by `$ARGUMENTS`: fetch a Notion URL with `notion-fetch` (the row's body is the artifact; for an idea row, the card is everything above `### Original Capture`); `Read` a file path.
+2. The format example: fetch the `notion_config` page, read `example_card` from its `yaml` block, and fetch the page it names.
+3. The voice guide: load the skill the Configuration page names as `persona_skill`, with the Skill tool. If `persona_file=` was passed, `Read` that file instead; if its content is only a pointer elsewhere, refuse it — report "Persona file {path} only points elsewhere. Pass the file that holds the guide, or leave persona_file= out." — and exit.
+
+Notion does not return text byte for byte: bold comes back as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. That markup is how the card is stored, not a deviation: judge the words and the structure, and never report the markup itself. The four header fields arrive as one paragraph joined by `<br />`; each is still its own one-sentence field.
 
 ## Artifact-Class Routing
 
-Before applying the checks below, identify the artifact class. When the artifact under review is a **`/thesis-test` lens artifact or synthesis** (passed from `/thesis-test`, or a filename matching `thesis-test-*.md` / `falsification-record-*.md`, or a body carrying a per-break-condition verdict table using the five-value verdict set), ALSO load `thesis-verdict-rubric.md` from this skill's directory and apply it *instead of* the TL;DR-card format spec — those artifacts are verdict records, not cards. For all other artifacts (TL;DR cards, output documents), use the format spec below. The generate path never loads the thesis-verdict rubric.
+Before applying the checks below, identify the artifact class. When the artifact under review is a **`/thesis-test` lens artifact or synthesis** (passed from `/thesis-test`, or a filename or row Name matching `thesis-test-*` / `falsification-record-*`, or a body carrying a per-break-condition verdict table using the five-value verdict set), ALSO load `thesis-verdict-rubric.md` from this skill's directory and apply it *instead of* the TL;DR-card format spec — those artifacts are verdict records, not cards. For all other artifacts (TL;DR cards, output documents), use the format spec below. The generate path never loads the thesis-verdict rubric.
 
 ## Format Spec (TL;DR Card)
 

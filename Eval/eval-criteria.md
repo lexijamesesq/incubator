@@ -104,7 +104,7 @@ Template constraint: `[What we still don't know]`
 
 ### Voice Check
 
-Source: `persona.md` — applied as overlay, not as density constraint.
+Source: the persona guide (the skill the `persona_skill` configuration key names, or the file a test run passes as `persona_file=`) — applied as overlay, not as density constraint.
 
 | ID | Criterion | Pass | Fail |
 | --- | --- | --- | --- |
@@ -180,7 +180,7 @@ Evaluates /develop Step 3 — related idea detection, merge/keep recommendations
 | --- | --- | --- | --- |
 | C8 | Frontmatter merge | Themes = union, dates correct, no data loss | Missing themes from secondary, wrong dates |
 | C9 | Both Original Captures preserved | Primary and secondary captures both present, labeled | Secondary capture lost or unlabeled |
-| C10 | Secondary archived | Secondary moved to Archive/ with stage: archived and reason | Secondary deleted or left in Ideas/ |
+| C10 | Secondary archived | Secondary row kept, its `Stage` set to `archived` after the primary was written, nothing else on it changed; it no longer appears in the seed list, in name resolution or in the portfolio index (`reference/architecture.md`, Archive Conventions) | Secondary trashed, left at `seed`, archived before the primary held its capture, or still offered as a seed |
 | C11 | Development continues | Primary seed proceeds through remaining /develop steps normally | Merge disrupts development flow |
 
 ### Concrete Test Cases
@@ -220,7 +220,7 @@ First principle: "Could a product team read this Thought Outline and know what t
 
 | ID | Criterion | Pass | Fail |
 | --- | --- | --- | --- |
-| BS8 | Voice conformance | Confident, declarative, no hedging per `persona.md` | Corporate speak, hedging, tentative language |
+| BS8 | Voice conformance | Confident, declarative, no hedging per the persona guide (`persona_skill`, or `persona_file=` in a test run) | Corporate speak, hedging, tentative language |
 | BS9 | Section placement | Between Thought Outline and Open Questions | Elsewhere in the card |
 | BS10 | Format compliance | Numbered list only — no sub-labels, no follow-up paragraphs | Contains sub-labels ("Feature candidates:", "Recommended surface:", "Rationale:") or follow-up paragraphs |
 | BS11 | One sentence per candidate | Each candidate description fits in a single sentence | Multi-sentence candidate descriptions |

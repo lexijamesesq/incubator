@@ -12,9 +12,9 @@
 
 `/thesis-test` produces a chain of artifacts. The regression bar is checked across three of them:
 
-- **Thesis brief** (`Research/{idea}/thesis-brief.md` or caller-supplied) — the committed position(s) + per-(thesis × lens) break-condition table. Signal 1 checks this.
-- **Lens artifacts** (`Research/{idea}/thesis-test-{lens}-{date}.md`, one per lens) — per-break-condition verdicts with qualifiers and cited evidence, plus per-lens/per-thesis roll-ups. Signals 2 and 5 check these.
-- **Synthesis** (`Research/{idea}/thesis-test-{date}.md`) — orchestrator-authored stack-rank, recomposition/conditions, premortem, through-line, register. Signals 3, 4, 5, 6 check this.
+- **Thesis brief** (the idea's `thesis-brief` Research row, or a caller-supplied file) — the committed position(s) + per-(thesis × lens) break-condition table. Signal 1 checks this.
+- **Lens artifacts** (the idea's `thesis-test-lens` Research rows, named `thesis-test-{lens}-{date} ({slug})`, one per lens; local files of the same name in subject-mode) — per-break-condition verdicts with qualifiers and cited evidence, plus per-lens/per-thesis roll-ups. Signals 2 and 5 check these.
+- **Synthesis** (the idea's `thesis-test-synthesis` Research row; a local file `thesis-test-{date}.md` in subject-mode) — orchestrator-authored stack-rank, recomposition/conditions, premortem, through-line, register. Signals 3, 4, 5, 6 check this.
 
 The synthesis is the load-bearing deliverable; four of six signals land on it.
 
@@ -58,11 +58,11 @@ At staging time, before any graded run:
 
 The Expected files show verdicts a live run will not reproduce. Their BREAKS verdicts rest on sources that exist only inside the authored lens artifacts (for example a plan holder's customer terms). A real lens has the card, the brief, and web research that finds nothing about an invented market, so its honest verdict on most cells is UNKNOWN-INSUFFICIENT. On the subject-mode fixture, which has no card, that is the honest verdict on nearly every cell.
 
-A live run on these fixtures can therefore be graded on Signal 1 (the brief), on Signal 2 (verdicts no stronger than their evidence, qualifiers present, UNKNOWN used where evidence is thin), and on Signal 6 (declared sections). It cannot show Signals 4 and 5 as the Expected files do, because it will not reach a grounded BREAKS. To exercise those two signals live, the evidence has to be placed where a lens can read it: either as first-pass `Research/` artifacts staged with the card, or by supplying the Expected lens artifacts as the lens outputs and running Steps 4 to 6 only. Neither is staged here; which to adopt is a decision for the suite's owner.
+A live run on these fixtures can therefore be graded on Signal 1 (the brief), on Signal 2 (verdicts no stronger than their evidence, qualifiers present, UNKNOWN used where evidence is thin), and on Signal 6 (declared sections). It cannot show Signals 4 and 5 as the Expected files do, because it will not reach a grounded BREAKS. To exercise those two signals live, the evidence has to be placed where a lens can read it: either as first-pass artifacts loaded as rows in the scratch Research database and related to the card's row, or by supplying the Expected lens artifacts as the lens outputs and running Steps 4 to 6 only. Neither is staged here; which to adopt is a decision for the suite's owner.
 
 No lens artifacts are staged for the subject-mode fixture; its synthesis carries the verdict table. No synthesis is staged for the card-mode fixture; a run produces one from the brief.
 
-The card-mode lens artifacts are a second lens pass over the idea — the pass run against the thesis brief. The first pass, which `/thesis-test` Step 2 partitions into reuse and re-run, is not staged: produce it by running the `enrichment-skills` suite's research-quality axis on the same card, or run with an empty `Research/` folder and accept a partition table with nothing in it.
+The card-mode lens artifacts are a second lens pass over the idea — the pass run against the thesis brief. The first pass, which `/thesis-test` Step 2 partitions into reuse and re-run, is not staged: produce it by running the `enrichment-skills` suite's research-quality axis on the same card, or run with no Research rows related to the idea and accept a partition table with nothing in it.
 
 ### Detector fixture (`/develop` rubber-stamp detector)
 
@@ -194,12 +194,12 @@ Overall: PASS (all six present) | FAIL (signals: <list>) — <one line naming th
 
 Each run exercises one fixture end-to-end, then scores the output with an independent grader.
 
-1. **Stage the fixture.** Card-mode: copy the card to `Ideas/accommodations-on-classroom-checks.md` and the brief to `Research/accommodations-on-classroom-checks/thesis-brief.md`. Subject-mode: the brief stays where it is and is passed by path. The run also needs a configured instance: `.claude/instance.md` with `incubator.learning_outcome_break_condition` set (use the phrasing in the fixture brief's § 3), and `persona.md` for the card-mode register.
+1. **Stage the fixture.** The skills read and write Notion, so a fixture is loaded as rows, not staged as files. Keep a set of scratch databases with the same fields and options as the real Ideas, Research and Outputs databases, and a scratch Configuration page, and pass them to the skill as pointer overrides (`notion_ideas=`, `notion_research=`, `notion_outputs=`, `notion_config=`): a run with overrides reads and writes only what they name. A fixture file becomes a row this way: its front matter becomes the row's fields (the file name without `.md` is the Slug, the `##` title is the Name), and its body from the `##` title down becomes the row's body. `reference/skill-conventions-notion-access.md` gives the field names. A select or multi-select value a fixture uses (its `themes`, a Research type) has to be an option of the scratch field before the row is loaded: add it to the scratch database first. Card-mode: load the card as an Ideas (scratch) row with Slug `accommodations-on-classroom-checks`, and the brief as a Research (scratch) row, Research type `thesis-brief`, its `Idea` relation set to the card's row. Subject-mode: the brief stays where it is and is passed by path; subject-mode reads and writes local files. The run also needs a configured instance: the scratch Configuration page with `incubator.learning_outcome_break_condition` set (use the phrasing in the fixture brief's § 3).
 2. **Run thesis-test.** Invoke `/thesis-test accommodations-on-classroom-checks` (card-mode) or `/thesis-test --subject "How Larkmoor enters regional colleges" --brief Eval/Suites/thesis-test/Fixtures/Briefs/college-entry-subject-brief.md` (subject-mode). The skill produces the lens artifacts and the synthesis. The fixture market is invented, so the lenses' web research returns nothing for it; a lens that cannot find evidence should return UNKNOWN-INSUFFICIENT, and a run that does so is behaving correctly (see § What a live run on these fixtures can and cannot show).
 3. **Grade independently.** Spawn a fresh-context grader subagent per § Grader Rubric. It reads ONLY the brief, the lens artifacts, the synthesis, and this rubric — never this run's generating conversation, never an Expected baseline. It returns the fixed six-row table plus a one-line overall verdict. Grader confirmations carry reduced weight than criticisms; the revision loop caps at 3 iterations before human escalation.
 4. **High-stakes only:** if the run's output feeds a pre-leadership-review or pre-JPD decision, additionally run the verified-blind escalation procedure (§ Grader protocol) out-of-harness.
 5. **File a run report** in `Runs/{YYYY-MM-DD}-{model}-{note}.md` capturing: date, model version, skill commit ref, fixture, lens model overrides used, the grader table, and (high-stakes) the second grader table + reconciliation.
-6. **Teardown.** Remove the staged copies under `Ideas/` and `Research/accommodations-on-classroom-checks/`, and the synthesis the subject-mode run wrote.
+6. **Teardown.** Move the scratch rows the run loaded and created to the trash by hand, and remove the synthesis file the subject-mode run wrote.
 
 ---
 

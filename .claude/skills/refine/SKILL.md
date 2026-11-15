@@ -1,24 +1,25 @@
 ---
 name: refine
 description: This skill should be used when the user asks to "refine [idea name]", "iterate on [idea name]", "polish [idea name]", "improve the draft of [idea]", or "move [idea] to refining". Iteratively refines a first-draft output document (Stage 3→4) through section-by-section collaboration, voice alignment, and strategic realism checks until the human approves it as complete (Stage 5).
-argument-hint: [idea-name]
+argument-hint: "[idea-name] [notion_ideas=...] [notion_research=...] [notion_outputs=...] [notion_config=...] [persona_file=...]"
 context: conversation
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Edit
-  - Write
-  - Glob
   - Grep
+  - Skill
   - WebSearch
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-update-page
 ---
 
 # /refine — Refinement Session (Stage 3→4→5)
 
-Iteratively refines a drafted output document through human-agent collaboration. Works on the output document in `Output/`, not the idea card. Applies voice alignment, strategic realism checks, and self-critique between iterations. Runs as many feedback loops as needed until the human approves the document as complete.
+Iteratively refines a drafted output document through human-agent collaboration. Works on the output document (the Outputs row related to the idea), not the idea card. Applies voice alignment, strategic realism checks, and self-critique between iterations. Runs as many feedback loops as needed until the human approves the document as complete.
 
 ## Invocation
 
@@ -26,29 +27,40 @@ Iteratively refines a drafted output document through human-agent collaboration.
 /refine [idea-name]
 ```
 
-- Required argument: the name of an idea file in `Ideas/` that has a linked output document
+- Required argument: the name of an idea (its Slug in the Ideas database) that has a related output document
 - If no argument provided: list available drafting/refining-stage ideas and ask the user to pick
 - Examples: `/refine foraging-intelligence`, `/refine cache-optimization`
 
+## Where Things Are
+
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
+
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_outputs`, `notion_config`.
+- **Rows it touches:** reads the idea row and every row in its Research and Outputs relations; edits the body of the Outputs row that holds the document and sets its `Stage` and `Updated`; sets the idea row's `Stage` and `Updated`, and changes the idea row's body only where Step 5 says so.
+- **Configuration keys:** `role`, `persona_skill`, `approach`, `template_review`. `approach` and `template_review` name Notion pages.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to resolve the target idea file.
+Parse `$ARGUMENTS` to resolve the target idea. The first token that is not `key=value` names the idea; every `key=value` token is a pointer override or `persona_file=<path>`.
 
 **Resolution rules:**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | List all drafting- or refining-stage ideas in Ideas/, ask user to select |
-| `idea-name` | Resolve to `Ideas/{idea-name}.md` |
+| Empty | Read the Ideas database, list the rows at Stage `drafting` or `refining`, ask user to select |
+| `idea-name` | Resolve to the Ideas row whose Slug is `idea-name` |
 | `idea-name.md` | Strip `.md`, resolve as above |
+| A Notion page URL | Use that row directly (this is how another skill passes the idea) |
 
-**Fuzzy matching:** If exact match fails, list all `.md` files in Ideas/ and find filenames containing the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options and ask user to pick. If zero matches, report and exit.
+**Fuzzy matching:** If the exact Slug match fails, find the rows whose Slug or Name contains the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options and ask user to pick. If zero matches, report, list the available slugs, and exit.
+
+Resolve the idea once, against one read of the Ideas database, and keep the row's URL for the rest of the run.
 
 ## Role
 
 You are the Refinement Session agent for the Strategy Incubator. Your job is to iteratively improve a drafted output document through collaboration with the human — moving it from Stage 3 (Drafting) through Stage 4 (Refining) and ultimately to Stage 5 (Complete) when the human approves.
 
-You are a strategic document editor and refinement partner working on behalf of the role specified in CLAUDE.md (Configuration > Role). You work on the output document (strategy doc or product brief) in `Output/`, not the idea card. Your role is:
+You are a strategic document editor and refinement partner working on behalf of the role the `role` configuration key names. You work on the output document (strategy doc or product brief) — the Outputs row related to the idea — not the idea card. Your role is:
 
 - Section-by-section refinement based on human feedback
 - Proactive quality improvement between iterations (don't wait for the human to catch things you should)
@@ -63,7 +75,7 @@ You are a strategic document editor and refinement partner working on behalf of 
 `incubator-reference.md` is a thin section index. Load only the `reference/` section files this skill needs:
 
 - `reference/stage-model.md` — Stage 3→4→5 transition semantics
-- `reference/frontmatter-schema.md` — `stage` / `updated` transitions on card and output doc
+- `reference/frontmatter-schema.md` — Stage / Updated transitions on the idea row and the Outputs row
 - `reference/architecture.md` — the card-update rule when refinement shifts strategic direction
 - `reference/shared-research.md` — dated-baseline verification when the human questions a claim
 - `reference/voice-and-output-standards.md` — the "Designers speaking Design" exit test for Stage 5
@@ -72,35 +84,36 @@ You are a strategic document editor and refinement partner working on behalf of 
 
 ### Step 0: Parse Arguments
 
-1. Read `$ARGUMENTS`
-2. If empty: use `Glob` to list all `.md` files in `Ideas/`. Read the first 20 lines of each to check frontmatter for `stage: drafting` or `stage: refining`. Present matching ideas to the user and ask them to select one. If none exist, report "No drafting- or refining-stage ideas found in Ideas/" and exit.
-3. If provided: attempt to resolve `Ideas/{argument}.md`
-   - Try exact match first (with and without `.md` extension)
-   - If not found, try fuzzy substring match against all filenames in Ideas/
+1. Read `$ARGUMENTS`. Settle the four pointers: an override where one is given, the `CLAUDE.md` front matter otherwise.
+2. If no idea is named: read the Ideas database (conventions, Reading a database) and keep the rows whose Stage is `drafting` or `refining`. Present matching ideas to the user and ask them to select one. If none exist, report "No drafting- or refining-stage ideas found in the Ideas database" and exit.
+3. If provided: resolve the argument to an Ideas row
+   - A Notion page URL is used directly
+   - Otherwise read the Ideas database and try an exact match on Slug first (with and without `.md` extension)
+   - If not found, try fuzzy substring match against the Slug and Name of all rows
    - If exactly one fuzzy match, use it
    - If multiple fuzzy matches, present options and ask user to pick
-   - If zero matches, report "Idea file not found: {argument}. Available files in Ideas/: {list}" and exit
+   - If zero matches, report "Idea not found: {argument}. Available slugs: {list}" and exit
 
 ### Step 1: Load Context
 
-Load these files in parallel:
+Fetch the idea row first: one fetch returns its fields and its body (the card). Fetch the Configuration page. Then load the rest in parallel:
 
-1. **Idea card** at the resolved path — full content including frontmatter and TL;DR body
-2. **Output document** — resolve from the idea card's `output-file:` frontmatter field. Read full content.
-3. **Persona guide** — `persona.md`
-4. **Research artifacts** — All files referenced in the idea card's `research: []` frontmatter array. Read full content of each.
+1. **Idea card** — the idea row: its fields and the TL;DR body
+2. **Output document** — resolve from the idea row's Outputs relation. One related row: fetch it; its body is the document, its fields carry Format, Stage and dates. Several related rows: take the one with the newest Created and tell the user which one you took; if two share the newest date, list them and ask. Read full content.
+3. **Persona guide** — load the skill named by the `persona_skill` configuration key with the Skill tool. If `persona_file=<path>` was passed, Read that file instead. A persona file that only points somewhere else (a redirect to a skill or to another file, with no guidance of its own) is refused: report it and exit.
+4. **Research artifacts** — every row in the idea row's Research relation. Fetch each one and read the full body of each. Research is found through this relation, never by a folder or file name.
 5. **Shared research baseline** — Query the strategy research database for structured evidence relevant to this idea's capabilities:
 
    ```bash
    python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
 
-   Derive capability slugs from the idea's `themes` field. Use as reference when verifying claims during refinement iterations. When the human questions a competitive or market claim, the database provides the dated evidence trail. Within-TTL entries are citable; past-TTL entries are directional only — recommend reverification if the claim is central to the document.
-6. **Approach methodology** — `incubator-approach.md`
+   Derive capability slugs from the idea's Themes field. Use as reference when verifying claims during refinement iterations. When the human questions a competitive or market claim, the database provides the dated evidence trail. Within-TTL entries are citable; past-TTL entries are directional only — recommend reverification if the claim is central to the document.
+6. **Approach methodology** — the page the `approach` configuration key names
    - Extract the output-format-specific section: "Output Format: Strategy Document" or "Output Format: Product Brief"
    - Also extract: "Collaboration Protocol" (Phase 3 self-critique protocol, Phase 4 validation, feedback patterns)
    - Also extract: the format-specific Validation Checklist (Strategy or Brief)
-7. **Review template** — `Templates/review-templates.md`
+7. **Review template** — the page the `template_review` configuration key names
    - Extract the "Stage 3 → 4" review template (if current stage is drafting)
    - Extract the "Stage 4 → 5" review template (if current stage is refining and human indicates readiness)
 
@@ -108,14 +121,14 @@ Load these files in parallel:
 
 Confirm:
 
-- Idea card `stage` is `drafting` or `refining`
-- Idea card `output-file` is set (not null) and the referenced file exists
-- Idea card `output-format` is `strategy-doc` or `product-brief`
+- Idea row Stage is `drafting` or `refining`
+- Idea row Outputs relation is set (not empty) and the related row can be fetched
+- Idea row Output format is `strategy-doc` or `product-brief`
 - Output document exists and has substantive content (not empty or placeholder-only)
 
-**If `stage` is `drafting`:** This is the first refinement session. Update idea card frontmatter: `stage: refining`, `updated: {today}`.
+**If Stage is `drafting`:** This is the first refinement session. Update the idea row's fields: Stage `refining`, `date:Updated:start` {today}.
 
-**If `stage` is `refining`:** This is a continuation. Do not modify the stage.
+**If Stage is `refining`:** This is a continuation. Do not modify the stage.
 
 **If any validation fails:** Report exactly what's missing and exit.
 
@@ -126,7 +139,7 @@ Run the format-specific Validation Checklist against the output document. Produc
 **Document Assessment:**
 
 ```text
-Output: {output-file path}
+Output: {URL of the Outputs row}
 Format: {strategy-doc | product-brief}
 Stage: {drafting → refining | continuing refinement}
 
@@ -166,7 +179,7 @@ This is the core loop. It runs as many times as needed.
 
 1. **Understand the principle** behind the feedback, not just the specific request
 2. **Check if the issue appears elsewhere** in the document — apply the fix everywhere, not just where noted
-3. **Make the revision** in the output document (using Edit)
+3. **Make the revision** in the output document (the Outputs row's body, with `notion-update-page` `update_content`: one operation per block changed, each `old_str` that block's text from a fresh fetch of the row)
 4. **Self-critique the revision:**
    - Does the revised section still maintain the through-line?
    - Does it pass the format-specific validation checklist?
@@ -193,15 +206,15 @@ If you find issues, fix them and report what you changed. Don't ask permission t
 
 **Enrichment-skill augment (conditional):**
 
-When a section needs substantially more research than the existing artifacts provide — not a single verification, but a full re-run of an enrichment skill — invoke it in idea mode on this idea:
+When a section needs substantially more research than the existing artifacts provide — not a single verification, but a full re-run of an enrichment skill — invoke it in idea mode on this idea, with the Skill tool, passing the idea row's URL (and any pointer overrides this run was given):
 
-- `/edtech-sme {idea-name}` — refreshed competitive/market intelligence
-- `/educator-sme {idea-name}` — refreshed adoption/pedagogical perspective
-- `/tam-estimate {idea-name}` — refreshed or revised market sizing
-- `/divergent-thinking {idea-name}` — additional reframing angles
-- `/cross-domain {idea-name}` — refreshed cross-domain signals
+- `/edtech-sme {idea row URL}` — refreshed competitive/market intelligence
+- `/educator-sme {idea row URL}` — refreshed adoption/pedagogical perspective
+- `/tam-estimate {idea row URL}` — refreshed or revised market sizing
+- `/divergent-thinking {idea row URL}` — additional reframing angles
+- `/cross-domain {idea row URL}` — refreshed cross-domain signals
 
-Each enrichment skill detects the existing artifact and writes a dated-suffix augment file (e.g., `edtech-market-analysis-2026-04-20.md`). The original artifact is preserved. The new file is appended to the idea's `research: []` frontmatter — both entries coexist.
+Each enrichment skill writes a new Research row dated today, related to the idea. The original row is preserved — both rows coexist in the idea's Research relation. Fetch the new row to read it.
 
 Propose the augment to the human before invoking: "This section needs stronger {competitive/market/adoption/...} grounding than the existing artifact provides. Run `/{skill} {idea-name}` to augment?" Wait for confirmation. Augment runs are 10-20 minutes — use only when web search and existing artifacts genuinely cannot close the gap.
 
@@ -222,7 +235,7 @@ After any revision that shifts strategic direction (not detail-level polish):
 - Section-level refinements that don't change strategic framing
 - Voice improvements, structural polish, specificity improvements
 
-If a card update is needed, propose the specific changes to the human before editing. The card is the scannable portfolio artifact — changes should be deliberate.
+If a card update is needed, propose the specific changes to the human before editing. Card edits go to the idea row: body changes with `update_content` (never touching `### Original Capture` or anything below it), field changes with `update_properties`. The card is the scannable portfolio artifact — changes should be deliberate.
 
 ### Step 6: Completion
 
@@ -231,12 +244,12 @@ When the human indicates the document is ready (says something like "this is don
 1. Run the full validation checklist one final time
 2. Present the Stage 4→5 review template for human confirmation
 3. If the human confirms:
-   - Update output document frontmatter: `stage: complete`, `updated: {today}`
-   - Update idea card frontmatter: `stage: complete`, `updated: {today}`
-   - Report: "Marked complete. Output at `{output-file path}`, idea card updated."
+   - Update the Outputs row's fields: Stage `complete`, `date:Updated:start` {today}
+   - Update the idea row's fields: Stage `complete`, `date:Updated:start` {today}
+   - Report: "Marked complete. Output at {URL of the Outputs row}, idea card updated."
 4. If the human identifies final tweaks: iterate (back to Step 4), then re-present for approval
 
-**Output-document frontmatter source:** The completion transition touches only the authoritative minimal keys — `stage: complete` and `updated`. The full output-document frontmatter schema (`type`, `source-idea`, `output-format`, `created`, plus `stage`/`updated`) was established by /draft when the document was created (/draft Step 7); the output templates in `Templates/` carry body structure only, not frontmatter.
+**Output-document field source:** The completion transition touches only the authoritative minimal fields on the Outputs row — Stage `complete` and Updated. The row's other fields (Idea, Format, Created, plus Stage/Updated) were established by /draft when the row was created (/draft Step 7); the output templates carry body structure only, not fields.
 
 **Never mark Stage 5 without explicit human approval.** Asking "should I mark this complete?" is appropriate when the document passes all validation and the human seems satisfied.
 
@@ -244,9 +257,9 @@ When the human indicates the document is ready (says something like "this is don
 
 | Condition | Action |
 | ----------- | -------- |
-| `stage` is not `drafting` or `refining` | Stop. Report current stage. This skill works on drafting- or refining-stage ideas. |
-| `output-file` is null or referenced file does not exist | Stop. Idea needs /draft first. |
-| `output-format` is null | Stop. Output format must be set. |
+| Stage is not `drafting` or `refining` | Stop. Report current stage. This skill works on drafting- or refining-stage ideas. |
+| Outputs relation is empty or the related row cannot be fetched | Stop. Idea needs /draft first. |
+| Output format is empty | Stop. Output format must be set. |
 | Output document is empty or placeholder-only | Stop. Idea needs /draft — there's nothing to refine. |
 | Human feedback implies starting over entirely | Confirm: "It sounds like the draft needs a fundamental rework, not section-level refinement. Should I re-draft from the TL;DR card using /draft, or do you want to revise the approach and then re-draft?" |
 | Direction shift detected during refinement | Pause revision. Flag the shift. Get human confirmation before propagating changes to idea card. |
@@ -256,12 +269,13 @@ When the human indicates the document is ready (says something like "this is don
 | Condition | Behavior |
 | ----------- | ---------- |
 | No argument and no drafting/refining-stage ideas | Report and exit |
-| Idea file not found | Report with available filenames, exit |
+| Idea row not found | Report with the available slugs, exit |
 | Idea not at drafting or refining stage | Report current stage, exit |
-| Output file referenced but missing | Report: output doc not found at {path}, exit |
-| Research artifacts referenced but missing | Note missing files, continue with available sources |
-| Approach methodology file not found | Report: incubator-approach.md missing, exit |
-| Persona guide not found | Report: persona.md missing, exit |
+| Outputs row related but cannot be fetched | Report: output doc not found at {URL}, exit |
+| Research rows related but cannot be fetched | Note missing rows, continue with available sources |
+| Approach methodology page not found (`approach` key missing or its page cannot be fetched) | Report: approach methodology missing, exit |
+| Persona guide not found (`persona_skill` does not load, or `persona_file` is missing or only a pointer) | Report: persona guide missing, exit |
+| A Notion call fails or the connector is not reachable | Report the call and the error, exit — do not fall back to local files |
 
 ## Scope Boundaries
 
@@ -278,17 +292,17 @@ This skill does NOT:
 
 This skill DOES:
 
-- Work exclusively on the output document in Output/
+- Work exclusively on the output document (the Outputs row)
 - Iterate as many rounds as needed — quality over speed
 - Self-critique between every iteration
 - Proactively fix issues found during revision (don't hoard them for the human to find)
-- Update idea card frontmatter (stage, updated) at stage transitions
+- Update the idea row's fields (Stage, Updated) at stage transitions
 - Update idea card body ONLY when direction shifts are confirmed by human
 - Present review templates at appropriate transition points
 
 ## Voice Requirements
 
-All revisions must follow persona standards (from `persona.md`):
+All revisions must follow persona standards (from the persona guide):
 
 - **Confident and declarative.** "The real opportunity is..." not "A potential opportunity might be..."
 - **Multiplicative framing.** Show how one move unlocks value across multiple dimensions simultaneously.

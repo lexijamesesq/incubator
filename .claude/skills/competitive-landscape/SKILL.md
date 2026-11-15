@@ -18,7 +18,7 @@ Two-layer interface over the Snowflake-backed research database (`scripts/resear
 Three things a caller can ask for. The translation layer below maps a natural-language ask to one of these.
 
 | Pattern | Playbook | What it does |
-|---|---|---|
+| --- | --- | --- |
 | **query** | `playbooks/query.md` | Read-only. Answers a question against the database — a single-entity lookup or a cross-row relationship question. Absorbs what would otherwise be a separate "analyze" mode: the discriminator inside `query.md` decides which shape the question is and routes accordingly. Never writes. |
 | **research** | `playbooks/research.md` | Web + database. Investigates a topic, stages candidate findings for the operator's write approval. |
 | **capture** | `playbooks/capture.md` | Direct-write path for intel a human hands the agent (not agent-discovered). Shares the write-gate with research but the provenance label differs — capture items are never labeled discovered. |
@@ -44,6 +44,7 @@ If an ask is ambiguous between capture and research (a human reports something A
 ## Loading
 
 Load the playbook for the resolved pattern, plus `write-gate.md` always:
+
 - **`write-gate.md` § Insufficiency & Degradation** applies to every pattern, including `query` — a query that can't be answered still needs the insufficiency affordance, and any pattern can hit a CLI/auth failure.
 - **`write-gate.md` § Write Protocol** (environment wall, model-layer curation, provenance boundary, facts-immutable, force-flag refusal) applies only when `research` or `capture` actually reaches a write decision. `query` never writes, so this section never governs a `query` turn.
 

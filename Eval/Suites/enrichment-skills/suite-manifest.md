@@ -104,15 +104,17 @@ Skills: same five.
 
 For each test case:
 
-1. Set up the fixture state in `Ideas/` and `Research/` as needed (fixtures directory under this suite).
-2. Invoke the skill with the specified input.
+1. Set up the fixture state as rows in scratch databases (see Loading a fixture, below).
+2. Invoke the skill with the specified input and the pointer overrides.
 3. Observe the skill's presentation.
-4. Check filesystem: `Research/{idea-name}/` contents, presence or absence of expected files.
-5. Check frontmatter: `research: []` array contents.
-6. Check the research database: `python3 scripts/research-db.py query-landscape ...` or by capability slug to verify findings wrote. This step needs the optional research database configured (`scripts/research-db-config.json`). Without it, record the database checks as not run; the filesystem and frontmatter checks still stand.
+4. Check the Research (scratch) database: the rows related to the idea, presence or absence of expected rows, each row's Research type and Created.
+5. Check the idea row: its `Research` relation.
+6. Check the research database: `python3 scripts/research-db.py query-landscape ...` or by capability slug to verify findings wrote. This step needs the optional research database configured (`scripts/research-db-config.json`). Without it, record the database checks as not run; the Notion checks still stand.
 7. Compare against Expected/ for this test case.
 
 Record results in `Runs/{YYYY-MM-DD}-enrichment-skills.md` (create folder as needed).
+
+**Loading a fixture.** The skills read and write Notion, so a fixture is loaded as rows, not staged as files. Keep a set of scratch databases with the same fields and options as the real Ideas, Research and Outputs databases, and a scratch Configuration page, and pass them to the skill as pointer overrides (`notion_ideas=`, `notion_research=`, `notion_outputs=`, `notion_config=`): a run with overrides reads and writes only what they name. A fixture file becomes a row this way: its front matter becomes the row's fields (the file name without `.md` is the Slug, the `##` title is the Name), and its body from the `##` title down becomes the row's body. `reference/skill-conventions-notion-access.md` gives the field names. A select or multi-select value a fixture uses (its `themes`, a Research type) has to be an option of the scratch field before the row is loaded: add it to the scratch database first. The test cases above were written against files; read each path as its row: a file under `Ideas/` is an Ideas row, `Research/{idea-name}/{skill-output}.md` is the idea's Research row of that skill's Research type, a dated-suffix file is a second row of the same type dated today, and "Idea file not found" is the skill's "Idea not found" message.
 
 ---
 
@@ -157,7 +159,7 @@ Each rubric entry names the signal, defines it (citing the SKILL.md standard/sec
 
 For each of the three SME personas:
 
-1. Invoke the persona in idea mode on the fixture idea (e.g., `/edtech-sme accommodations-on-classroom-checks`), with `Fixtures/Ideas/accommodations-on-classroom-checks.md` as the resolved idea. This produces the artifact under test (`edtech-market-analysis.md` / `tam-estimate.md` / `educator-evaluation.md`).
+1. Invoke the persona in idea mode on the fixture idea (e.g., `/edtech-sme accommodations-on-classroom-checks`), with `Fixtures/Ideas/accommodations-on-classroom-checks.md` loaded as the Ideas (scratch) row it resolves to. This produces the artifact under test: the idea's new Research row of type `edtech-market-analysis` / `tam-estimate` / `educator-sme-evaluation`.
 2. Hand a **fresh-context grader** three inputs only: the produced artifact, the persona's `Rubrics/{persona}.md`, and the fixture idea. Fresh context matters — the writer must not grade its own output. The Expected file is for the person running the suite; the grader does not read it.
 3. The grader returns PASS/FAIL per signal and **must quote the artifact line(s)** supporting each verdict. A signal with no quotable supporting line is a FAIL.
 4. The persona passes the research-quality bar only if all its signals PASS. Record results in `Runs/{YYYY-MM-DD}-enrichment-skills.md` alongside the behavior-test results.

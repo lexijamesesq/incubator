@@ -2,11 +2,14 @@
 tags:
   - type/claude-repo
 description: "Claude Code skills for a strategic-ideas incubation pipeline — draft, develop, refine, and thesis-test ideas with agent-based market/competitive enrichment."
-docs_home: "{workspace_root}/Projects/Incubator"
 linear_project_id: "59a883ba-891d-4740-b463-507f30752319"
 linear_url: "https://linear.app/lexijamesesq/project/incubator-36f179a95864"
 notion_project: "https://app.notion.com/p/4175f53f7dbc81d39f7bd6356e2d3f2b"
 notion_knowledge: "collection://4185f53f-7dbc-815f-9a2b-000b54a0033e"
+notion_ideas: "https://app.notion.com/p/4185f53f7dbc816aaf74f91467b08fde"
+notion_research: "https://app.notion.com/p/4185f53f7dbc810898dbd357b8eeac32"
+notion_outputs: "https://app.notion.com/p/4185f53f7dbc817d9e4effcdfd6f2d4d"
+notion_config: "https://app.notion.com/p/4195f53f7dbc81f5b7fbd5980ba3276b"
 ---
 
 # Incubator
@@ -17,19 +20,15 @@ The maintainer's own project documentation is in Notion and its work is tracked 
 
 ## Setup
 
-Clone the repo. `.claude/` ships tracked and committed — review its contents (see Security below) before opening the directory in Claude Code. Copy the instance config sample and fill in your own values:
+Clone the repo. `.claude/` ships tracked and committed — review its contents (see Security below) before opening the directory in Claude Code.
 
-```bash
-cp .claude/instance.sample.md .claude/instance.md
-cp jira-config.sample.md jira-config.md
-cp persona.sample.md persona.md
-```
-
-See `.claude/instance.sample.md` for the full configuration contract (role, strategic-context paths, metrics paths, research-database label) with placeholder values.
+Ideas, research, outputs and the instance's configuration live in Notion. Create an Ideas, a Research and an Outputs database and a Configuration page, and name their URLs in this file's front matter (`notion_ideas`, `notion_research`, `notion_outputs`, `notion_config`). Put the keys from `.claude/instance.sample.md` on the Configuration page, in one `yaml` block, with your own values: that file is the full configuration contract (role, persona skill, example card, approach and template pages, strategic-context paths, metrics paths, Jira values, research-database label) with placeholders.
 
 ## Configuration
 
-Skills read instance-specific values from `.claude/instance.md`'s Configuration section by key name, not hardcoded — `role`, `strategic_context.*`, `metrics.*`, `incubator.research_db_label`, `incubator.learning_outcome_break_condition`. Product-specific org taxonomy lives in `plugins/incubator/skills/cross-domain/org-structural-reference.md` (copy from the sibling `.sample.md`). Jira connection details live in `jira-config.md`. All gitignored — every fork fills in its own.
+The front matter's four `notion_*` pointers are where the skills find everything: `notion_ideas`, `notion_research` and `notion_outputs` are the URLs of the three databases (database URLs, not `collection://` data-source URLs), and `notion_config` is the URL of the Configuration page. Every skill takes them from here and accepts each as a `key=value` argument override, which is how a test run is pointed at scratch databases. `reference/skill-conventions-notion-access.md` states the mechanics.
+
+Skills read instance-specific values from the Configuration page's `yaml` block by key name, never hardcoded — `role`, `persona_skill`, `example_card`, `approach`, `template_strategy_doc`, `template_product_brief`, `template_review`, `strategic_context.*`, `metrics.*`, `jira.*`, `cross_domain.org_reference`, `incubator.jpd_sidecars_folder_id`, `incubator.research_db_label`, `incubator.learning_outcome_break_condition`. The persona is the skill `persona_skill` names. The approach methodology, the output and review templates and the example card are Notion pages those keys name. The strategy, OKR and NPS documents stay local files at the paths the `strategic_context.*` and `metrics.*` keys give. `.claude/instance.sample.md` is the public blank of the same keys; the page itself is private, and every fork fills in its own.
 
 ## Build / Test
 
@@ -47,7 +46,7 @@ pre-commit run --all-files  # gitleaks-staged + the standard hook set
 
 ## Conventions
 
-- Skills are self-contained `SKILL.md` files under `.claude/skills/{name}/`, agents under `.claude/agents/{name}.md` — no shared runtime beyond the Configuration keys above.
+- Skills are self-contained `SKILL.md` files under `.claude/skills/{name}/` or `plugins/incubator/skills/{name}/`, agents under the matching `agents/` directory — no shared runtime beyond the Configuration keys and the Notion conventions above.
 - Instance-specific values are always config keys, never hardcoded — a skill that hardcodes a path/URL breaks for every other fork.
 - `reference/` holds section-scoped reference docs (stage model, schemas, workflow, voice standards) that skills load on demand — indexed by `incubator-reference.md`.
 - Commits: gitleaks-staged/-pre-push/-commit-msg (dotty's exported hooks) gate every commit and push locally; CI re-proves the outgoing PR range independently.
@@ -57,9 +56,10 @@ pre-commit run --all-files  # gitleaks-staged + the standard hook set
 
 | File | Purpose |
 | ------ | --------- |
-| `.claude/instance.sample.md` | Configuration contract template — copy to `.claude/instance.md` and fill in your instance's values |
-| `.claude/skills/` | The pipeline skills: `draft`, `develop`, `refine`, `refine-seed`, `revert-to-seed`, `thesis-test`, `jpd-push`, `cross-domain`, `buildable-surface`, `develop-synthesis`, `competitive-landscape`, `artifact-critic`, `edtech-sme`, `educator-sme` |
-| `.claude/agents/` | Enrichment agent personas invoked by the pipeline skills |
+| `.claude/instance.sample.md` | Configuration contract template — the public blank of the Configuration page's keys. Put the keys on your Configuration page |
+| `.claude/skills/` | The pipeline skills kept in this repo only: `draft`, `develop`, `refine`, `refine-seed`, `revert-to-seed`, `jpd-push`, `buildable-surface`, `develop-synthesis`, `competitive-landscape` |
+| `plugins/incubator/skills/` | The shared skills published as the `incubator` plugin: `thesis-test`, `cross-domain`, `artifact-critic`, `edtech-sme`, `educator-sme`, `tam-estimate`, `divergent-thinking`, `skeptic` |
+| `.claude/agents/`, `plugins/incubator/agents/` | Agent personas invoked by the pipeline skills |
+| `reference/skill-conventions-notion-access.md` | How a skill reaches ideas, research rows, configuration and the persona in Notion — the one statement of the shared mechanics |
 | `incubator-reference.md` | Thin index into `reference/` — read this first, not the individual reference files, unless a skill points at one directly |
 | `reference/` | Section-scoped reference docs (stage model, schemas, workflow, voice/output standards) |
-| `jira-config.sample.md`, `persona.sample.md` | Per-fork config templates — copy to the non-`.sample` name and fill in |

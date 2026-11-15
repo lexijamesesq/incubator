@@ -1,20 +1,19 @@
 ---
 name: educator-sme
 description: This skill should be used when the user asks to "get educator feedback on [idea]", "educator evaluation of [idea/subject]", "teacher perspective on [idea/subject]", "classroom reality check for [idea]", or "educator SME review of [subject]". Evaluates a strategic idea OR an arbitrary subject (product, tool, methodology) through the lens of a veteran educator — 20+ years K-12 and higher ed — focused on pedagogical practice, classroom reality, and adoption likelihood.
-argument-hint: [idea-name]
+argument-hint: "[idea-name | idea-row-url | --adhoc \"subject\"] [notion_ideas=...] [notion_research=...]"
 context: fork
-agent: educator-sme
+agent: incubator:educator-sme
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Write
-  - Edit
-  - Glob
   - WebSearch
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - Bash(mkdir:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-create-pages
 ---
 
 # /educator-sme — Educator SME Evaluation
@@ -30,28 +29,36 @@ Evaluates a strategic idea through the lens of a veteran educator with 20+ years
 
 Two modes:
 
-- **Idea mode** (naked argument): evaluates an idea file. Writes local artifact + updates idea frontmatter.
-- **Ad-hoc mode** (`--adhoc "subject"`): evaluates a free-form subject (product, tool, methodology). No local artifact, no frontmatter update. DB findings still captured.
+- **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): evaluates an idea. Writes its artifact as a row in the Research database (Research type `educator-sme-evaluation`), related to the idea; that relation is what puts it on the idea's research list.
+- **Ad-hoc mode** (`--adhoc "subject"`): evaluates a free-form subject (product, tool, methodology). No artifact row, nothing written to Notion. DB findings still captured.
 
 Examples: `/educator-sme foraging-intelligence`, `/educator-sme --adhoc "Top Hat"`, `/educator-sme --adhoc "standards-based grading"`.
 
+## Where Things Are (idea mode)
+
+Ad-hoc mode makes no Notion call. Idea mode reads and writes Notion, and how a skill does that is stated once, in `reference/skill-conventions-notion-access.md` in the Incubator repo: read it before Step 0 and follow it. If idea mode cannot read that file (the session is not in the Incubator repo and has no copy), stop and say so. Only what is specific to this skill is stated here.
+
+- **Pointers (idea mode):** `notion_ideas`, `notion_research`. A caller that has already fetched the Research database may pass `research_data_source=<collection:// URL>`. A pointer idea mode needs and does not have: report "Idea mode needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument). For a subject that is not an idea, use --adhoc." and exit.
+- **Rows it touches (idea mode):** reads the idea row; creates one Research row related to it, Research type `educator-sme-evaluation`.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to determine mode:
+Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, `notion_research=`) is a pointer override, not the idea:
 
-- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip Ideas/ resolution.
-- Otherwise: **idea mode**, naked argument = candidate idea name.
+- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip idea resolution.
+- Otherwise: **idea mode**, naked argument = candidate idea name, or the idea row's URL.
 
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Glob `Ideas/*.md`, present titles, ask user to select |
-| `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
-| No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
+| Empty | Read the Ideas view, present the titles of the rows not at Stage `archived`, ask user to select |
+| A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
+| `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
+| No exact match | Case-insensitive substring match against the Slug and Name of all rows |
 | Single fuzzy match | Use it |
 | Multiple fuzzy matches | Present options, ask user to pick |
-| Zero matches | **ERROR**: "Idea file not found: `{arg}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc analysis of a non-idea subject, use: `/educator-sme --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
+| Zero matches | **ERROR**: "Idea not found: `{arg}`. Closest candidates in the Ideas database: `{list up to 5 slugs}`. For ad-hoc analysis of a non-idea subject, use: `/educator-sme --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
 
 ## Persona
 
@@ -66,27 +73,28 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 0: Parse Arguments
 
 1. Read `$ARGUMENTS`. Detect `--adhoc` flag.
-2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip Ideas/ resolution. Proceed to Step 1.
-3. **Otherwise (idea mode):**
-   - If empty: `Glob` `Ideas/*.md`, read first 20 lines of each to extract title, present all ideas, ask user to select. If none exist, exit.
-   - Try exact match at `Ideas/{argument}.md` (strip `.md` extension first if present)
-   - If no exact match, try case-insensitive substring match
+2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution. Proceed to Step 1.
+3. **Otherwise (idea mode):** settle the pointers (an argument override where one is given, the `CLAUDE.md` front matter otherwise), then:
+   - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
+   - If empty: read the Ideas view, present all ideas by Name, ask user to select Leave out rows at Stage `archived`. If none exist, exit.
+   - Try exact match on the Slug field (strip `.md` extension first if present)
+   - If no exact match, try case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it
    - Multiple fuzzy matches → present options, ask user to pick
-   - Zero matches → **ERROR**: "Idea file not found: `{argument}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc analysis of a non-idea subject, use: `/educator-sme --adhoc \"{argument}\"`." Exit. Do NOT silently interpret as ad-hoc.
+   - Zero matches → **ERROR**: "Idea not found: `{argument}`. Closest candidates in the Ideas database: `{list up to 5}`. For ad-hoc analysis of a non-idea subject, use: `/educator-sme --adhoc \"{argument}\"`." Exit. Do NOT silently interpret as ad-hoc.
 
 ### Step 1: Load Context
 
-**Idea mode:** Read the idea file at the resolved path — full content (frontmatter + body). Extract:
+**Idea mode:** Fetch the idea row (unless Step 0 already did) — one fetch returns the full content (fields + body). Extract:
 
 - **Core insight** — from the body content
 - **Problem statement** — from `Problem it addresses` if present (Stage 2+), or infer from core insight (Stage 1)
-- **Domain** — from frontmatter `domain` field, used for K-12 vs. higher ed calibration:
+- **Domain** — from the `Domain` field, used for K-12 vs. higher ed calibration:
   - `assessments` — evaluate both K-12 and higher ed perspectives
   - `platform` — evaluate from downstream classroom impact
   - `cross-product` — evaluate both segments, note where they diverge
 
-**Ad-hoc mode:** The subject string is the target. There is no idea file, no themes, no domain. Frame the evaluation around the subject itself (a product, tool, methodology, concept). Without a domain signal, evaluate both K-12 and higher ed perspectives unless the subject is clearly one or the other.
+**Ad-hoc mode:** The subject string is the target. There is no idea row, no themes, no domain. Frame the evaluation around the subject itself (a product, tool, methodology, concept). Without a domain signal, evaluate both K-12 and higher ed perspectives unless the subject is clearly one or the other.
 
 **Shared research baseline:** Query the strategy research database for customer evidence and educator-relevant findings:
 
@@ -94,7 +102,7 @@ Execute these steps in order. Stop and report errors at any step rather than con
 python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
 ```
 
-Derive capability slugs from the idea's `themes` field. Within-TTL entries are known starting points for customer pain signals and adoption evidence — do not rediscover patterns already documented there. Past-TTL entries are directional only. During Step 4 (Optional Research), if web research surfaces a competitor or methodology, use `query-competitor` for a targeted deep-dive on what the database already knows about it.
+Derive capability slugs from the idea's `Themes` field. Within-TTL entries are known starting points for customer pain signals and adoption evidence — do not rediscover patterns already documented there. Past-TTL entries are directional only. During Step 4 (Optional Research), if web research surfaces a competitor or methodology, use `query-competitor` for a targeted deep-dive on what the database already knows about it.
 
 Context exclusions (strategy docs, OKRs, persona guide, competitive data, business framing) are enforced by the agent's scope constraints.
 
@@ -131,28 +139,32 @@ If the idea is straightforward enough to evaluate from educator experience alone
 
 ### Step 5: Write Research Artifact
 
-**Ad-hoc mode:** Skip this step — no idea-scoped folder, no frontmatter to update. Jump to Step 6 with findings going to the database and conversation only.
+**Ad-hoc mode:** Skip this step — there is no idea to relate an artifact to. Jump to Step 6 with findings going to the database and conversation only.
 
 **Idea mode:**
 
-1. Use `Bash(date:*)` to get today's date in YYYY-MM-DD format
-2. Create directory if needed: `Research/{idea-name}/` (Write tool auto-creates parents)
-3. Write `Research/{idea-name}/educator-evaluation.md` — if a file already exists at this path from a prior run, write to `Research/{idea-name}/educator-evaluation-{YYYY-MM-DD}.md` instead; if that also exists, append `-2`, `-3`, etc., for same-day collisions.
-4. Structure:
+1. Use `Bash(date:*)` to get today's date in YYYY-MM-DD format (`date +%Y-%m-%d`, the local date)
+2. Create the artifact as a new row in the Research database with one `notion-create-pages` call (`allow_async` false, so the row's URL comes back). A row of this type may already exist for the idea from a prior run: do not look for it and do not change it. Every run creates a new row dated today, and earlier rows stay.
+3. Row parent: the Research data source — the `collection://` URL passed as `research_data_source=` when a caller gave one; otherwise fetch the `notion_research` database and take the data source it lists.
+4. Row fields (these replace the artifact file's front matter), then the body structure:
+
+| Field | Value |
+| --- | --- |
+| `Name` | `Educator SME Evaluation: {Idea Title}` |
+| `Idea` | a one-item array holding the idea row's URL |
+| `Research type` | `educator-sme-evaluation` |
+| `date:Created:start` | today, `YYYY-MM-DD` (with `date:Created:is_datetime` 0) |
+| `Domain calibration` | `k12`, `higher-ed`, `both` or `platform-downstream` |
+
+Never write a value outside a field's options. If Notion refuses the create because a field lacks the option, report which option is missing and present the evaluation in the output; do not create the row under another value.
+
+**Run under `/thesis-test`.** When the caller's execution contract names another Research type and Name for the artifact row (`/thesis-test` does: `thesis-test-lens`, `thesis-test-{lens}-{date} ({slug})`) and a verdict record for its body, create the row with those in place of the type, Name and body template here. Parent, `Idea`, `Created` and the rest are unchanged.
+
+The row body (the artifact; its title is the row's Name and is not repeated):
 
 ```markdown
----
-type: incubator/research
-research-type: educator-sme-evaluation
-idea: {idea-name}
-date: {YYYY-MM-DD}
-domain-calibration: {k12 | higher-ed | both | platform-downstream}
----
-
-# Educator SME Evaluation: {Idea Title}
-
 **Evaluated:** {YYYY-MM-DD}
-**Idea stage at evaluation:** {stage from frontmatter}
+**Idea stage at evaluation:** {the idea row's Stage}
 **Domain calibration:** {K-12 / Higher Ed / Both / Platform (downstream impact)}
 
 ## Adoption Assessment: {High / Medium / Low}
@@ -183,18 +195,16 @@ domain-calibration: {k12 | higher-ed | both | platform-downstream}
 {If Step 4 was performed: queries, findings, sources. If skipped: "Evaluation based on educator practice knowledge — no external research needed."}
 ```
 
-1. Update the idea file's frontmatter: append the written artifact path to the `research: []` array.
-   - Read the idea file to get current frontmatter
-   - Append the new path (including dated suffix if applicable from step 3)
-   - Do NOT remove older dated-suffix entries from prior runs — augment artifacts coexist
-   - Use `Edit` to update the frontmatter — find the `research:` line and update it
-   - Do NOT modify any other frontmatter fields, body content, or the idea's stage
+1. The idea's research list is its `Research` relation, and setting `Idea` on the new row is what adds the artifact to it. Make no write to the idea row.
+   - Do not remove or change earlier rows of this type from prior runs — they coexist
+   - Do NOT modify any field of the idea row, its body, or the idea's stage
+   - Keep the URL the create returned: it is the artifact reference Step 6 reports
 
 ### Step 6: Present Results
 
-**Idea mode:** Present the evaluation with the idea-name, impact dimension signals, and research artifact path.
+**Idea mode:** Present the evaluation with the idea-name, impact dimension signals, and the research artifact row's URL.
 
-**Ad-hoc mode:** Present the evaluation with the subject string. Omit impact dimension signals entirely. Omit research artifact path. DB findings still captured per Step 6's write-back section.
+**Ad-hoc mode:** Present the evaluation with the subject string. Omit impact dimension signals entirely. Omit the research artifact reference. DB findings still captured per Step 6's write-back section.
 
 Idea-mode presentation template:
 
@@ -226,8 +236,8 @@ Educator SME Evaluation: {idea-name}
 - Customer sentiment: {what this evaluation suggests — high/medium/low signal and why}
 - User experience: {what this evaluation suggests — high/medium/low signal and why}
 
-Research artifact written to: Research/{idea-name}/educator-evaluation.md
-Idea frontmatter updated: research array now includes educator evaluation path.
+Research artifact written to: {URL of the artifact row}
+Idea research list updated: the Research relation now includes the educator evaluation row.
 ```
 
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to pain point evidence, adoption patterns, and educator sentiment that would benefit other ideas). Write qualifying findings to the strategy research database. **Source URL requirement:** Every finding MUST have a `source_url` with the most specific available page — not a homepage. Use `source_description` only when no stable URL exists. Do not write findings with neither.
@@ -259,30 +269,30 @@ python3 scripts/research-db.py write-findings --json '{
 }'
 ```
 
-Note: The impact dimension signals are advisory — they indicate what this evaluation suggests for the `customer-sentiment` and `user-experience` frontmatter fields, but this skill does NOT modify those fields. That's done during the development workflow or manually by the human.
+Note: The impact dimension signals are advisory — they indicate what this evaluation suggests for the `Customer sentiment` and `User experience` fields of the idea row, but this skill does NOT modify those fields. That's done during the development workflow or manually by the human.
 
-Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing frontmatter ratings, state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
+Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing ratings (the row's impact-dimension fields), state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
 
 ## Stop Rules
 
 | Condition | Action |
 | ----------- | -------- |
-| Idea file not found | Fuzzy match attempt, then report available files and exit |
+| Idea not found | Fuzzy match attempt, then report available slugs and exit |
 | Idea too abstract for educator lens | Report: "This idea is too abstract to evaluate from a classroom perspective. To proceed, ground it in a specific educator workflow or student outcome." Ask human to refine. |
 | No meaningful educator touchpoint | Report: "This idea is pure infrastructure with no downstream classroom impact I can evaluate. The educator perspective doesn't apply here." Exit cleanly. |
-| Research directory creation fails | Report the error and exit |
-| Idea file has malformed frontmatter | Report parsing issue with specifics, exit |
+| Artifact row creation fails | Report the error, present the evaluation in the output so the work is not lost, and exit |
+| Idea row cannot be read | Report the issue with specifics, exit |
 
 ## Error Handling Summary
 
 | Condition | Behavior |
 | ----------- | ---------- |
-| No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
-| Idea file not found | Report with available filenames from Ideas/ listing, exit |
-| Frontmatter cannot be parsed | Report parsing issue, exit |
-| Domain field missing from frontmatter | Default to "both" (K-12 and higher ed), note the assumption |
-| Research directory already exists | Proceed — write/overwrite the evaluation file |
-| Educator evaluation already exists for this idea | Write dated-suffix augment file per Step 5 (`educator-evaluation-{YYYY-MM-DD}.md`, counter for same-day); append new path to frontmatter; do not remove the original |
+| No argument and no ideas exist | Report "No ideas found in the Ideas database" and exit |
+| Idea not found | Report with available slugs from the Ideas view, exit |
+| Idea mode with a pointer missing | Report which pointer is missing and that `--adhoc` needs none, exit |
+| Idea row's fields cannot be read | Report the issue, exit |
+| `Domain` field empty | Default to "both" (K-12 and higher ed), note the assumption |
+| Educator evaluation already exists for this idea | Create a new row dated today per Step 5; it joins the idea's Research relation; do not change or remove the earlier row |
 | WebSearch returns no relevant results | Note "No relevant educator sentiment found for {query}" and continue with practice-based evaluation |
 
 ## Scope Boundaries
@@ -291,5 +301,5 @@ This skill does NOT:
 
 - Change the idea's stage (enrichment only)
 - Modify the idea body content
-- Modify impact dimension frontmatter fields (advisory signals only)
+- Modify the idea row's impact dimension fields (advisory signals only)
 - Recommend go/no-go decisions (that's a human decision)

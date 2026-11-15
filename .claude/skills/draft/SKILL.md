@@ -1,20 +1,21 @@
 ---
 name: draft
-description: This skill should be used when the user asks to "draft [idea name]", "start drafting [idea]", "write the first draft of [idea]", or "move [idea] to drafting". Creates a first template-aligned output document (Stage 3) from a developed idea card (Stage 2, TL;DR complete) using the specified output format (strategy document or product brief). The output document is a separate file linked from the idea card — the idea card body is not modified.
-argument-hint: [idea-name]
+description: This skill should be used when the user asks to "draft [idea name]", "start drafting [idea]", "write the first draft of [idea]", or "move [idea] to drafting". Creates a first template-aligned output document (Stage 3) from a developed idea card (Stage 2, TL;DR complete) using the specified output format (strategy document or product brief). The output document is a separate row in the Outputs database, related to the idea — the idea card body is not modified.
+argument-hint: "[idea-name] [notion_ideas=...] [notion_research=...] [notion_outputs=...] [notion_config=...] [persona_file=...]"
 context: fork
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Edit
-  - Write
-  - Glob
   - Grep
+  - Skill
   - WebSearch
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - Bash(mkdir:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-create-pages
+  - mcp__notion__notion-update-page
 ---
 
 # /draft — Drafting Session (Stage 2→3)
@@ -27,33 +28,44 @@ Transforms a developed idea (Stage 2, TL;DR complete) into a first template-alig
 /draft [idea-name]
 ```
 
-- Required argument: the name of a developing-stage idea file in `Ideas/`
+- Required argument: the name of a developing-stage idea (its Slug in the Ideas database)
 - If no argument provided: list available developing-stage ideas and ask the user to pick
 - Examples: `/draft foraging-intelligence`, `/draft cache-optimization`
 
+## Where Things Are
+
+Ideas, research, output documents and configuration live in Notion. How a skill reads and writes them is stated once, in `reference/skill-conventions-notion-access.md`: read it before the first step and follow it. Only what is specific to this skill is stated here.
+
+- **Pointers:** `notion_ideas`, `notion_research`, `notion_outputs`, `notion_config`.
+- **Rows it touches:** reads the idea row and every row in its Research relation; creates one row in the Outputs database (the output document); sets the idea row's `Stage` and `Updated`. It never writes the idea row's body.
+- **Configuration keys:** `role`, `persona_skill`, `approach`, `template_strategy_doc`, `template_product_brief`, `template_review`, `strategic_context.okrs`, `strategic_context.product_strategy`, `strategic_context.design_strategy`. The four `approach` and `template_*` keys name Notion pages; the `strategic_context.*` keys give paths to local documents.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to resolve the target idea file.
+Parse `$ARGUMENTS` to resolve the target idea. The first token that is not `key=value` names the idea; every `key=value` token is a pointer override or `persona_file=<path>`.
 
 **Resolution rules:**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | List all developing-stage ideas in Ideas/, ask user to select |
-| `idea-name` | Resolve to `Ideas/{idea-name}.md` |
+| Empty | Read the Ideas database, list the rows at Stage `developing`, ask user to select |
+| `idea-name` | Resolve to the Ideas row whose Slug is `idea-name` |
 | `idea-name.md` | Strip `.md`, resolve as above |
+| A Notion page URL | Use that row directly (this is how another skill passes the idea) |
 
-**Fuzzy matching:** If exact match fails, list all `.md` files in Ideas/ and find filenames containing the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options and ask user to pick. If zero matches, report and exit.
+**Fuzzy matching:** If the exact Slug match fails, find the rows whose Slug or Name contains the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options and ask user to pick. If zero matches, report, list the available slugs, and exit.
+
+Resolve the idea once, against one read of the Ideas database, and keep the row's URL for the rest of the run.
 
 ## Role
 
 You are the Drafting Session agent for the Strategy Incubator. Your job is to transform a developed idea (Stage 2, TL;DR complete) into a first template-aligned draft — moving it from Stage 2 (Developing) to Stage 3 (Drafting).
 
-You are a strategic document drafter working on behalf of the role specified in CLAUDE.md (Configuration > Role). You create a separate output document (strategy doc or product brief) linked from the idea card. The idea card stays as the scannable TL;DR — you don't modify it. Your output document is a first draft that:
+You are a strategic document drafter working on behalf of the role the `role` configuration key names. You create a separate output document (strategy doc or product brief): a row in the Outputs database, related to the idea. The idea card stays as the scannable TL;DR — you don't modify it. Your output document is a first draft that:
 
 - Follows the output template structure exactly
 - Applies the incubator approach methodology for the chosen format
-- Speaks in the voice defined in `persona.md` — confident, declarative, multiplicative framing, business-outcome language
+- Speaks in the voice defined in the persona guide — confident, declarative, multiplicative framing, business-outcome language
 - Honestly flags what it can and can't substantiate
 
 This is a FIRST DRAFT, not a finished document. The goal is a complete structural draft with all sections populated — quality refinement happens in Stage 4. But "first draft" does not mean sloppy. Apply the self-critique protocol before presenting.
@@ -63,7 +75,7 @@ This is a FIRST DRAFT, not a finished document. The goal is a complete structura
 `incubator-reference.md` is a thin section index. Load only the `reference/` section files this skill needs:
 
 - `reference/stage-model.md` — Stage 2→3 transition semantics
-- `reference/frontmatter-schema.md` — reads impact dimensions; writes `stage`, `output-file`
+- `reference/frontmatter-schema.md` — reads impact dimensions; writes Stage (the idea row's Outputs relation stands where `output-file` did)
 - `reference/templates.md` — Output Templates (strategy doc / product brief)
 - `reference/architecture.md` — the rule that drafting does not modify the idea-card body
 - `reference/shared-research.md` — verifying shared competitive claims before asserting them
@@ -75,54 +87,55 @@ Execute these steps in order. Stop and report errors at any step rather than con
 
 ### Step 0: Parse Arguments
 
-1. Read `$ARGUMENTS`
-2. If empty: use `Glob` to list all `.md` files in `Ideas/`. Read the first 20 lines of each to check frontmatter for `stage: developing`. Present developing-stage ideas to the user and ask them to select one. If no developing-stage ideas exist, report "No developing-stage ideas found in Ideas/" and exit.
-3. If provided: attempt to resolve `Ideas/{argument}.md`
-   - Try exact match first (with and without `.md` extension)
-   - If not found, try fuzzy substring match against all filenames in Ideas/
+1. Read `$ARGUMENTS`. Settle the four pointers: an override where one is given, the `CLAUDE.md` front matter otherwise.
+2. If no idea is named: read the Ideas database (conventions, Reading a database) and keep the rows whose Stage is `developing`. Present them to the user and ask them to select one. If no developing-stage ideas exist, report "No developing-stage ideas found in the Ideas database" and exit.
+3. If provided: resolve the argument to an Ideas row
+   - A Notion page URL is used directly
+   - Otherwise read the Ideas database and try an exact match on Slug first (with and without `.md` extension)
+   - If not found, try fuzzy substring match against the Slug and Name of all rows
    - If exactly one fuzzy match, use it
    - If multiple fuzzy matches, present options and ask user to pick
-   - If zero matches, report "Idea file not found: {argument}. Available files in Ideas/: {list}" and exit
+   - If zero matches, report "Idea not found: {argument}. Available slugs: {list}" and exit
 
 ### Step 1: Load Context
 
-Load these files in parallel:
+Fetch the idea row first: one fetch returns its fields and its body (the card). Fetch the Configuration page. Then load the rest in parallel:
 
-1. **Idea file** at the resolved path — full content including frontmatter and TL;DR body
-2. **Persona guide** — `persona.md`
-3. **OKRs** — Read the OKRs document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.okrs`)
-4. **Research artifacts** — All files referenced in the idea file's `research: []` frontmatter array. Read full content of each.
+1. **Idea row** — full content: its fields and the TL;DR body
+2. **Persona guide** — load the skill named by the `persona_skill` configuration key with the Skill tool. If `persona_file=<path>` was passed, Read that file instead. A persona file that only points somewhere else (a redirect to a skill or to another file, with no guidance of its own) is refused: report it and exit.
+3. **OKRs** — Read the OKRs document (a local file, at the path the `strategic_context.okrs` configuration key gives)
+4. **Research artifacts** — every row in the idea row's Research relation. Fetch each one: its fields say what it is (Research type), its body is the artifact. Read the full body of each. Research is found through this relation, never by a folder or file name.
 5. **Shared research baseline** — Query the strategy research database for structured evidence relevant to this idea's capabilities:
 
    ```bash
    python3 scripts/research-db.py query-landscape --json '{"capabilities": ["slug-1", "slug-2"]}'
    ```
 
-   Derive capability slugs from the idea's `themes` field. Use as supplementary evidence for building the output document. Check TTL: within-TTL entries are usable; past-TTL entries are directional only.
-6. **Output template** — Based on the idea file's `output-format` frontmatter value:
-   - If `strategy-doc`: `Templates/strategy-document-template.md`
-   - If `product-brief`: `Templates/product-brief-template-v2.md`
-7. **Approach methodology** — `incubator-approach.md`
-   - Extract ONLY the output-format-specific section: "Output Format: Strategy Document" or "Output Format: Product Brief"
+   Derive capability slugs from the idea's Themes field. Use as supplementary evidence for building the output document. Check TTL: within-TTL entries are usable; past-TTL entries are directional only.
+6. **Output template** — Based on the idea row's Output format field:
+   - If `strategy-doc`: the page the `template_strategy_doc` configuration key names
+   - If `product-brief`: the page the `template_product_brief` configuration key names
+7. **Approach methodology** — the page the `approach` configuration key names
+   - Use ONLY the output-format-specific section: "Output Format: Strategy Document" or "Output Format: Product Brief"
    - Includes: section-by-section guidance, validation checklist, common pitfalls, length guidelines
-   - Do NOT load the entire file — extract only the relevant output format section
+   - The fetch returns the whole page — work from the relevant output format section only and set the rest aside
 
 ### Step 2: Validate Readiness
 
-Confirm the idea file has:
+Confirm the idea row has:
 
-- `stage: developing` in frontmatter
-- `output-format` set to `strategy-doc` or `product-brief` (not null)
+- Stage field `developing`
+- Output format field set to `strategy-doc` or `product-brief` (not empty)
 - TL;DR template complete: core insight, problem it addresses, who cares, strategic connection all populated (non-empty)
-- All five impact dimensions rated with rationale (not null): customer-sentiment, user-experience, revenue-potential, industry-disruption, strategic-alignment
-- At least one research artifact exists in the `research:` array AND has substantive content
+- All five impact dimensions rated with rationale: Customer sentiment, User experience, Revenue potential, Industry disruption, Strategic alignment. A dimension counts as rated when its field has a value, or when its field is empty and the card's Opportunity Assessment row for it says "Insufficient data" with a rationale: `/develop-synthesis` leaves the field empty for a rating the evidence cannot support, and the table carries the words. An empty field with no such row is unrated.
+- At least one research artifact exists in the Research relation AND has substantive content
 - Foundation Assessment (if present in research) is "Strong" or "Moderate" — not "Weak"
 
 **If any of these fail:** Report exactly what's missing and exit. Do not draft with incomplete inputs.
 
-**If `stage` is not `developing`:** Report "Idea '{name}' is at stage '{current-stage}', not 'developing'. This skill only drafts developing-stage ideas." and exit.
+**If Stage is not `developing`:** Report "Idea '{name}' is at stage '{current-stage}', not 'developing'. This skill only drafts developing-stage ideas." and exit.
 
-**If `output-format` is null:** Report "Idea '{name}' has no output-format set. Human must decide: strategy-doc or product-brief. Set output-format in frontmatter before drafting." and exit.
+**If Output format is empty:** Report "Idea '{name}' has no output-format set. Human must decide: strategy-doc or product-brief. Set the Output format field on the idea row before drafting." and exit.
 
 ### Step 3: Assess Sufficiency for Drafting
 
@@ -162,8 +175,8 @@ For sections needing strategic grounding that isn't covered by preloaded researc
 
 **Strategy doc queries:**
 
-- Grep the product strategy document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.product_strategy`) for the idea's theme keywords and domain terms. Extract relevant passages. Never load the full file.
-- Grep the design strategy document (path configured in CLAUDE.md under Configuration > External References > `strategic_context.design_strategy`) for design priority connections relevant to the idea's themes.
+- Grep the product strategy document (a local file, at the path the `strategic_context.product_strategy` configuration key gives) for the idea's theme keywords and domain terms. Extract relevant passages. Never load the full file.
+- Grep the design strategy document (a local file, at the path the `strategic_context.design_strategy` configuration key gives) for design priority connections relevant to the idea's themes.
 - Use when filling: Strategic Priorities, Strategic Anchors, Context & Opportunity sections that need specific organizational priority connections.
 
 **Web search (conditional):**
@@ -173,15 +186,15 @@ For sections needing strategic grounding that isn't covered by preloaded researc
 - Synthesize findings with source URLs.
 
 **Enrichment-skill augment (conditional):**
-When a specific section needs substantially more research than the existing artifacts provide — not a single web search, but a full re-run of an enrichment skill — invoke it in idea mode on this idea:
+When a specific section needs substantially more research than the existing artifacts provide — not a single web search, but a full re-run of an enrichment skill — invoke it in idea mode on this idea, with the Skill tool, passing the idea row's URL (and any pointer overrides this run was given):
 
-- `/edtech-sme {idea-name}` — additional competitive/market intelligence
-- `/educator-sme {idea-name}` — additional adoption/pedagogical perspective
-- `/tam-estimate {idea-name}` — additional or revised market sizing
-- `/divergent-thinking {idea-name}` — additional reframing angles
-- `/cross-domain {idea-name}` — refreshed cross-domain signals
+- `/edtech-sme {idea row URL}` — additional competitive/market intelligence
+- `/educator-sme {idea row URL}` — additional adoption/pedagogical perspective
+- `/tam-estimate {idea row URL}` — additional or revised market sizing
+- `/divergent-thinking {idea row URL}` — additional reframing angles
+- `/cross-domain {idea row URL}` — refreshed cross-domain signals
 
-Each enrichment skill detects the existing artifact and writes a dated-suffix augment file (e.g., `edtech-market-analysis-2026-04-20.md`). The original artifact is preserved. The new file is appended to the idea's `research: []` frontmatter — both entries coexist.
+Each enrichment skill writes a new Research row dated today, related to the idea. The original row is preserved — both rows coexist in the idea's Research relation. Fetch the new row to read it.
 
 Use sparingly. An enrichment augment is a 10-20 minute research run, not a quick lookup. Reserve for sections where the draft lacks a specific point the section needs to make and web search alone won't close the gap.
 
@@ -239,12 +252,12 @@ Follow the output template structure exactly. Write every section.
 
 Before presenting, run the full validation. Fix all issues before presenting — do NOT present and then ask "should I fix these?"
 
-**Format-specific validation — reference the canonical checklists in `incubator-approach.md`:**
+**Format-specific validation — reference the canonical checklists in the approach methodology page (`approach`):**
 
 - If `strategy-doc`: Run the **Strategy Validation Checklist** (section: "Strategy Validation Checklist"). Covers: Voice & Persona, Strategic Quality, and format-specific checks.
 - If `product-brief`: Run the **Brief Validation Checklist** (section: "Brief Validation Checklist"). Covers: Template & Voice, Content Quality, and format-specific checks.
 
-These are the single source of truth for validation. Do not maintain a separate copy here — load and apply the checklist from the approach doc.
+These are the single source of truth for validation. Do not maintain a separate copy here — load and apply the checklist from the approach page.
 
 **Additional checks (both formats):**
 
@@ -252,33 +265,33 @@ These are the single source of truth for validation. Do not maintain a separate 
 - **Strategic realism check:** Are connections to organizational priorities honest? Use "supports" for indirect connections, "advances" only for direct ones.
 - **Completeness check:** Every required template section has content, even if some content is flagged "[NEEDS INPUT]."
 - **Specificity check:** Can abstract phrases be replaced with names, numbers, or examples? If yes, replace them now.
-- **Common pitfalls check:** Review the format-specific Common Pitfalls list from incubator-approach.md. Verify the draft doesn't exhibit any of them.
+- **Common pitfalls check:** Review the format-specific Common Pitfalls list from the approach methodology page. Verify the draft doesn't exhibit any of them.
 
 Fix all identified issues, then re-validate. Only proceed to Step 7 after the draft passes.
 
-**Human review awareness:** After presentation, the human evaluates using the Stage 3→4 review template (`Templates/review-templates.md`). That template focuses on: all sections populated, thesis/framing holds from TL;DR, voice is in the neighborhood, no fabricated claims, stakeholder-ready structure. Anticipate these checks — front-load honest assessment of weak sections in your Confidence Assessment.
+**Human review awareness:** After presentation, the human evaluates using the Stage 3→4 review template (the page the `template_review` configuration key names). That template focuses on: all sections populated, thesis/framing holds from TL;DR, voice is in the neighborhood, no fabricated claims, stakeholder-ready structure. Anticipate these checks — front-load honest assessment of weak sections in your Confidence Assessment.
 
 ### Step 7: Create Output Document
 
-Create the output document as a new file:
+Create the output document as a new row in the Outputs database:
 
-1. Determine the output path: `Output/{idea-name}-{output-format}.md`
-   - Example: `Output/ai-as-cognitive-liberation-in-edtech-strategy-doc.md`
-   - Create the `Output/` directory if it does not exist
-2. Write the drafted document to this file with appropriate frontmatter:
+1. Fetch the `notion_outputs` database: it lists the data source that is the new row's parent.
+2. Create the row with one `notion-create-pages` call, its body the drafted document and its fields:
 
-```yaml
----
-type: incubator/output
-source-idea: Ideas/{idea-name}.md
-output-format: strategy-doc | product-brief
-stage: drafting
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
----
-```
+| Field | Value |
+| ------- | ------- |
+| `Name` | `{idea Slug}-{output-format}` — example: `ai-as-cognitive-liberation-in-edtech-strategy-doc` |
+| `Idea` | the idea row's URL (this relation is what links the document to its idea) |
+| `Format` | `strategy-doc` or `product-brief` |
+| `Stage` | `drafting` |
+| `date:Created:start` | today's date, `YYYY-MM-DD` (with `date:Created:is_datetime` 0) |
+| `date:Updated:start` | today's date, `YYYY-MM-DD` (with `date:Updated:is_datetime` 0) |
 
-1. The body is the complete first draft following the output template.
+Set no other field. An Outputs row already related to the idea is left as it is: this run adds a new row and never overwrites one.
+
+The body:
+
+1. The body is the complete first draft following the output template, written in Markdown. Notion does not keep a leading `#` heading in a new row's body, and the row's `Name` is the slug form, so the document's own title would be lost: open the body with the title as a bold line (`**{document title}**`) in place of the template's `#` title line, then the rest of the template from below that line.
 2. Append the Known Gaps section at the bottom:
 
 ```markdown
@@ -293,11 +306,12 @@ updated: YYYY-MM-DD
 
 ### Step 8: Update Idea Card
 
-Update the idea card frontmatter ONLY — do not modify the idea card body (the TL;DR content stays):
+Update the idea row's fields ONLY — do not modify the idea card body (the TL;DR content stays). One `notion-update-page` `update_properties` call:
 
-- `stage: drafting`
-- `updated: {today's date in YYYY-MM-DD format}` — use `Bash(date:*)` to get today's date
-- `output-file: Output/{idea-name}-{output-format}.md`
+- `Stage`: `drafting`
+- `date:Updated:start`: today's date in YYYY-MM-DD format (with `date:Updated:is_datetime` 0) — use `Bash(date:*)` to get today's date
+
+The idea row's Outputs relation stands where `output-file` did. It is the other side of the `Idea` relation set in Step 7, so it already holds the new row: fetch the idea row to confirm, and only if the new row is missing from Outputs, add its URL to that relation.
 
 **Do NOT modify the idea card body.** The TL;DR content is the permanent scannable artifact.
 
@@ -333,7 +347,7 @@ Low = section relies heavily on synthesis or has "[NEEDS INPUT]" markers
 
 **Output Document:**
 
-- Location: `Output/{idea-name}-{output-format}.md`
+- Location: {URL of the Outputs row}
 - Idea card unchanged — TL;DR persists as scannable portfolio entry
 
 ## Stop Rules
@@ -342,11 +356,11 @@ At any point during execution, stop and report when:
 
 | Condition | Action |
 | ----------- | -------- |
-| `stage` is not `developing` | Stop. Report current stage. This skill only drafts developing-stage ideas. |
-| `output-format` is null | Stop. Human must decide: strategy-doc or product-brief. |
+| Stage is not `developing` | Stop. Report current stage. This skill only drafts developing-stage ideas. |
+| Output format is empty | Stop. Human must decide: strategy-doc or product-brief. |
 | TL;DR template is incomplete (any of: core insight, problem, who cares, strategic connection missing) | Stop. Report which fields are missing. Idea needs further development before drafting. |
-| Impact dimensions are unrated (any of the five dimensions are null) | Stop. Report which dimensions are null. Idea needs further development. |
-| No research artifacts exist (`research:` array is empty or referenced files have no substantive content) | Stop. Report: no research available. Idea needs development research before drafting. |
+| Impact dimensions are unrated (any of the five fields is empty and the card's table does not mark that dimension "Insufficient data") | Stop. Report which dimensions are unrated. Idea needs further development. |
+| No research artifacts exist (the Research relation is empty or the related rows have no substantive content) | Stop. Report: no research available. Idea needs development research before drafting. |
 | Foundation Assessment is "Weak" | Stop. Research concluded the idea lacks strategic foundation. Report what was found. |
 | Critical gap threshold exceeded (>30% of required template sections have no source material) | Stop. List unsourced sections and what input would fill each. Do not draft a hollow document. |
 | Critical context can only come from human | Stop. Report what's missing and why it cannot be researched. Ask the human to provide. |
@@ -361,44 +375,46 @@ When stopping, state explicitly:
 
 | Condition | Behavior |
 | ----------- | ---------- |
-| No argument and no developing-stage ideas exist | Report "No developing-stage ideas found in Ideas/" and exit |
-| Idea file not found | Report with available filenames from Ideas/ listing, exit |
+| No argument and no developing-stage ideas exist | Report "No developing-stage ideas found in the Ideas database" and exit |
+| Idea row not found | Report with the available slugs from the Ideas database, exit |
 | Idea not at developing stage | Report current stage, exit |
-| output-format is null | Report: human must set output-format before drafting, exit |
-| Missing required frontmatter fields (impact dimensions null) | Report specific missing fields, exit |
+| Output format is empty | Report: human must set output-format before drafting, exit |
+| Missing required fields (impact dimensions unrated) | Report specific missing fields, exit |
 | TL;DR body sections incomplete | Report specific missing sections, exit |
-| Research artifacts referenced but files not found | Report which files are missing, continue with available sources if above threshold |
+| Research rows related but cannot be fetched | Report which rows are missing, continue with available sources if above threshold |
 | Research artifacts empty or no substantive content | Report: insufficient research for drafting, exit |
 | Foundation Assessment is "Weak" | Report: idea lacks strategic foundation per research, exit |
 | Strategy doc Grep returns no results | Note "No matches found in {doc}" as a finding, continue with available sources |
 | Web search returns no relevant results | Note "No relevant results for {query}", continue with available sources |
-| Approach methodology file not found | Report: incubator-approach.md missing, exit — methodology is required for drafting |
-| Output template file not found | Report: template file missing, exit — template structure is required for drafting |
+| Approach methodology page not found (`approach` key missing or its page cannot be fetched) | Report: approach methodology missing, exit — methodology is required for drafting |
+| Output template page not found (`template_*` key missing or its page cannot be fetched) | Report: template missing, exit — template structure is required for drafting |
 | >30% sections unsourced after sufficiency mapping | Report gap list with fill recommendations, exit |
-| Idea file has malformed frontmatter | Report parsing issue with specifics, exit |
-| Output document write fails | Report error — the output document must be created before updating idea card frontmatter |
+| Idea row cannot be read, or a field holds a value this skill does not recognise | Report the issue with specifics, exit |
+| Output document write fails | Report error — the Outputs row must be created before updating the idea row's fields |
+| Persona guide not found (`persona_skill` does not load, or `persona_file` is missing or only a pointer) | Report: missing persona guide, exit |
+| A Notion call fails or the connector is not reachable | Report the call and the error, exit — do not fall back to local files |
 
 ## Scope Boundaries
 
 This skill does NOT:
 
-- Create seed files (that is the router's job via `/process-inbox`)
+- Create seeds (that is the router's job via `/process-inbox`)
 - Develop seeds into TL;DR nuggets (that is the `/develop` skill, Stage 1->2)
-- Decide output format — strategy doc vs. product brief (that is a human decision; `output-format` must be set before invocation)
+- Decide output format — strategy doc vs. product brief (that is a human decision; the Output format field must be set before invocation)
 - Refine the draft (that is Stage 4, driven by human + agent collaboration)
 - Approve the final document (that is Stage 5, human approval required)
 - Process inbox items (that is `/process-inbox`)
 - Merge or consolidate ideas autonomously
-- Load full strategy docs into context (Grep only — paths configured in CLAUDE.md under Configuration > External References)
+- Load full strategy docs into context (Grep only — paths given by the `strategic_context.*` configuration keys)
 - Invoke Gemini CLI
 - Create TL;DR snapshots — the idea card body is not replaced, so no snapshot is needed
 - Modify `incubator-backlog.json` or `incubator-progress.md` — those are session orchestration files
-- Modify the idea card body — the TL;DR is the permanent scannable artifact. /draft only updates idea card frontmatter (stage, output-file).
+- Modify the idea card body — the TL;DR is the permanent scannable artifact. /draft only updates the idea row's fields (Stage, Updated; the Outputs relation follows from the new row).
 - Proceed past first draft — presents for human review and stops. Never proceed from Stage 3->4 without human review.
 
 ## Voice Requirements
 
-All written output in the idea file must follow these standards (from `persona.md`):
+All written output must follow these standards (from the persona guide):
 
 - **Confident and declarative.** "The real opportunity is..." not "A potential opportunity might be..."
 - **Multiplicative framing.** Show how one move unlocks value across multiple dimensions simultaneously.

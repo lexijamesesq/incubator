@@ -2,7 +2,7 @@
 
 Reference file for cross-domain discovery. Describes your JPD project's organizational taxonomy so the LLM can evaluate functional overlap from summary + structural metadata.
 
-Copy this file to `org-structural-reference.md` in the same directory and fill in your organization's structure.
+Put this content on a Notion page, fill in your organization's structure, and name the page's URL in the Configuration key `cross_domain.org_reference`. The reference is optional: without it `/cross-domain` judges from JPD's own summaries and field values.
 
 **Last updated:** YYYY-MM-DD
 **Update cadence:** When org changes are noticed (team renames, new squads, domain restructuring). Structure changes slowly.
@@ -70,6 +70,7 @@ Surface areas are finer-grained feature zones within squads. Most relevant for f
 ## Our Domain Identifiers (for exclusion)
 
 When filtering in Phase 1.5 Step A, exclude items with:
+
 - **Product Brand** = Acorn
 
 These are our own domain's items — not cross-domain signals.

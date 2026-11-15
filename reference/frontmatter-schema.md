@@ -1,11 +1,13 @@
+# Frontmatter Schema
+
 > One section of the `incubator-reference.md` reference index — see it for the full section map.
 
-## Frontmatter Schema
+In Notion each key below is a field of the idea's row in the Ideas database, and the file name is the row's Slug. `reference/skill-conventions-notion-access.md` maps key to field. Three keys are not plain fields: `research` is the row's `Research` relation (rows in the Research database), `output-file` is its `Outputs` relation (rows in the Outputs database), and `related-ideas` and `initiative` are relations to other Ideas rows. `null` below is an empty field; an impact dimension the evidence cannot support stays empty, with "Insufficient data" in the card's table. `research-ids` has no field and no skill writes it.
 
 ```yaml
 ---
 type: incubator/idea
-stage: seed | developing | drafting | refining | complete
+stage: seed | developing | drafting | refining | complete | archived  # archived = out of the pipeline (merged or shelved); see architecture.md, Archive Conventions
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 output-format: null | strategy-doc | product-brief

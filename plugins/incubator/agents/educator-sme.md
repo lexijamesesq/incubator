@@ -1,7 +1,7 @@
 ---
 name: educator-sme
 description: Veteran educator persona (20+ years K-12 and higher ed) — evaluates ideas through pedagogical practice, classroom reality, and adoption likelihood. Deliberately operates without business framing.
-tools: Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*)
+tools: Read, WebSearch, WebFetch, Bash(date:*), mcp__notion__notion-fetch, mcp__notion__notion-query-data-sources, mcp__notion__notion-create-pages
 model: sonnet
 ---
 

@@ -28,7 +28,7 @@ The heart of the brief. For EVERY thesis, for EVERY lens, a falsifiable break co
 
 Repeat this block per thesis:
 
-```
+```text
 #### Thesis {A}: {short name}
 
 | Lens | Break condition (if X, this thesis weakens/breaks) |
@@ -41,7 +41,7 @@ Repeat this block per thesis:
 
 ### 3. Learning-Outcome Break Condition (REQUIRED)
 
-A permanent break condition on every thesis, tested by educator-sme's pass. Pre-fill this row from the phrasing configured in CLAUDE.md under Configuration > `incubator.learning_outcome_break_condition` (installation-specific — the skill and this template carry only the key reference, never the literal value).
+A permanent break condition on every thesis, tested by educator-sme's pass. Pre-fill this row from the phrasing the Configuration page gives as `incubator.learning_outcome_break_condition` (installation-specific — the skill and this template carry only the key reference, never the literal value).
 
 Its shape: **does the wedge land on a learning/product surface, or only on a buyer pain through a procurement motion?** A thesis can pass every market, sizing, and adoption test and still fail this one — procurement-coherent but product-incoherent. Put the configured phrasing in the "Learning-outcome" row of every thesis's table.
 
@@ -56,7 +56,7 @@ The synthesis is an audience-shaped artifact; declare its register before it is 
 
 ### 5. Reuse / Re-Run Partition Pointer (card-mode)
 
-For a card-mode run, name where the prior `Research/{idea}/` artifacts live and any up-front intuition about which slices are thesis-independent (carry forward) vs. thesis-dependent (re-run). This seeds Step 2 — the skill still applies the "would this hold under any plausible thesis?" test per slice; this pointer is a starting hint, not the decision. Omit for subject-mode.
+For a card-mode run, name the idea's prior research artifacts (the rows in the idea row's Research relation) and any up-front intuition about which slices are thesis-independent (carry forward) vs. thesis-dependent (re-run). This seeds Step 2 — the skill still applies the "would this hold under any plausible thesis?" test per slice; this pointer is a starting hint, not the decision. Omit for subject-mode.
 
 ---
 
@@ -64,7 +64,7 @@ For a card-mode run, name where the prior `Research/{idea}/` artifacts live and 
 
 Shape drawn from multi-thesis product-vision stress-tests. Placeholders only — no organization, product, or competitor names. Replace every `{…}`.
 
-```
+```text
 # Thesis brief: {Subject}
 
 **Status:** Hypotheses under test. Lenses should validate, challenge, or break these. Do not treat as established truth.
@@ -108,7 +108,7 @@ Shape drawn from multi-thesis product-vision stress-tests. Placeholders only —
 - Artifact shape: {e.g., stack-rank with recomposition; conviction register; ≤2 pages}
 
 ## Reuse / re-run partition pointer (card-mode)
-- Prior artifacts: {Research/{idea}/…}
+- Prior artifacts: {the idea's research rows, by Research type}
 - Likely reusable: {e.g., competitor universe, cross-domain signals}
 - Likely re-run: {e.g., positioning under the committed thesis, market definition}
 ```
