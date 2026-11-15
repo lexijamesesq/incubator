@@ -1,18 +1,11 @@
 {
   "enabledPlugins": {
-    "wiki@wiki": true,
     "incubator@incubator": true,
     "core@core": true,
     "estate-hooks@core": true,
     "publish@publish": true
   },
   "extraKnownMarketplaces": {
-    "wiki": {
-      "source": {
-        "source": "github",
-        "repo": "lexijamesesq/wiki"
-      }
-    },
     "incubator": {
       "source": {
         "source": "github",
