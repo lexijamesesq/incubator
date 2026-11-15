@@ -1,10 +1,10 @@
+# Templates
+
 > One section of the `incubator-reference.md` reference index — see it for the full section map.
 
-## Templates
+## Seed Template (Stage 1)
 
-### Seed Template (Stage 1)
-
-Classification output from the router. Applies frontmatter and preserves the original capture verbatim. Structured fields (core insight, source, strategic connection) are added later by /refine-seed.
+Classification output from the router. Sets the row's fields and preserves the original capture verbatim in the row's body. Structured fields (core insight, source, strategic connection) are added later by /refine-seed.
 
 ```markdown
 ## [Idea Title]
@@ -13,7 +13,7 @@ Classification output from the router. Applies frontmatter and preserves the ori
 [Verbatim original capture content — unedited raw thought from inbox. Preserved for context throughout the pipeline.]
 ```
 
-### TL;DR Template (Stage 2)
+## TL;DR Template (Stage 2)
 
 Output of autonomous development. Dual purpose: internal prioritization AND external visibility (pushed to JPD via /jpd-push for peer/VP/ELT review). The idea card body freezes at this state by default — Stages 3+ create linked output documents rather than modifying this content.
 
@@ -52,14 +52,16 @@ Output of autonomous development. Dual purpose: internal prioritization AND exte
 - [What we still don't know]
 ```
 
-**Title mutability:** The `## [Idea Title]` heading may be revised by /develop (Step 5e) if research reveals the seed title no longer captures the idea. Filenames remain stable — only the display title in the body changes.
+**Title mutability:** The `## [Idea Title]` heading may be revised by /develop (Step 5e) if research reveals the seed title no longer captures the idea. The Slug remains stable — only the display title changes: the heading in the body and the row's `Name`, which carries the same title.
 
-**Original Capture preservation:** The `### Original Capture` section from the seed persists below the TL;DR content. It is not part of the TL;DR template but is preserved in every idea file for provenance and context.
+**Original Capture preservation:** The `### Original Capture` section from the seed persists below the TL;DR content. It is not part of the TL;DR template but is preserved in every idea row's body for provenance and context. No skill ever sends it back to Notion, so it cannot be altered.
 
 **Card update rule:** The TL;DR content may be updated post-Stage 2 if downstream work (drafting, refinement) shifts the idea's strategic direction. Updates are deliberate — direction shifts, not detail additions. See Architecture section above.
 
-### Output Templates
+## Output Templates
 
-Strategy documents and product briefs use templates in `Templates/`:
-- Strategy: `Templates/strategy-document-template.md`
-- Brief: `Templates/product-brief-template-v2.md`
+Strategy documents and product briefs use templates held on Notion pages, named by Configuration keys. The repo's `Templates/*.sample.md` files are the public blanks they start from.
+
+- Strategy: the page `template_strategy_doc` names
+- Brief: the page `template_product_brief` names
+- Stage review templates: the page `template_review` names

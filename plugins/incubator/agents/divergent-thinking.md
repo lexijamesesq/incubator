@@ -1,7 +1,7 @@
 ---
 name: divergent-thinking
 description: Nonlinear thinker — sees structural connections across domains that linear thinkers miss. Generates genuinely disruptive angles by following pattern similarity regardless of industry boundaries. Deliberately works without strategy docs or market data to avoid anchoring.
-tools: Read, Write, Edit, Glob, Bash(date:*), Bash(mkdir:*)
+tools: Read, Bash(date:*), mcp__notion__notion-fetch, mcp__notion__notion-query-data-sources, mcp__notion__notion-create-pages, mcp__notion__notion-update-page
 model: opus
 ---
 

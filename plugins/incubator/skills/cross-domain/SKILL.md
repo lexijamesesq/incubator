@@ -1,17 +1,16 @@
 ---
 name: cross-domain
 description: This skill should be used when the user asks to "check cross-domain signals for [idea]", "cross-domain discovery for [idea/subject]", "what are other teams building related to [idea/subject]", "cross-domain [idea]", or "cross-domain signals for [capability/concept]". Queries the JPD project for ideas from other product domains that have functional overlap with an Incubator idea OR an arbitrary subject.
-argument-hint: [idea-name]
+argument-hint: "[idea-name | idea-row-url | --adhoc \"subject\"] [notion_ideas=...] [notion_research=...] [notion_config=...]"
 context: fork
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Glob
   - Bash(date:*)
-  - Bash(mkdir:*)
   - mcp__atlassian__searchJiraIssuesUsingJql
-  - Write
-  - Edit
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-create-pages
 ---
 
 # /cross-domain — Cross-Domain JPD Discovery (Enrichment Agent)
@@ -29,28 +28,37 @@ Queries the JPD project for ideas from other product domains that have functiona
 
 Two modes:
 
-- **Idea mode** (naked argument): discovers cross-domain signals for an idea. Writes local artifact + updates idea frontmatter.
-- **Ad-hoc mode** (`--adhoc "subject"`): discovers JPD items overlapping with a free-form subject (capability, concept). No local artifact, no frontmatter update.
+- **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): discovers cross-domain signals for an idea. Writes its artifact as a row in the Research database (Research type `cross-domain-signals`), related to the idea; that relation is what puts it on the idea's research list.
+- **Ad-hoc mode** (`--adhoc "subject"`): discovers JPD items overlapping with a free-form subject (capability, concept). No artifact row, nothing written to Notion.
 
 Examples: `/cross-domain foraging-intelligence`, `/cross-domain --adhoc "rubric-based grading infrastructure"`.
 
+## Where Things Are
+
+Both modes read the Jira connection values from the Configuration page in Notion (Phase 0). Ad-hoc mode reads no idea and writes nothing to Notion. In idea mode the idea is a row in the Ideas database, and the artifact this skill writes is a row in the Research database related to that idea (Research type `cross-domain-signals`). The shared mechanics — the pointers and their overrides, addressing an idea, creating an artifact row, how Notion returns text — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before Step 0 when it is present. In short:
+
+- **Pointers.** `notion_ideas` and `notion_research` are database URLs, and `notion_config` is the Configuration page's URL, in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in. `notion_ideas=`, `notion_research=` and `notion_config=` arguments override them; a test run passes scratch databases this way. A caller that has already fetched the Research database may also pass `research_data_source=<collection:// URL>`, the parent for the artifact row. If a pointer the run needs has neither an argument nor a front-matter value (`notion_config` in both modes; the other two in idea mode), report "/cross-domain needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument)." and exit.
+- **Calls.** `notion-fetch` for a row or a database; `notion-query-data-sources` in view mode only (fetch the database, query the view it lists, page while `has_more`); `notion-create-pages` with a data-source parent to create the artifact row. Never SQL or rows mode.
+- **Text.** Notion returns bold as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. The words are preserved; read through the markup.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to determine mode:
+Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, `notion_research=`, `notion_config=`) is a pointer override, not the idea:
 
-- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip Ideas/ resolution.
-- Otherwise: **idea mode**, naked argument = candidate idea name.
+- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip idea resolution.
+- Otherwise: **idea mode**, naked argument = candidate idea name, or the idea row's URL.
 
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Glob `Ideas/*.md`, present titles, ask user to select |
-| `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
-| No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
+| Empty | Read the Ideas view, present titles, ask user to select |
+| A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
+| `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
+| No exact match | Case-insensitive substring match against the Slug and Name of all rows |
 | Single fuzzy match | Use it |
 | Multiple fuzzy matches | Present options, ask user to pick |
-| Zero matches | **ERROR**: "Idea file not found: `{arg}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc cross-domain discovery, use: `/cross-domain --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
+| Zero matches | **ERROR**: "Idea not found: `{arg}`. Closest candidates in the Ideas database: `{list up to 5 slugs}`. For ad-hoc cross-domain discovery, use: `/cross-domain --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
 
 ## Role
 
@@ -66,34 +74,48 @@ Execute these phases in order. Stop and report errors at any phase rather than c
 
 ### Phase 0: Load Configuration
 
-Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `Read`. All Jira connection details, field IDs, and JQL parameters used in this skill come from that file. Do not proceed if the file cannot be read.
+Settle the pointers (an argument override where one is given, the `CLAUDE.md` front matter otherwise), then fetch the Configuration page (`notion_config`) and read these keys from its `yaml` block. All Jira connection details, field IDs, and JQL parameters used in this skill come from them. Do not proceed if the page cannot be fetched or a required key is missing or still a placeholder: report which.
+
+| Key | What it is | Required |
+| --- | --- | --- |
+| `jira.cloud_id` | Atlassian cloud ID | yes |
+| `jira.project_key` | Key of the JPD project to query | yes |
+| `jira.base_url` | Atlassian base URL, for issue links (`{base}/browse/{key}`) | yes |
+| `jira.fields.product_brand` | Field ID of Product Brand | yes |
+| `jira.fields.product_domain` | Field ID of Product Domain | yes |
+| `jira.fields.squad` | Field ID of Squad | yes |
+| `jira.fields.product_surface_area` | Field ID of Product Surface Area | yes |
+| `jira.fields.quarter_active` | Field ID of Quarter Active | yes |
+| `jira.own_brand` | The Product Brand value that marks your own team's ideas, excluded in Phase 1.5 Step A | yes |
+| `cross_domain.org_reference` | URL of a Notion page describing the organization's brands, domains, squads and surface areas | no |
 
 ### Phase 0.1: Parse Arguments
 
 1. Read `$ARGUMENTS`. Detect `--adhoc` flag.
-2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip Ideas/ resolution. Proceed to Phase 0.5.
+2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution. Proceed to Phase 0.5.
 3. **Otherwise (idea mode):**
-   - If empty: `Glob` `Ideas/*.md`, present all ideas with stage, ask user to select. If none exist, exit.
-   - Try exact match at `Ideas/{argument}.md` (strip `.md` first)
-   - If no exact match, case-insensitive substring match
+   - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
+   - If empty: read the Ideas view, present all ideas with stage, ask user to select. If none exist, exit.
+   - Try exact match on the Slug field (strip `.md` first)
+   - If no exact match, case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it
    - Multiple fuzzy matches → present options, ask user to pick
-   - Zero matches → **ERROR**: "Idea file not found: `{argument}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc cross-domain discovery, use: `/cross-domain --adhoc \"{argument}\"`." Exit. Do NOT silently fall through to ad-hoc.
+   - Zero matches → **ERROR**: "Idea not found: `{argument}`. Closest candidates in the Ideas database: `{list up to 5}`. For ad-hoc cross-domain discovery, use: `/cross-domain --adhoc \"{argument}\"`." Exit. Do NOT silently fall through to ad-hoc.
 
 ### Phase 0.5: Load Context
 
-Read the organizational structural reference: `.claude/skills/cross-domain/org-structural-reference.md`.
+Read the organizational structural reference, if one is configured: fetch the page `cross_domain.org_reference` names. It is optional. The page describes the JPD project's taxonomy in prose — product brands (your own marked), product domains, squads and what each owns, product surface areas — in the shape of `org-taxonomy.sample.md` in this skill's directory. If the key is absent or empty, go on without it: Phase 1.5 Step B.3 then judges from the summary and the structural metadata JPD returns, and step 3 of the domain-label chain uses the squad name as-is. Say once in the conversation output that no organizational reference is configured; do not add that to the card section.
 
-**Idea mode:** Also read the idea file at the resolved path — full content including frontmatter and body. Extract:
+**Idea mode:** Also fetch the idea row (unless Phase 0.1 already did) — one fetch returns its full content, fields and body. Extract:
 
 - **Core insight** — the central idea
-- **Themes** — from frontmatter `themes: []`
-- **Domain** — from frontmatter `domain:`
+- **Themes** — from the `Themes` field
+- **Domain** — from the `Domain` field
 - **Original Capture** — raw context (often contains nuance the structured fields compressed)
 - **Problem it addresses / Who cares** — if present (developing+ stage)
 - **Strategic connection** — if present
 
-**Ad-hoc mode:** The subject string is the anchor for overlap discovery. No idea file, no themes, no domain, no original capture. Subsequent phases use the subject string in place of the idea's extracted fields — Phase 1.5 Step B.1 extracts key terms directly from the subject string.
+**Ad-hoc mode:** The subject string is the anchor for overlap discovery. No idea row, no themes, no domain, no original capture. Subsequent phases use the subject string in place of the idea's extracted fields — Phase 1.5 Step B.1 extracts key terms directly from the subject string.
 
 ### Phase 1: Status-Partitioned Retrieve
 
@@ -106,30 +128,30 @@ Run these 5 queries (sequentially — MCP calls cannot be parallelized):
 ```text
 // Query 1: Active development (highest-value signals)
 mcp__atlassian__searchJiraIssuesUsingJql(
-    cloudId={Cloud ID from jira-config.md > Connection},
-    jql='project = {project key} AND status = "2 - Experimentation" ORDER BY updated DESC',
+    cloudId={jira.cloud_id},
+    jql='project = {jira.project_key} AND status = "2 - Experimentation" ORDER BY updated DESC',
     fields=["summary", "status",
-            {Product Brand field ID}, {Product Domain field ID},
-            {Squad field ID}, {Product Surface Area field ID},
-            {Quarter Active field ID}],
+            {jira.fields.product_brand}, {jira.fields.product_domain},
+            {jira.fields.squad}, {jira.fields.product_surface_area},
+            {jira.fields.quarter_active}],
     maxResults=100,
     responseContentFormat="markdown"
 )
 
 // Query 2: Shipping imminently
-jql='project = {project key} AND status = "3 - GTM" ORDER BY updated DESC'
+jql='project = {jira.project_key} AND status = "3 - GTM" ORDER BY updated DESC'
 
 // Query 3: Planned/explored
-jql='project = {project key} AND status = "1 - Opportunity Identification" ORDER BY updated DESC'
+jql='project = {jira.project_key} AND status = "1 - Opportunity Identification" ORDER BY updated DESC'
 
 // Query 4: Already shipped (strongest signal weight — leverage or duplication)
-jql='project = {project key} AND status = "Done" ORDER BY updated DESC'
+jql='project = {jira.project_key} AND status = "Done" ORDER BY updated DESC'
 
 // Query 5: Queued (weakest signal weight)
-jql='project = {project key} AND status = "Backlog" ORDER BY updated DESC'
+jql='project = {jira.project_key} AND status = "Backlog" ORDER BY updated DESC'
 ```
 
-All queries use the same `fields` array and `maxResults=100`. Field IDs come from `jira-config.md > Static Field Values`.
+All queries use the same `fields` array and `maxResults=100`. Field IDs come from the `jira.fields.*` configuration keys.
 
 **Merge results:** Combine all nodes into a single list. No deduplication needed — status partitions are mutually exclusive.
 
@@ -150,7 +172,7 @@ Two-step in-memory filter on Phase 1 results.
 
 **Step A — Hard structural filter:**
 
-- Exclude all results where Product Brand matches your own brand (value and field ID from `jira-config.md > Static Field Values` and `jira-config.md > Cross-Domain Query`). These are your team's ideas, not cross-domain.
+- Exclude all results where Product Brand matches your own brand (value from `jira.own_brand`, field ID from `jira.fields.product_brand`). These are your team's ideas, not cross-domain.
 - All other brands remain.
 
 **Step B — Keyword auto-pass + LLM lightweight relevance scan:**
@@ -162,7 +184,7 @@ From the idea's core insight, themes, domain, problem, who-cares, strategic conn
 Any candidate whose summary contains one or more key terms (case-insensitive) passes automatically to Phase 2 without LLM judgment. This prevents the LLM from applying precision-level reasoning to candidates with obvious lexical overlap.
 
 **B.3 — LLM scan on remaining candidates:**
-For candidates that did NOT auto-pass, evaluate using the idea content (core insight, themes, domain, original capture, problem/who-cares/strategic-connection if available) and the organizational structural reference (squad descriptions, domain descriptions, surface area descriptions). Evaluate using **summary + structural metadata only** (brand, squad, domain, surface area, status): does this have plausible functional overlap with the idea?
+For candidates that did NOT auto-pass, evaluate using the idea content (core insight, themes, domain, original capture, problem/who-cares/strategic-connection if available) and the organizational structural reference where one is configured (squad descriptions, domain descriptions, surface area descriptions). Evaluate using **summary + structural metadata only** (brand, squad, domain, surface area, status): does this have plausible functional overlap with the idea?
 
 This is a **recall-optimized** coarse filter — the bar is "plausible overlap," not "confirmed relevance." False positives are acceptable here (Phase 2 handles precision). False negatives are the risk. Enabler connections (infrastructure this idea could use) are often invisible from summaries alone — when a candidate's summary suggests adjacent capability even without direct overlap, keep it.
 
@@ -178,8 +200,8 @@ Fetch full descriptions for Phase 1.5 survivors only:
 
 ```text
 mcp__atlassian__searchJiraIssuesUsingJql(
-    cloudId={Cloud ID from jira-config.md > Connection},
-    jql='project = {project key from jira-config.md > Connection} AND key in ({surviving keys from Phase 1.5})',
+    cloudId={jira.cloud_id},
+    jql='project = {jira.project_key} AND key in ({surviving keys from Phase 1.5})',
     fields=["description"],
     maxResults=25,
     responseContentFormat="markdown"
@@ -205,9 +227,9 @@ Only Direct overlap, Enabler, and Convergence results are surfaced.
 
 **Domain label derivation:** For each relevant signal, derive a domain label for reader orientation using this priority chain:
 
-1. **Product Brand** (field ID from `jira-config.md > Static Field Values`) — if populated, use as domain label (e.g., "the LMS product", "the credentials product")
-2. **Product Domain** (field ID from `jira-config.md > Static Field Values`) — if Brand is null but Domain is populated, use it (e.g., "Learning Management", "AI")
-3. **Squad** (field ID from `jira-config.md > Static Field Values`) — if Brand and Domain are both null but Squad is populated, infer the domain from the squad name using the organizational structural reference (e.g., "CEC CLX" → "Career"). If inference is not confident, use the squad name as-is.
+1. **Product Brand** (field ID `jira.fields.product_brand`) — if populated, use as domain label (e.g., "the LMS product", "the credentials product")
+2. **Product Domain** (field ID `jira.fields.product_domain`) — if Brand is null but Domain is populated, use it (e.g., "Learning Management", "AI")
+3. **Squad** (field ID `jira.fields.squad`) — if Brand and Domain are both null but Squad is populated, infer the domain from the squad name using the organizational structural reference (e.g., "CEC CLX" → "Career"). If inference is not confident, or no reference is configured, use the squad name as-is.
 4. **All null** — omit domain label entirely for this signal
 
 Record the derived domain label in the research artifact alongside the raw field values.
@@ -245,32 +267,37 @@ Phase 2 may classify more signals as relevant than the reader needs. This phase 
 
 ### Phase 2.6: Write Research Artifact
 
-**Ad-hoc mode:** Skip this phase — no idea-scoped folder, no frontmatter to update. Jump directly to Phase 3 with signals presented in conversation only.
+**Ad-hoc mode:** Skip this phase — there is no idea to relate an artifact to. Jump directly to Phase 3 with signals presented in conversation only.
 
 **Idea mode:**
 
-Get today's date using `Bash(date:*)`: `date +%Y-%m-%d`
+Get today's date using `Bash(date:*)`: `date +%Y-%m-%d` (the local date)
 
-Create directory `Research/{idea-name}/` if it does not exist (use `Bash` to `mkdir -p`).
+Write the full cross-domain results as a new row in the Research database, with one `notion-create-pages` call (`allow_async` false, so the row's URL comes back). A row of this type may already exist for the idea from a prior run: do not look for it and do not change it. Every run creates a new row dated today, and earlier rows stay.
 
-Write the full cross-domain results to `Research/{idea-name}/cross-domain-signals.md`. If a file already exists at that path from a prior run, write to `Research/{idea-name}/cross-domain-signals-{YYYY-MM-DD}.md` instead; if that also exists, append `-2`, `-3`, etc. Structure:
+**Row parent:** the Research data source — the `collection://` URL passed as `research_data_source=` when a caller gave one; otherwise fetch the `notion_research` database and take the data source it lists.
+
+**Row fields** (these replace the artifact file's front matter):
+
+| Field | Value |
+| --- | --- |
+| `Name` | `Cross-Domain Signals: {Idea Title}` |
+| `Idea` | a one-item array holding the idea row's URL |
+| `Research type` | `cross-domain-signals` |
+| `Agent` | `cross-domain` |
+| `date:Created:start` | today, `YYYY-MM-DD` (with `date:Created:is_datetime` 0) |
+
+Never write a value outside a field's options. If Notion refuses the create because a field lacks the option, report which option is missing and still produce the Phase 3 output; do not create the row under another value.
+
+**Row body** (the artifact; its title is the row's Name and is not repeated). Structure:
 
 ```markdown
----
-type: incubator/research
-agent: cross-domain
-idea: {idea-name}
-created: {YYYY-MM-DD}
----
-
-# Cross-Domain Signals: {Idea Title}
-
 **Analysis date:** {YYYY-MM-DD}
 
 ## Signals
 
 {For each relevant signal:}
-### [{issue-key}]({Atlassian base URL from jira-config.md}/browse/{issue-key}): {summary}
+### [{issue-key}]({jira.base_url}/browse/{issue-key}): {summary}
 - **Brand:** {brand} | **Product Domain:** {product-domain} | **Squad:** {squad} | **Status:** {status} | **Quarter:** {quarter or "unset"}
 - **Domain Label:** {derived domain label, or omit line if all source fields null}
 - **Signal type:** {Direct overlap | Enabler/dependency | Convergence}
@@ -296,15 +323,13 @@ created: {YYYY-MM-DD}
 Retrieved: {total} | After brand exclusion: {count} | Evaluated: {Phase 1.5 survivors} | Relevant: {N classified} | Output: {N in Phase 3}
 ```
 
-Update the idea file frontmatter: append `Research/{idea-name}/cross-domain-signals.md` to the `research: []` array.
+The idea's research list is its `Research` relation, and setting `Idea` on the new row is what adds the artifact to it.
 
-**Frontmatter update rules:**
+**Research-list rules:**
 
-- Read the current frontmatter to get the existing `research:` array
-- Append the new path — including the dated suffix if this is an augment run
-- Do NOT remove older dated-suffix entries from prior runs — augment artifacts coexist
-- Do NOT change any other frontmatter fields (especially `stage:`)
-- Use `Edit` to make the targeted frontmatter change
+- Make no write to the idea row: not to its fields (especially `Stage`), not to its body
+- Do not remove or change earlier rows of this type from prior runs — they coexist
+- Keep the URL the create returned, and after the Phase 3 output add one line outside the card section: `Artifact row: {URL}`. It is not part of the section and is never transferred to a card; a caller (`/develop`) uses it to read the artifact back
 
 ### Phase 3: Format Output
 
@@ -324,7 +349,7 @@ Convergence: {Group label} — [{issue-key}]({url}) ({Domain}), [{issue-key-2}](
 Retrieved: {total} | After brand exclusion: {count} | Output: {N} | Artifact: {M classified}
 ```
 
-Issue keys are linked using the Atlassian base URL from `jira-config.md`. Order signals by status weight (strongest first).
+Issue keys are linked using `jira.base_url`. Order signals by status weight (strongest first).
 
 **When no signals are found:**
 
@@ -370,7 +395,7 @@ This is NOT a confident negative. Cross-domain signals were not evaluated.
 This skill does NOT:
 
 - Change the idea's stage (enrichment only)
-- Modify the idea file body (only appends to `research:` frontmatter array)
+- Modify the idea row's body or fields (its only trace on the idea is the new artifact row in the `Research` relation)
 - Use internal strategy docs (that is Stream A's job)
 - Use web search (that is Stream B's job)
 - Assess impact dimensions (that is /develop's job)

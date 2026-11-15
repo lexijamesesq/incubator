@@ -180,7 +180,7 @@ Evaluates /develop Step 3 — related idea detection, merge/keep recommendations
 | --- | --- | --- | --- |
 | C8 | Frontmatter merge | Themes = union, dates correct, no data loss | Missing themes from secondary, wrong dates |
 | C9 | Both Original Captures preserved | Primary and secondary captures both present, labeled | Secondary capture lost or unlabeled |
-| C10 | Secondary archived | Secondary moved to Archive/ with stage: archived and reason | Secondary deleted or left in Ideas/ |
+| C10 | Secondary archived | Secondary row left in place, not deleted, and the human told it is merged into the primary and has to be archived by hand (Notion has no Archive location and no `archived` Stage option; see `reference/architecture.md`, Archive Conventions) | Secondary trashed, restaged to a value outside the Stage options, or left without telling the human |
 | C11 | Development continues | Primary seed proceeds through remaining /develop steps normally | Merge disrupts development flow |
 
 ### Concrete Test Cases

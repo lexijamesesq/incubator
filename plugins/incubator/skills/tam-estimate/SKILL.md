@@ -1,20 +1,19 @@
 ---
 name: tam-estimate
 description: This skill should be used when the user asks to "estimate TAM for [idea]", "size the market for [idea/subject]", "market sizing for [idea/subject]", "TAM analysis for [idea]", or "TAM estimate for [market category]". Produces defensible TAM/SAM/SOM estimates using top-down and bottom-up methodologies for a strategic idea OR an arbitrary market category/segment in the assessment/edtech space.
-argument-hint: [idea-name]
+argument-hint: "[idea-name | idea-row-url | --adhoc \"market category\"] [notion_ideas=...] [notion_research=...] [notion_config=...]"
 context: fork
 agent: tam-estimate
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Write
-  - Edit
-  - Glob
   - WebSearch
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - Bash(mkdir:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-create-pages
 ---
 
 # /tam-estimate — TAM Estimation Enrichment Agent
@@ -30,28 +29,37 @@ Produces defensible TAM/SAM/SOM estimates for a strategic idea in the assessment
 
 Two modes:
 
-- **Idea mode** (naked argument): sizes the market for an idea. Writes local artifact + updates idea frontmatter.
-- **Ad-hoc mode** (`--adhoc "subject"`): sizes a free-form market category/segment. No local artifact, no frontmatter update. Findings still write back to the research database.
+- **Idea mode** (naked argument — an idea's Slug, or the idea row's URL): sizes the market for an idea. Writes its artifact as a row in the Research database (Research type `tam-estimate`), related to the idea; that relation is what puts it on the idea's research list.
+- **Ad-hoc mode** (`--adhoc "subject"`): sizes a free-form market category/segment. No artifact row, nothing written to Notion. Findings still write back to the research database.
 
 Examples: `/tam-estimate foraging-intelligence`, `/tam-estimate --adhoc "AI grading tools"`, `/tam-estimate --adhoc "K-12 authentic assessment"`.
 
+## Where Things Are (idea mode)
+
+Ad-hoc mode reads no idea and writes nothing to Notion (its one possible Notion read is the Configuration page, for `role`). In idea mode the idea is a row in the Ideas database, and the artifact this skill writes is a row in the Research database related to that idea (Research type `tam-estimate`). The shared mechanics — the pointers and their overrides, addressing an idea, creating an artifact row, how Notion returns text — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before Step 0 when it is present. In short:
+
+- **Pointers.** `notion_ideas` and `notion_research` are database URLs in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in. `notion_ideas=` and `notion_research=` arguments override them; a test run passes scratch databases this way. A caller that has already fetched the Research database may also pass `research_data_source=<collection:// URL>`, the parent for the artifact row. If idea mode has neither an argument nor a front-matter value for a pointer it needs, report "Idea mode needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument). For a subject that is not an idea, use --adhoc." and exit.
+- **Calls.** `notion-fetch` for a row or a database; `notion-query-data-sources` in view mode only (fetch the database, query the view it lists, page while `has_more`); `notion-create-pages` with a data-source parent to create the artifact row. Never SQL or rows mode.
+- **Text.** Notion returns bold as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. The words are preserved; read through the markup.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to determine mode:
+Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, `notion_research=`) is a pointer override, not the idea:
 
-- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip Ideas/ resolution.
-- Otherwise: **idea mode**, naked argument = candidate idea name.
+- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip idea resolution.
+- Otherwise: **idea mode**, naked argument = candidate idea name, or the idea row's URL.
 
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Glob `Ideas/*.md`, present titles, ask user to select |
-| `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
-| No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
+| Empty | Read the Ideas view, present titles, ask user to select |
+| A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
+| `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
+| No exact match | Case-insensitive substring match against the Slug and Name of all rows |
 | Single fuzzy match | Use it |
 | Multiple fuzzy matches | Present options, ask user to pick |
-| Zero matches | **ERROR**: "Idea file not found: `{arg}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc market sizing, use: `/tam-estimate --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
+| Zero matches | **ERROR**: "Idea not found: `{arg}`. Closest candidates in the Ideas database: `{list up to 5 slugs}`. For ad-hoc market sizing, use: `/tam-estimate --adhoc \"{arg}\"`." Exit. Do NOT silently fall through to ad-hoc. |
 
 ## Persona
 
@@ -68,25 +76,28 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 0: Parse Arguments
 
 1. Read `$ARGUMENTS`. Detect `--adhoc` flag.
-2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip Ideas/ resolution. Proceed to Step 1.
-3. **Otherwise (idea mode):**
-   - If empty: `Glob` `Ideas/*.md`, read first 20 lines of each for frontmatter (stage, domain, themes), present all ideas with stage, ask user to select. If none exist, exit.
-   - Try exact match at `Ideas/{argument}.md` (strip `.md` first)
-   - If no exact match, case-insensitive substring match
+2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution. Proceed to Step 1.
+3. **Otherwise (idea mode):** settle the pointers (an argument override where one is given, the `CLAUDE.md` front matter otherwise), then:
+   - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
+   - If empty: read the Ideas view (its rows carry Stage, Domain and Themes), present all ideas with stage, ask user to select. If none exist, exit.
+   - Try exact match on the Slug field (strip `.md` first)
+   - If no exact match, case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it
    - Multiple fuzzy matches → present options, ask user to pick
-   - Zero matches → **ERROR**: "Idea file not found: `{argument}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc market sizing, use: `/tam-estimate --adhoc \"{argument}\"`." Exit. Do NOT silently fall through to ad-hoc.
+   - Zero matches → **ERROR**: "Idea not found: `{argument}`. Closest candidates in the Ideas database: `{list up to 5}`. For ad-hoc market sizing, use: `/tam-estimate --adhoc \"{argument}\"`." Exit. Do NOT silently fall through to ad-hoc.
 
 ### Step 1: Load Context
 
-**Idea mode:** Load the idea file at the resolved path — full content (frontmatter + body). Extract:
+**Idea mode:** Fetch the idea row (unless Step 0 already did) — one fetch returns the full content (fields + body). Extract:
 
-- `domain` — assessments, platform, or cross-product
-- `themes` — thematic keywords for search targeting
+- `Domain` field — assessments, platform, or cross-product
+- `Themes` field — thematic keywords for search targeting
 - **Core insight** — from body content
 - **Problem it addresses** — from body content (if populated; may not exist at seed stage)
 
-**Ad-hoc mode:** The subject string is the market category to size. No idea file, no themes, no domain. Frame Step 2 market scope entirely from the subject string. Ad-hoc subjects are expected to be reasonably specific (e.g., "K-12 authentic assessment" not "edtech"); if the subject is too broad, Step 2's stop rule fires.
+**Ad-hoc mode:** The subject string is the market category to size. No idea row, no themes, no domain. Frame Step 2 market scope entirely from the subject string. Ad-hoc subjects are expected to be reasonably specific (e.g., "K-12 authentic assessment" not "edtech"); if the subject is too broad, Step 2's stop rule fires.
+
+**Company context (both modes):** the agent reads the company and its position from the Configuration key `role`. If the instruction file's front matter names `notion_config`, or a `notion_config=` argument is given, fetch that page and read `role` from its `yaml` block. Otherwise use the Configuration section of the project's instruction file, already in context.
 
 **Shared research baseline:** Query the strategy research database for TAM figures, growth rates, and buyer benchmarks:
 
@@ -94,9 +105,9 @@ Execute these steps in order. Stop and report errors at any step rather than con
 python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
 ```
 
-Derive capability slugs from the idea's `themes` field. Within-TTL entries are known starting points — do not re-research established sizing data that is already documented and current. Past-TTL entries are directional only (useful for market category framing, not current figures).
+Derive capability slugs from the idea's `Themes` field. Within-TTL entries are known starting points — do not re-research established sizing data that is already documented and current. Past-TTL entries are directional only (useful for market category framing, not current figures).
 
-No other files needed. TAM estimation is externally validated — internal strategy docs are not relevant.
+No other rows or files needed. TAM estimation is externally validated — internal strategy docs are not relevant.
 
 ### Step 2: Define Market Scope
 
@@ -216,24 +227,31 @@ Compare top-down and bottom-up results and produce a final estimate range.
 
 ### Step 6: Write Research Artifact
 
-**Ad-hoc mode:** Skip this step — no idea-scoped folder, no frontmatter to update. Jump to Step 7 with findings going to the database and conversation only.
+**Ad-hoc mode:** Skip this step — there is no idea to relate an artifact to. Jump to Step 7 with findings going to the database and conversation only.
 
 **Idea mode:**
 
-1. Get today's date using `Bash(date:*)`: `date +%Y-%m-%d`
-2. Write `Research/{idea-name}/tam-estimate.md` using the Write tool (which auto-creates intermediate directories). If a file already exists at that path from a prior run, write to `Research/{idea-name}/tam-estimate-{YYYY-MM-DD}.md` instead; if that also exists, append `-2`, `-3`, etc., for same-day collisions. Structure:
+1. Get today's date using `Bash(date:*)`: `date +%Y-%m-%d` (the local date)
+2. Create the artifact as a new row in the Research database with one `notion-create-pages` call (`allow_async` false, so the row's URL comes back). A row of this type may already exist for the idea from a prior run: do not look for it and do not change it. Every run creates a new row dated today, and earlier rows stay.
+3. Row parent: the Research data source — the `collection://` URL passed as `research_data_source=` when a caller gave one; otherwise fetch the `notion_research` database and take the data source it lists.
+4. Row fields (these replace the artifact file's front matter), then the body structure:
+
+| Field | Value |
+| --- | --- |
+| `Name` | `TAM Estimate: {Idea Title}` |
+| `Idea` | a one-item array holding the idea row's URL |
+| `Research type` | `tam-estimate` |
+| `date:Created:start` | today, `YYYY-MM-DD` (with `date:Created:is_datetime` 0) |
+| `Confidence` | `high`, `medium` or `low` |
+
+Never write a value outside a field's options. If Notion refuses the create because a field lacks the option, report which option is missing and present the estimate in the output; do not create the row under another value.
+
+**Run under `/thesis-test`.** When the caller's execution contract names another Research type and Name for the artifact row (`/thesis-test` does: `thesis-test-lens`, `thesis-test-{lens}-{date} ({slug})`) and a verdict record for its body, create the row with those in place of the type, Name and body template here. Parent, `Idea`, `Created` and the rest are unchanged.
+
+The row body (the artifact; its title is the row's Name and is not repeated):
 
 ```markdown
----
-type: incubator/research
-research-type: tam-estimate
-idea: {idea-name}
-created: {today's date}
-confidence: high | medium | low
----
-# TAM Estimate: {Idea Title}
-
-**Idea:** {idea-name}
+**Idea:** {the idea's slug}
 **Date:** {today's date}
 **Confidence:** {High/Medium/Low}
 
@@ -323,13 +341,10 @@ confidence: high | medium | low
 [How this TAM analysis feeds into the idea's revenue-potential impact dimension. What rating (Low/Med/High) this evidence supports and why.]
 ```
 
-1. Update the idea file frontmatter: append the written artifact path to the `research: []` array.
-   - Read the idea file
-   - Find the `research:` line in frontmatter
-   - If `research: []` (empty array), replace with `research:\n  - {written path}`
-   - If `research:` already has entries, append the written path after the last entry
-   - Do NOT remove older dated-suffix entries from prior runs — augment artifacts coexist
-   - Do NOT modify any other frontmatter fields or body content
+1. The idea's research list is its `Research` relation, and setting `Idea` on the new row is what adds the artifact to it. Make no write to the idea row.
+   - Do not remove or change earlier rows of this type from prior runs — they coexist
+   - Do NOT modify any field of the idea row or its body content
+   - Keep the URL the create returned: it is the artifact reference Step 7 reports
 
 ### Step 7: Present Results
 
@@ -360,11 +375,11 @@ TAM estimation complete: {idea-name}
 
 **Revenue-potential implication:** This evidence supports a [Low/Med/High] rating for the revenue-potential impact dimension because [one sentence rationale].
 
-**Research artifact written to:** Research/{idea-name}/tam-estimate.md
-**Idea frontmatter updated:** research array now includes tam-estimate path.
+**Research artifact written to:** {URL of the artifact row}
+**Idea research list updated:** the Research relation now includes the tam-estimate row.
 ```
 
-Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing frontmatter ratings, state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
+Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing ratings (the row's impact-dimension fields), state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
 
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to TAM figures, growth rates, buyer counts, and market benchmarks that would benefit other ideas). Write qualifying findings to the strategy research database:
 
@@ -396,7 +411,7 @@ At any point during execution, stop and report when:
 | Condition | Action |
 | ----------- | -------- |
 | Idea too abstract to define market scope | Stop. Report: "Cannot define a market to size. The idea needs more specificity on what problem it solves, for whom, and through what mechanism." Ask human to refine. |
-| No reliable market data after 5+ searches | Present what was found with Low confidence flags on all estimates. Write the artifact with "Insufficient Data" markers. Do not fabricate numbers. |
+| No reliable market data after 5+ searches | Present what was found with Low confidence flags on all estimates. Write the artifact row with "Insufficient Data" markers. Do not fabricate numbers. |
 | Market scope requires internal revenue data | Stop. Note that external-only sources are insufficient for this specific estimate. Ask human to provide internal data or adjust scope. |
 | Idea serves a market completely outside education | Stop. Flag as out-of-domain for this estimation framework. |
 
@@ -404,14 +419,15 @@ At any point during execution, stop and report when:
 
 | Condition | Behavior |
 | ----------- | ---------- |
-| No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
-| Idea file not found | Fuzzy match or report with available filenames, exit |
-| Idea file has malformed frontmatter | Report parsing issue with specifics, exit |
-| Missing domain in frontmatter | Report "Idea missing `domain` field — needed to scope market definition." Ask human to add it, exit |
+| No argument and no ideas exist | Report "No ideas found in the Ideas database" and exit |
+| Idea not found | Fuzzy match or report with available slugs, exit |
+| Idea mode with a pointer missing | Report which pointer is missing and that `--adhoc` needs none, exit |
+| Idea row cannot be read | Report the issue with specifics, exit |
+| `Domain` field empty | Report "Idea missing `Domain` field — needed to scope market definition." Ask human to add it, exit |
 | Market too broad to size meaningfully | Ask human to narrow the scope, exit |
 | No market data available across all searches | Write artifact with "Insufficient Data" flags, Low confidence on all estimates |
-| Research directory creation fails | Report error, exit |
-| Frontmatter update fails | Report error — artifact was still written, ask human to manually add research path |
+| Artifact row creation fails | Report error, present the estimate in the output so the work is not lost, exit |
+| The created row does not show the idea in its `Idea` relation | Report error — the artifact row was still written; give its URL and ask human to set the relation by hand |
 
 ## Scope Boundaries
 
@@ -419,4 +435,4 @@ This skill does NOT:
 
 - Change the idea's stage
 - Modify the idea body content
-- Create or modify the idea file beyond the `research:` frontmatter array
+- Create or modify the idea row; its only trace on the idea is the new artifact row in the `Research` relation

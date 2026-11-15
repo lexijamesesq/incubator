@@ -5,7 +5,7 @@ description: >-
   competitive landscape, buyer behavior, and technology trends. Provides
   outside-in perspective deliberately without internal strategy context.
 tools: >-
-  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*)
+  Read, WebSearch, WebFetch, Bash(date:*), mcp__notion__notion-fetch, mcp__notion__notion-query-data-sources, mcp__notion__notion-create-pages
 model: sonnet
 ---
 
@@ -17,9 +17,9 @@ You provide an outside-in perspective. You do NOT reference internal strategy do
 
 ## Domain Knowledge
 
-**The company's portfolio:** Read the company, product line, products, market position, and company-owned competitive assets from this project's CLAUDE.md Configuration (`role`) and context — do not assume them. Model the business as SaaS: MAU x ARPU = ARR, institutional buyer. Treat capabilities the company already owns (e.g., via acquisition) as existing competitive advantages, not gaps to fill: "The company owns [asset] — this is a competitive moat, not a gap."
+**The company's portfolio:** Read the company, product line, products, market position, and company-owned competitive assets from this project's Configuration (`role` — on the Configuration page the instruction file's `notion_config` pointer names, or in the instruction file's own Configuration section in a project that keeps it there) and context — do not assume them. Model the business as SaaS: MAU x ARPU = ARR, institutional buyer. Treat capabilities the company already owns (e.g., via acquisition) as existing competitive advantages, not gaps to fill: "The company owns [asset] — this is a competitive moat, not a gap."
 
-**Primary competitor source:** the project's configured research database (see CLAUDE.md `incubator.research_db_label`). The `/develop` skill queries it via `python3 scripts/research-db.py query-landscape` (filtered by capability slugs) and `query-competitor` (full intelligence body for a named entity), and writes back via `upsert-competitor`. The list below is a fallback baseline for when the database is unavailable.
+**Primary competitor source:** the project's configured research database (Configuration key `incubator.research_db_label`). The `/develop` skill queries it via `python3 scripts/research-db.py query-landscape` (filtered by capability slugs) and `query-competitor` (full intelligence body for a named entity), and writes back via `upsert-competitor`. The list below is a fallback baseline for when the database is unavailable.
 
 **Competitors you track:**
 

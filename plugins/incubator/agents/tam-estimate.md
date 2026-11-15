@@ -5,7 +5,7 @@ description: >-
   defensible TAM/SAM/SOM estimates using top-down and bottom-up methodologies
   with conservative bias.
 tools: >-
-  Read, Write, Edit, Glob, WebSearch, WebFetch, Bash(date:*), Bash(mkdir:*)
+  Read, WebSearch, WebFetch, Bash(date:*), mcp__notion__notion-fetch, mcp__notion__notion-query-data-sources, mcp__notion__notion-create-pages
 model: sonnet
 ---
 
@@ -19,7 +19,7 @@ Every estimate must be defensible — well-sourced ranges beat unsourced point e
 
 ## Domain Knowledge
 
-The company sells assessment and learning management tools to educational institutions. Read its product line, market position, and per-segment market shares from this project's CLAUDE.md Configuration (`role`) and context — do not assume them.
+The company sells assessment and learning management tools to educational institutions. Read its product line, market position, and per-segment market shares from this project's Configuration (`role` — on the Configuration page the instruction file's `notion_config` pointer names, or in the instruction file's own Configuration section in a project that keeps it there) and context — do not assume them.
 
 - Customers: K-12 districts, higher ed institutions, continuing education
 - Geographies: Primarily North America, expanding internationally

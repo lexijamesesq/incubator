@@ -1,20 +1,19 @@
 ---
 name: edtech-sme
 description: This skill should be used when the user asks to "get market analysis for [idea]", "edtech evaluation of [idea/subject]", "competitive analysis for [idea/subject]", "market perspective on [company/technology/concept]", or "edtech SME review of [subject]". Evaluates a strategic idea OR an arbitrary subject (competitor, technology, concept) against edtech market dynamics, competitive landscape, buyer behavior, and technology trends from an industry analyst perspective.
-argument-hint: [idea-name]
+argument-hint: "[idea-name | idea-row-url | --adhoc \"subject\"] [notion_ideas=...] [notion_research=...] [notion_config=...]"
 context: fork
 agent: edtech-sme
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Write
-  - Edit
-  - Glob
   - WebSearch
   - WebFetch
   - Bash(date:*)
   - Bash(python3 scripts/research-db.py:*)
-  - Bash(mkdir:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-create-pages
 ---
 
 # /edtech-sme — EdTech Market Analysis (Enrichment Agent)
@@ -30,32 +29,41 @@ Evaluates a strategic idea against edtech market dynamics, competitive landscape
 
 Two modes:
 
-- **Idea mode** (naked argument): the argument names an idea file in `Ideas/`. Skill loads the idea and evaluates it. Writes a local artifact at `Research/{idea-name}/edtech-market-analysis.md` and appends the path to the idea's `research: []` frontmatter.
-- **Ad-hoc mode** (`--adhoc "subject"`): the flag carries a free-form subject string (competitor, technology, concept). Skill evaluates the subject on its own. No local artifact, no frontmatter update. Findings still write back to the research database.
+- **Idea mode** (naked argument): the argument names an idea (its Slug in the Ideas database) or is the idea row's URL. Skill loads the idea and evaluates it. Writes its artifact as a row in the Research database (Research type `edtech-market-analysis`), related to the idea; that relation is what puts it on the idea's research list.
+- **Ad-hoc mode** (`--adhoc "subject"`): the flag carries a free-form subject string (competitor, technology, concept). Skill evaluates the subject on its own. No artifact row, nothing written to Notion. Findings still write back to the research database.
 
 Examples: `/edtech-sme foraging-intelligence`, `/edtech-sme --adhoc "Top Hat"`, `/edtech-sme --adhoc "adaptive learning platforms"`.
 
+## Where Things Are (idea mode)
+
+Ad-hoc mode reads no idea and writes nothing to Notion (its one possible Notion read is the Configuration page, for `role`). In idea mode the idea is a row in the Ideas database, and the artifact this skill writes is a row in the Research database related to that idea (Research type `edtech-market-analysis`). The shared mechanics — the pointers and their overrides, addressing an idea, creating an artifact row, how Notion returns text — are stated once in `reference/skill-conventions-notion-access.md` in the Incubator repo; read it before Step 0 when it is present. In short:
+
+- **Pointers.** `notion_ideas` and `notion_research` are database URLs in the front matter of the instruction file (`CLAUDE.md`) of the project the session runs in. `notion_ideas=` and `notion_research=` arguments override them; a test run passes scratch databases this way. A caller that has already fetched the Research database may also pass `research_data_source=<collection:// URL>`, the parent for the artifact row. If idea mode has neither an argument nor a front-matter value for a pointer it needs, report "Idea mode needs the {pointer} pointer (CLAUDE.md front matter, or a {pointer}= argument). For a subject that is not an idea, use --adhoc." and exit.
+- **Calls.** `notion-fetch` for a row or a database; `notion-query-data-sources` in view mode only (fetch the database, query the view it lists, page while `has_more`); `notion-create-pages` with a data-source parent to create the artifact row. Never SQL or rows mode.
+- **Text.** Notion returns bold as `<b>`, a line break inside a paragraph as `<br />`, and `~`, `$`, `[ ]` escaped. The words are preserved; read through the markup.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to determine mode:
+Parse `$ARGUMENTS` to determine mode. Every `key=value` token (`notion_ideas=`, `notion_research=`) is a pointer override, not the idea:
 
-- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip Ideas/ resolution entirely.
-- Otherwise: **idea mode**, naked argument = candidate idea name.
+- If `--adhoc "subject"` present: **ad-hoc mode**, subject = value of flag. Skip idea resolution entirely.
+- Otherwise: **idea mode**, naked argument = candidate idea name, or the idea row's URL.
 
 **Idea-mode resolution (fail-closed):**
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | Glob `Ideas/*.md`, present titles, ask user to select |
-| `idea-name` or `idea-name.md` | Exact match at `Ideas/{arg}.md` (strip `.md` first) |
-| No exact match | Case-insensitive substring match against all `Ideas/*.md` filenames |
+| Empty | Read the Ideas view, present titles, ask user to select |
+| A Notion row URL | The idea row, as `/develop` and other skills pass it. Fetch it; do not read the Ideas view. |
+| `idea-name` or `idea-name.md` | Exact match on the Slug field (strip `.md` first) |
+| No exact match | Case-insensitive substring match against the Slug and Name of all rows |
 | Single fuzzy match | Use it |
 | Multiple fuzzy matches | Present options, ask user to pick |
 | Zero matches | **ERROR** (see below) — never silently fall through to ad-hoc |
 
 **Zero-match error text:**
 
-> Idea file not found: `{arg}`. Closest candidates in Ideas/: `{list up to 5 filenames with lowest edit distance or shortest substring proximity}`. For ad-hoc analysis of a non-idea subject, use: `/edtech-sme --adhoc "{arg}"`.
+> Idea not found: `{arg}`. Closest candidates in the Ideas database: `{list up to 5 slugs with lowest edit distance or shortest substring proximity}`. For ad-hoc analysis of a non-idea subject, use: `/edtech-sme --adhoc "{arg}"`.
 
 Exit. Do NOT silently interpret a no-match as ad-hoc mode.
 
@@ -68,7 +76,7 @@ This skill runs in the edtech-sme agent's context. The agent carries the full in
 **Output serves two purposes:**
 
 - **Enrichment:** Feeds into the idea's `industry-disruption`, `revenue-potential`, and `strategic-alignment` impact dimension assessments
-- **Research artifact:** Preserved at `Research/[idea-name]/edtech-market-analysis.md` for reference during drafting and refining stages
+- **Research artifact:** Preserved as the idea's `edtech-market-analysis` Research row for reference during drafting and refining stages
 
 ## Execution Flow
 
@@ -77,30 +85,33 @@ Execute these steps in order. Stop and report errors at any step rather than con
 ### Step 0: Parse Arguments
 
 1. Read `$ARGUMENTS`. Detect `--adhoc` flag.
-2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip Ideas/ resolution. Proceed to Step 1.
-3. **Otherwise (idea mode):**
-   - If empty: use `Glob` to list all `.md` files in `Ideas/`. Present all ideas to the user (with their stage from frontmatter) and ask them to select one. If no ideas exist, report "No ideas found in Ideas/" and exit.
-   - Try exact match at `Ideas/{argument}.md` (strip `.md` extension first if present)
-   - If no exact match, try case-insensitive substring match against all filenames in `Ideas/`
+2. **If `--adhoc "subject"` is present:** mode = `ad-hoc`, subject = value of flag. Skip idea resolution. Proceed to Step 1.
+3. **Otherwise (idea mode):** settle the pointers (an argument override where one is given, the `CLAUDE.md` front matter otherwise), then:
+   - If the argument is a Notion row URL: fetch it and use it. If the database it is in is not `notion_ideas`, report and exit.
+   - If empty: read the Ideas view. Present all ideas to the user (with their Stage) and ask them to select one. If no ideas exist, report "No ideas found in the Ideas database" and exit.
+   - Try exact match on the Slug field (strip `.md` extension first if present)
+   - If no exact match, try case-insensitive substring match against the Slug and Name of all rows
    - Single fuzzy match → use it
    - Multiple fuzzy matches → present options, ask user to pick
-   - Zero matches → **ERROR**: "Idea file not found: `{argument}`. Closest candidates in Ideas/: `{list up to 5}`. For ad-hoc analysis of a non-idea subject, use: `/edtech-sme --adhoc \"{argument}\"`." Exit. Do NOT silently interpret as ad-hoc.
+   - Zero matches → **ERROR**: "Idea not found: `{argument}`. Closest candidates in the Ideas database: `{list up to 5}`. For ad-hoc analysis of a non-idea subject, use: `/edtech-sme --adhoc \"{argument}\"`." Exit. Do NOT silently interpret as ad-hoc.
 
 ### Step 1: Load Context
 
-**Idea mode:** Read the idea file at the resolved path — full content including frontmatter and body. Extract:
+**Idea mode:** Fetch the idea row (unless Step 0 already did) — one fetch returns its fields and its full body. Extract:
 
 - **Core insight** — the central idea being evaluated
-- **Themes** — from frontmatter `themes: []` array
-- **Domain** — from frontmatter `domain:` field
-- **Stage** — from frontmatter `stage:` field (for reporting, not gating)
-- **Existing research** — from frontmatter `research: []` array (to avoid duplicating work)
+- **Themes** — from the `Themes` field
+- **Domain** — from the `Domain` field
+- **Stage** — from the `Stage` field (for reporting, not gating)
+- **Existing research** — the rows in the `Research` relation (to avoid duplicating work)
 
-**Ad-hoc mode:** The subject string is the target. There is no idea file, no themes, no domain, no prior research. Frame the evaluation around the subject itself — the company, technology, or concept — rather than an idea being evaluated against the market.
+**Ad-hoc mode:** The subject string is the target. There is no idea row, no themes, no domain, no prior research. Frame the evaluation around the subject itself — the company, technology, or concept — rather than an idea being evaluated against the market.
+
+**Company context (both modes):** the agent reads the company and its position from the Configuration key `role`. If the instruction file's front matter names `notion_config`, or a `notion_config=` argument is given, fetch that page and read `role` from its `yaml` block. Otherwise use the Configuration section of the project's instruction file, already in context.
 
 **Shared research baseline:**
 
-- **Idea mode:** Query by capability slugs derived from the idea's `themes` field:
+- **Idea mode:** Query by capability slugs derived from the idea's `Themes` field:
 
   ```bash
   python3 scripts/research-db.py query-landscape --json '{"capabilities": ["cap-slug-1", "cap-slug-2"]}'
@@ -151,7 +162,7 @@ Use `WebSearch` to gather current market intelligence. Execute 4-6 targeted sear
 - Flag any knowledge that is more than 18 months old
 - Prioritize depth over breadth — 4 strong findings beat 8 shallow ones
 
-**Cross-idea awareness:** If your competitive research reveals that the same competitor landscape applies to another idea you've seen in the Ideas/ directory (from the argument resolution step), note it in the artifact: "Competitive overlap: similar landscape applies to [other-idea-name]." This is informational only — do not modify the other idea's files.
+**Cross-idea awareness:** If your competitive research reveals that the same competitor landscape applies to another idea you've seen in the Ideas view (when the argument resolution step read it), note it in the artifact: "Competitive overlap: similar landscape applies to [other-idea-name]." This is informational only — do not modify the other idea's row.
 
 If `WebSearch` returns no relevant results for a query, note it and try an alternative search angle. If no competitive data is found across all searches, proceed with low-confidence flags (see Error Handling).
 
@@ -174,28 +185,34 @@ Analyze the market window with specific signals:
 
 ### Step 6: Write Research Artifact
 
-**Ad-hoc mode:** Skip this step entirely — no idea-scoped folder to write to, no frontmatter to update. Jump to Step 7 (present results) with findings going to the database and conversation only.
+**Ad-hoc mode:** Skip this step entirely — there is no idea to relate an artifact to. Jump to Step 7 (present results) with findings going to the database and conversation only.
 
 **Idea mode:**
 
-1. Get today's date using `Bash(date:*)`: `date +%Y-%m-%d`
-2. Create directory `Research/{idea-name}/` if it does not exist (use `Bash` to `mkdir -p`)
-3. Write the research artifact to `Research/{idea-name}/edtech-market-analysis.md` (if a file already exists at this path from a prior run, write to `Research/{idea-name}/edtech-market-analysis-{YYYY-MM-DD}.md` instead; if that also exists, append `-2`, `-3`, etc., for same-day collisions)
+1. Get today's date using `Bash(date:*)`: `date +%Y-%m-%d` (the local date)
+2. Create the artifact as a new row in the Research database with one `notion-create-pages` call (`allow_async` false, so the row's URL comes back). A row of this type may already exist for the idea from a prior run: do not look for it and do not change it. Every run creates a new row dated today, and earlier rows stay.
 
-**Artifact structure:**
+**Row parent:** the Research data source — the `collection://` URL passed as `research_data_source=` when a caller gave one; otherwise fetch the `notion_research` database and take the data source it lists.
+
+**Row fields** (these replace the artifact file's front matter):
+
+| Field | Value |
+| --- | --- |
+| `Name` | `EdTech Market Analysis: {Idea Title}` |
+| `Idea` | a one-item array holding the idea row's URL |
+| `Research type` | `edtech-market-analysis` |
+| `Agent` | `edtech-sme` |
+| `date:Created:start` | today, `YYYY-MM-DD` (with `date:Created:is_datetime` 0) |
+| `Confidence` | `high`, `medium` or `low` |
+
+Never write a value outside a field's options. If Notion refuses the create because a field lacks the option, report which option is missing and present the analysis in the output; do not create the row under another value.
+
+**Run under `/thesis-test`.** When the caller's execution contract names another Research type and Name for the artifact row (`/thesis-test` does: `thesis-test-lens`, `thesis-test-{lens}-{date} ({slug})`) and a verdict record for its body, create the row with those in place of the type, Name and body template here. Parent, `Idea`, `Created` and the rest are unchanged.
+
+**Row body** (the artifact; its title is the row's Name and is not repeated):
 
 ```markdown
----
-type: incubator/research
-agent: edtech-sme
-idea: {idea-name}
-created: {YYYY-MM-DD}
-confidence: high | medium | low
----
-
-# EdTech Market Analysis: {Idea Title}
-
-**Idea:** {Core insight from idea file}
+**Idea:** {Core insight from the idea row}
 **Analysis date:** {YYYY-MM-DD}
 **Confidence level:** {High/Medium/Low — High: strong data across all dimensions. Medium: gaps in 1-2 dimensions. Low: thin data, limited competitive intelligence.}
 
@@ -243,19 +260,18 @@ confidence: high | medium | low
 - {Source 3 with URL}
 ```
 
-1. Update the idea file frontmatter: append the written artifact path to the `research: []` array
+1. The idea's research list is its `Research` relation, and setting `Idea` on the new row is what adds the artifact to it. Make no write to the idea row.
 
-   **Frontmatter update rules:**
-   - Read the current frontmatter to get the existing `research:` array
-   - Append the new path to the array (do not overwrite existing entries, do not remove older dated-suffix entries from prior runs)
-   - Do NOT change any other frontmatter fields (especially `stage:`)
-   - Use `Edit` to make the targeted frontmatter change
+   **Research-list rules:**
+   - Do not remove or change earlier rows of this type from prior runs — they coexist
+   - Do NOT change any field of the idea row (especially `Stage`), or its body
+   - Keep the URL the create returned: it is the artifact reference Step 7 reports
 
 ### Step 7: Present Results
 
-**Idea mode:** Present the completed analysis with the idea-name, impact dimension implications (for /develop synthesis), and the research artifact path.
+**Idea mode:** Present the completed analysis with the idea-name, impact dimension implications (for /develop synthesis), and the research artifact row's URL.
 
-**Ad-hoc mode:** Present the analysis with the subject string, omit impact dimension implications entirely, omit research artifact path. Findings still go to the database.
+**Ad-hoc mode:** Present the analysis with the subject string, omit impact dimension implications entirely, omit the research artifact reference. Findings still go to the database.
 
 Idea-mode presentation template:
 
@@ -282,11 +298,11 @@ EdTech market analysis complete: {idea-name}
 - revenue-potential: {Suggested Low/Med/High based on market fit and go-to-market}
 - strategic-alignment: {Suggested Low/Med/High based on timing and market direction}
 
-**Research artifact:** Research/{idea-name}/edtech-market-analysis.md
+**Research artifact:** {URL of the artifact row}
 **Confidence:** {High/Medium/Low}
 ```
 
-Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing frontmatter ratings, state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
+Your impact-dimension signals are advisory. If a signal contradicts the idea card's existing ratings (the row's impact-dimension fields), state the contradiction explicitly in your report — do not silently align to the card. The same applies to factual claims: if your research contradicts a factual claim in the card body, surface the contradiction prominently in your final report — not buried in the artifact — so the orchestrator can reconcile the card.
 
 After presenting the above, review your findings against the shared research capture heuristic: **Sourced + Durable + Decision-relevant + Shared** (applies to competitor entries, market dynamics, and positioning data that would benefit other ideas). Write qualifying findings to the strategy research database:
 
@@ -358,18 +374,19 @@ Note in the presentation:
 
 | Condition | Behavior |
 | ----------- | ---------- |
-| No argument and no ideas exist | Report "No ideas found in Ideas/" and exit |
-| Idea file not found | Fuzzy match against available filenames. If no match, report with available filenames and exit |
+| No argument and no ideas exist | Report "No ideas found in the Ideas database" and exit |
+| Idea not found | Fuzzy match against the Slug and Name of the Ideas rows. If no match, report with available slugs and exit |
+| Idea mode with a pointer missing | Report which pointer is missing and that `--adhoc` needs none. Exit. |
 | Idea too abstract for market lens | Report what is missing (product concept, buyer persona, competitive frame) and ask human for refinement. Exit. |
 | No competitive data available | Write artifact with low confidence flags on all dimensions. Note data limitations explicitly in each section. |
 | WebSearch returns no results for a query | Note the failed query, try alternative search angle. If all searches fail, proceed with low confidence. |
-| Research directory creation fails | Report error with specifics, exit |
-| Frontmatter update fails | Report error, note the research artifact was written successfully and the frontmatter path needs manual addition. Exit. |
+| Artifact row creation fails | Report error with specifics, present the analysis in the output so the work is not lost, exit |
+| The created row does not show the idea in its `Idea` relation | Report error, give the row's URL, note the artifact was written and the relation needs setting by hand. Exit. |
 
 ## Scope Boundaries
 
 This skill does NOT:
 
 - Change the idea's stage (enrichment only)
-- Modify the idea body content (only appends to `research:` frontmatter array)
+- Modify the idea row's body or fields (its only trace on the idea is the new artifact row in the `Research` relation)
 - Recommend go/no-go decisions (that is a human decision)

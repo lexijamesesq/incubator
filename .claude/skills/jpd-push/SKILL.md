@@ -1,16 +1,15 @@
 ---
 name: jpd-push
 description: This skill should be used when the user asks to "push [idea] to JPD", "push [idea name]", "jpd push [idea]", or "push [idea] to JPD". Pushes a developed idea to JPD for stakeholder visibility. One-directional push with human review gate.
-argument-hint: [idea-name]
+argument-hint: "[idea-name] [notion_ideas=...] [notion_research=...] [notion_config=...]"
 context: conversation
 disable-model-invocation: false
 allowed-tools:
   - Read
-  - Edit
-  - Write
-  - Glob
-  - Grep
   - Bash(date:*)
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-query-data-sources
+  - mcp__notion__notion-update-page
   - mcp__atlassian__createJiraIssue
   - mcp__atlassian__editJiraIssue
   - mcp__atlassian__transitionJiraIssue
@@ -29,15 +28,54 @@ Pushes a developed idea to JPD for stakeholder visibility. One-directional — n
 /jpd-push [idea-name]
 ```
 
-- Required argument: the name of a developing-or-later idea file in `Ideas/`
+- Required argument: the name of a developing-or-later idea (its Slug in the Ideas database)
 - If no argument provided: list eligible ideas and ask user to pick
 - Examples: `/jpd-push foraging-intelligence`, `/jpd-push cache-optimization`
 
+## Where Things Are
+
+Ideas, research, output documents and configuration live in Notion. The repo's instruction file (`CLAUDE.md`, front matter) points to them. If the front matter is not already in context, Read `CLAUDE.md` at the repo root. The shared mechanics — pointers and overrides, addressing an idea, artifact rows, writing to a card, how Notion returns text, configuration, local documents and persona — are stated once in `reference/skill-conventions-notion-access.md`; read it before the first step. In short:
+
+| Pointer | What it is |
+| --- | --- |
+| `notion_ideas` | The Ideas database. One row per idea: the card is the row's page body, the front matter is the row's fields. |
+| `notion_research` | The Research database. One row per research artifact, related to its idea through the row's Idea relation. |
+| `notion_config` | The Configuration page. Instance values, read by key name from its `yaml` block. |
+
+A `key=value` argument named after a pointer (`notion_ideas=<database URL>`, `notion_config=<page URL>`) overrides it. That is how a test run is kept away from the live rows: it passes scratch databases with the same fields. A run with overrides reads and writes only what the overrides name.
+
+Use only these Notion calls: `notion-fetch` (a row, page or database), `notion-query-data-sources` in view mode, and `notion-update-page`.
+
+**Reading a database.** Fetch the database with `notion-fetch`: the result lists its data source (`collection://...`) and its views (`view://...`). Query the first view with `notion-query-data-sources` in **view mode** (never SQL or rows mode), `page_size` 100, passing `next_cursor` as `start_cursor` while `has_more` is true. Rows come back with their fields and no bodies. One `notion-fetch` of a row returns its fields and its body.
+
+**Reading configuration.** Fetch the `notion_config` page and read values by key name from its `yaml` block. A key whose value is a Notion page URL names a page: fetch that page to read it.
+
+**Writing.** Fields, relations included, are set with `notion-update-page` `update_properties`. A select or multi-select field takes only one of its existing options: never write a value outside them. A date is written as `date:<Field>:start` in `YYYY-MM-DD`, with `date:<Field>:is_datetime` 0. "Today" is the local date from `date +%Y-%m-%d`. One block of a body is replaced with `update_content`, one operation per block, each `old_str` that block's text copied from a fresh fetch of the row; leave out an operation whose new text equals the old. If the call warns that an operation matched nothing, fetch the row again and repeat that operation with text from the fresh fetch.
+
+**Notion does not return text byte for byte.** `~`, `$` and `[ ]` come back escaped, a line break inside a paragraph as `<br />`, bold as `<b>`, inline code as `<code>`, a blank line is added after each heading, and a value that looks like a file name can come back wrapped as a link. The words are preserved. Wherever this skill matches or compares text (a label such as `**Core insight:**`, a heading, a field value), compare the words, never the raw string. Wherever it sends fetched text somewhere else, convert it back to Markdown first: `<b>` to `**`, `<code>` to backticks, `<br />` to a line break, escapes removed, a link added around a file name unwrapped.
+
+**Configuration keys this skill reads:**
+
+| Key | What it holds |
+| --- | --- |
+| `jira.cloud_id` | Atlassian cloud ID |
+| `jira.project_key` | Key of the JPD project ideas are pushed to |
+| `jira.base_url` | Atlassian base URL, for building issue links |
+| `jira.fields.*` | Field IDs, one key per field: the static fields, and `jira.fields.executive_summary`, `jira.fields.ai_feature` and `jira.fields.domain_objective` for the three fields derived from the card |
+| `jira.static_values` | The values set the same on every push. One entry per static field, keyed by that field's name under `jira.fields` (the entry `product_brand` is sent to the field whose ID is `jira.fields.product_brand`); each entry has `label` (the value as a person reads it) and `value` (what to send, in the format the field takes) |
+| `jira.domain_objectives` | The objectives a push can select. A list; each entry has `label`, `option_id` and `when` (when to select it) |
+| `jira.transition_id`, `jira.transition_to_status` | The transition applied after create, and the name of the status it moves the issue to |
+| `incubator.jpd_sidecars_folder_id` | Google Drive folder the sidecar folders are created in |
+| `incubator.research_db_label` | Research database label for sidecar `sources` blocks |
+| `strategic_context.*`, `metrics.*` | Each entry's `path` → `external_url` pair, for link translation |
+
+Which fields and statuses the tracker has, and what they are called, belongs to the organisation: take them from these keys, never from this file.
+
 ## Arguments
 
-Parse `$ARGUMENTS` to resolve the target idea file and any flags.
+Parse `$ARGUMENTS` to resolve the target idea and any flags.
 
-**Argument structure:** `[idea-name] [flags]` — idea-name is the positional argument; flags are space-separated and follow.
+**Argument structure:** `[idea-name] [flags]` — idea-name is the positional argument; flags are space-separated and follow. A `key=value` token is a pointer override (see Where Things Are), not a flag.
 
 **Recognized flags:** None currently.
 
@@ -49,45 +87,60 @@ Unknown flags should be reported as an error and exit before resolution proceeds
 
 | Input | Behavior |
 | ------- | ---------- |
-| Empty | List all developing-or-later ideas in Ideas/, ask user to select |
-| `idea-name` | Resolve to `Ideas/{idea-name}.md` |
+| Empty | Read the Ideas database, list the rows at Stage `developing` or later, ask user to select |
+| `idea-name` | Resolve to the Ideas row whose Slug is `idea-name` |
 | `idea-name.md` | Strip `.md`, resolve as above |
+| A Notion page URL | Use that row directly |
 
-**Fuzzy matching:** If exact match fails, list all `.md` files in Ideas/ and find filenames containing the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options. If zero matches, report and exit.
+**Fuzzy matching:** If the exact Slug match fails, find the rows whose Slug or Name contains the argument as a substring (case-insensitive). If exactly one match, use it. If multiple matches, present options. If zero matches, report, list the available slugs, and exit.
+
+Resolve the idea once, against one read of the Ideas database, and keep the row's URL for the rest of the run.
 
 ## Reference Material
 
 `incubator-reference.md` is a thin section index. Load only the `reference/` section files this skill needs:
 
 - `reference/jpd-integration.md` — JPD template alignment, push criteria, sync-tracking fields, sync-back policy
-- `reference/frontmatter-schema.md` — `jira-key` / `jira-pushed-at` / `jira-sidecar-url` fields, `themes` as labels
+- `reference/frontmatter-schema.md` — the Jira key / Jira pushed / Jira sidecar URL fields, Themes as labels
 
 ## Execution Flow
 
 ### Step 0: Load Configuration
 
-Read `jira-config.md` from the Incubator project root (`Projects/Incubator/jira-config.md`) via `Read`. All Jira connection details, field IDs, and option IDs used in this skill come from that file. Do not proceed if the file cannot be read.
+Fetch the Configuration page (the `notion_config` pointer; see Where Things Are). All Jira connection details, field IDs, and option IDs used in this skill come from its `jira.*` keys. Do not proceed if the page cannot be fetched or a `jira.*` key this push needs is missing — name the missing key.
 
-Also read `Projects/Incubator/CLAUDE.md` Configuration > External References block to resolve `incubator.jpd_sidecars_folder_id` (used in Step 3c), `incubator.research_db_label` (used in Step 3c sidecar substitution), and the strategy doc `path` → `external_url` mappings (used in Step 3 link translation).
+Also read from it `incubator.jpd_sidecars_folder_id` (used in Step 3c), `incubator.research_db_label` (used in Step 3c sidecar substitution), and the strategy doc `path` → `external_url` mappings under `strategic_context.*` and `metrics.*` (used in Step 3 link translation).
 
 ### Step 1: Load and Validate
 
-Read the idea file. Verify all push prerequisites:
+Fetch the idea row: its fields and its body (the card). Verify all push prerequisites:
 
 **Required for push:**
 
-- `stage` is `developing`, `drafting`, `refining`, or `complete`
-- All five impact dimensions are non-null (`customer-sentiment`, `user-experience`, `revenue-potential`, `industry-disruption`, `strategic-alignment`)
+- Stage is `developing`, `drafting`, `refining`, or `complete`
+- All five impact dimensions are set (Customer sentiment, User experience, Revenue potential, Industry disruption, Strategic alignment). A dimension counts as set when its field has a value, or when its field is empty and the card's Opportunity Assessment row for it says "Insufficient data" with a rationale: `/develop-synthesis` leaves the field empty for a rating the evidence cannot support, and the table carries the words. An empty field with no such row is not set.
 - Body contains populated sections: Core insight, Problem it addresses, Who cares, Strategic connection, Opportunity Assessment table, Research Summary
 
 **If any prerequisite fails:** Report exactly what's missing and exit. Do not proceed with incomplete ideas.
 
+**Research artifacts.** Steps 3a–3c read the idea's research. Fetch every row in the idea row's Research relation (in parallel): each row's Research type field says which artifact it is, and its body is the artifact. Find artifacts this way, never by a folder or file name.
+
+| Artifact | Research type |
+| --- | --- |
+| EdTech market analysis | `edtech-market-analysis` |
+| TAM estimate | `tam-estimate` |
+| Educator evaluation | `educator-sme-evaluation` |
+| Divergent angles | `divergent-angles` |
+| Cross-domain signals | `cross-domain-signals` |
+
+Several rows of one type (a re-run or an augment is a new row of the same type): use the one with the latest Created. If two rows share the latest date, take the one edited later (`page_last_edited_at` in the fetch); if that does not separate them, list them and ask which to use. Name the row used for each artifact in the review gate output. A type with no related row: that artifact does not exist.
+
 ### Step 2: Detect Push Type
 
-Check the idea's frontmatter for `jira-key`:
+Check the idea row's Jira key field:
 
-- **`jira-key` is null or absent:** This is a **first push** — will create a new issue.
-- **`jira-key` has a value (e.g., {issue-key}):** This is a **re-push** — will update the existing issue.
+- **Jira key is empty:** This is a **first push** — will create a new issue.
+- **Jira key has a value (e.g., {issue-key}):** This is a **re-push** — will update the existing issue.
 
 Report which type this is before proceeding.
 
@@ -97,7 +150,7 @@ Extract and transform the idea content into JPD fields:
 
 **Summary:** The idea title from the H2 heading (e.g., `## Cohort and Peer Intelligence` becomes `Cohort and Peer Intelligence`).
 
-**Description:** Restructure the TL;DR body into JPD-compatible headings. Content is transferred verbatim — no generative rewriting. Only the heading structure changes. Exclude `### Original Capture` (internal provenance only). If a Cross-Domain Signals section will be included (see Step 3a), strip any cross-domain bullets from the Research Summary to avoid redundancy — the dedicated section is the single place for that data in JPD.
+**Description:** Restructure the TL;DR body into JPD-compatible headings. Content is transferred verbatim — no generative rewriting. Only the heading structure changes. The body as fetched carries Notion's markup; convert it back to Markdown first (see Where Things Are) — that conversion restores the card's own text and is not rewriting. Exclude `### Original Capture` (internal provenance only). If a Cross-Domain Signals section will be included (see Step 3a), strip any cross-domain bullets from the Research Summary to avoid redundancy — the dedicated section is the single place for that data in JPD.
 
 Map the TL;DR sections into this structure:
 
@@ -120,7 +173,7 @@ Map the TL;DR sections into this structure:
 
 [Full development research](<<SIDECAR_URL>>)
 
-The `<<SIDECAR_URL>>` token is a literal placeholder. On first push, Step 3c stages content with this placeholder in the description; Step 5a creates the JPD issue with the placeholder still in place; Step 5b creates the sidecar Google Doc; Step 5c calls editJiraIssue to replace `<<SIDECAR_URL>>` with the real `viewUrl`. On re-push, the description is built with `jira-sidecar-url` from frontmatter substituted directly (no placeholder, no extra edit).
+The `<<SIDECAR_URL>>` token is a literal placeholder. On first push, Step 3c stages content with this placeholder in the description; Step 5a creates the JPD issue with the placeholder still in place; Step 5b creates the sidecar Google Doc; Step 5c calls editJiraIssue to replace `<<SIDECAR_URL>>` with the real `viewUrl`. On re-push, the description is built with the idea row's Jira sidecar URL field substituted directly (no placeholder, no extra edit).
 
 ## Cross-Domain Signals
 {Mirror the card's `### Cross-Domain Signals` section verbatim — see Step 3a. Omit if absent on card.}
@@ -140,7 +193,7 @@ The `<<SIDECAR_URL>>` token is a literal placeholder. On first push, Step 3c sta
 
 "Strip bold label prefix" means: `**Core insight:** Assessment platforms treat...` becomes `Assessment platforms treat...` — remove the `**Label:**` prefix since the heading now provides the context.
 
-**Link translation:** Idea cards may use internal file paths for strategy doc references. Before building the description, replace these with external URLs so links resolve in Jira. The link translation table is configured in CLAUDE.md under Configuration > External References — each external reference entry includes both a local path and an external URL. Match on the local path substring within markdown links and replace with the corresponding external URL, preserving the link text.
+**Link translation:** Idea cards may use internal file paths for strategy doc references. Before building the description, replace these with external URLs so links resolve in Jira. The link translation table is the Configuration page's `strategic_context.*` and `metrics.*` entries — each includes both a local `path` and an `external_url`. Match on the local path substring within markdown links and replace with the corresponding external URL, preserving the link text.
 
 Apply to the entire description body.
 
@@ -148,7 +201,7 @@ Apply to the entire description body.
 
 The default path is card-canonical: if the card body has a `### Cross-Domain Signals` section, transfer it verbatim into the JPD body as `## Cross-Domain Signals` (heading level adjusted from h3 to h2; content preserved exactly). The card carries the curated 5 signals + 1 convergence group selected by the cross-domain skill's Phase 2.5 ranking — JPD shows the same curated set. The full classified set (including any signals excluded from card output, plus retrieval stats) lives in the Research Sidecar (Step 3c) for stakeholders who want depth.
 
-**Self-heal fallback** — if the card has NO `### Cross-Domain Signals` section but `Research/{idea-name}/cross-domain-signals.md` exists, derive the section from the artifact and patch it onto the card BEFORE building the JPD payload. This handles cards developed before /cross-domain became a standard /develop step (architecture migration).
+**Self-heal fallback** — if the card has NO `### Cross-Domain Signals` section but a `cross-domain-signals` research row exists, derive the section from the artifact and patch it onto the card BEFORE building the JPD payload. This handles cards developed before /cross-domain became a standard /develop step (architecture migration).
 
 Self-heal procedure:
 
@@ -156,7 +209,7 @@ Self-heal procedure:
 
 2. Apply the curation cap: 5 signals maximum, 1 convergence group maximum.
    - **If the artifact has ≤5 signals under `## Signals`:** use all of them.
-   - **If the artifact has >5 signals under `## Signals`:** rank candidate signals using the 4-criterion heuristic defined in `claude/skills/cross-domain/SKILL.md` Phase 2.5 (the canonical source) — read that section and apply it to select the top 5.
+   - **If the artifact has >5 signals under `## Signals`:** rank candidate signals using the 4-criterion heuristic defined in `plugins/incubator/skills/cross-domain/SKILL.md` Phase 2.5 (the canonical source) — read that section and apply it to select the top 5.
    - **Convergence:** if the artifact has multiple convergence groups, pick the one that spans the most domains and whose anchor signals remain in the kept-5.
 
 3. Format the curated set into a `### Cross-Domain Signals` section using the canonical card template:
@@ -164,7 +217,7 @@ Self-heal procedure:
    ```text
    ### Cross-Domain Signals
    {N} ideas from other domains with possible functional overlap:
-   - [{issue-key}]({Atlassian base URL from jira-config.md}/browse/{issue-key}) {Issue Title} ({Domain Label}) — {Signal type}: {Connection text — verbatim from artifact's **Connection:** field}
+   - [{issue-key}]({jira.base_url}/browse/{issue-key}) {Issue Title} ({Domain Label}) — {Signal type}: {Connection text — verbatim from artifact's **Connection:** field}
    - ...
 
    Convergence: {theme} — [{issue-key}](URL) ({Domain Label}), [{issue-key}](URL) ({Domain Label}). {Convergence narrative — verbatim from artifact}.
@@ -172,9 +225,9 @@ Self-heal procedure:
 
    For each signal, derive the parenthetical Domain Label using the same priority chain /cross-domain uses: Brand → Product Domain → Squad → omit. If the artifact's `**Domain Label:**` line is populated, use that value directly.
 
-4. Patch the new section into the card body BETWEEN `### Research Summary` (and its content) and `### Thought Outline` using `Edit`. Replace the boundary string `\n\n### Thought Outline\n` with `\n\n{new section}\n\n### Thought Outline\n`. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
+4. Patch the new section into the card body BETWEEN `### Research Summary` (and its content) and `### Thought Outline` using one `notion-update-page` `update_content` operation: `old_str` is the `### Thought Outline` heading exactly as a fresh fetch of the row returns it, `new_str` is the new section followed by that same heading. Before patching, fetch the row and locate the actual heading; if it is not found, or is found more than once, halt and report rather than guessing.
 
-5. Re-read the card to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
+5. Fetch the row again to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
 
 6. Continue with JPD payload construction — Step 3a's main path now picks up the section that was just inserted.
 
@@ -186,7 +239,7 @@ Self-heal procedure:
 
 The default path is card-canonical: if the card body has a `### Disruptive Reframing` section, transfer it verbatim into the JPD body as `## Disruptive Reframing` (heading level adjusted h3→h2; content preserved exactly), then append the `[Full development research](<<SIDECAR_URL>>)` link trailer below the distillation. The card carries the 2-3 sentence distillation produced by /develop Step 5d — JPD shows the same content. The link trailer is a JPD-only addition; the card version does not include it.
 
-**Self-heal fallback** — if the card has NO `### Disruptive Reframing` section but `Research/{idea-name}/divergent-angles.md` exists, derive the section from the artifact and patch it onto the card BEFORE building the JPD payload. This handles cards developed before /develop Step 5d became standard (architecture migration).
+**Self-heal fallback** — if the card has NO `### Disruptive Reframing` section but a `divergent-angles` research row exists, derive the section from the artifact and patch it onto the card BEFORE building the JPD payload. This handles cards developed before /develop Step 5d became standard (architecture migration).
 
 Self-heal procedure:
 
@@ -203,9 +256,9 @@ Self-heal procedure:
 
    No link trailer in the card section — that's a JPD-only addition.
 
-4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `###` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using `Edit`. Anchor on the next `###` heading after Thought Outline and insert the new section before it. Before patching, read the card and locate the actual anchor text; if the exact string with expected whitespace isn't found, try single-newline variants. If still ambiguous or not found, halt and report rather than guessing.
+4. Patch the new section into the card body BETWEEN `### Thought Outline` (and its content) and the next `###` heading (which will be `### Buildable Surface` if it exists, otherwise `### Open Questions`) using one `notion-update-page` `update_content` operation. Anchor on the next `###` heading after Thought Outline and insert the new section before it: `old_str` is that heading exactly as a fresh fetch of the row returns it, `new_str` is the new section followed by that same heading. Never anchor on `### Original Capture`. Before patching, fetch the row and locate the actual heading; if it is not found, or is found more than once, halt and report rather than guessing.
 
-5. Re-read the card to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
+5. Fetch the row again to confirm the section is present and correctly positioned. If verification fails, halt and report — do not proceed to JPD push with an unconfirmed card edit.
 
 6. Continue with JPD payload construction — Step 3b's main path now picks up the section that was just inserted, and appends the `[Full development research](<<SIDECAR_URL>>)` link trailer for JPD.
 
@@ -217,28 +270,28 @@ Avoid the word "leveraged" as a section heading — it's on the persona's kill l
 
 ##### Step 3c: Stage Research Sidecar content (first push only)
 
-If this is a first push (no `jira-key` in frontmatter), stage the four sidecar `.md` files in memory here. Folder + file creation happens in Steps 5b/5c — after the JPD issue is created and `jira-key` is known — so each file's frontmatter can carry a working back-link to the JPD issue. The Drive MCP doesn't expose a content-edit tool, so each create_file call must be made with the JPD reference already substituted in.
+If this is a first push (the idea row's Jira key is empty), stage the four sidecar `.md` files in memory here. Folder + file creation happens in Steps 5b/5c — after the JPD issue is created and `jira-key` is known — so each file's frontmatter can carry a working back-link to the JPD issue. The Drive MCP doesn't expose a content-edit tool, so each create_file call must be made with the JPD reference already substituted in.
 
 The sidecar architecture is **one folder per pushed idea, four `.md` files per folder** — one per research stream. The folder name is `{jira-key} - {Idea Title}` (with `/` characters in the title replaced with `-`; other Unicode preserved). The Research Summary link in the JPD body points to the folder URL.
 
-1. Read the four primary research artifacts in parallel with `Read`:
-   - `Research/{idea-name}/edtech-market-analysis.md`
-   - `Research/{idea-name}/tam-estimate.md`
-   - `Research/{idea-name}/educator-evaluation.md`
-   - `Research/{idea-name}/divergent-angles.md`
+1. Take the four primary research artifacts from the rows fetched in Step 1, by Research type:
+   - `edtech-market-analysis`
+   - `tam-estimate`
+   - `educator-sme-evaluation`
+   - `divergent-angles`
 
 2. Skip any artifact that doesn't exist (the corresponding /develop agent must have failed). Note any skipped artifacts in the review gate output for transparency.
 
-3. For each artifact, strip the existing YAML frontmatter and prepend a sidecar-specific frontmatter block. The frontmatter uses literal placeholders for both the JPD reference (`<<JIRA_KEY>>`, `<<JIRA_URL>>` — substituted in Step 5c) and the research database label (`<<RESEARCH_DB_REF>>` — substituted at staging time using `incubator.research_db_label` from CLAUDE.md). The body keeps the artifact's existing H1 and content untouched.
+3. For each artifact, take the row's body, convert it back to Markdown (see Where Things Are), and prepend a sidecar-specific frontmatter block. A research row's body carries no front matter of its own — that is in the row's fields — so there is none to strip. If the body does not open with an H1, open it with `# {row Name}`. The frontmatter uses literal placeholders for both the JPD reference (`<<JIRA_KEY>>`, `<<JIRA_URL>>` — substituted in Step 5c) and the research database label (`<<RESEARCH_DB_REF>>` — substituted at staging time using `incubator.research_db_label` from the Configuration page). The body keeps the artifact's existing H1 and content untouched.
 
-When staging, replace `<<RESEARCH_DB_REF>>` in each row's `sources` block with the value of `incubator.research_db_label` from CLAUDE.md (Configuration > External References). This abstraction keeps the public skill file free of installation-specific database identifiers while letting the generated sidecar content carry the concrete reference stakeholders need. If the config key is missing, omit the entire research-database source line for that file (the `/edtech-sme`, `/tam-estimate`, or `/educator-sme` line stays — only drop the database row).
+When staging, replace `<<RESEARCH_DB_REF>>` in each row's `sources` block with the value of `incubator.research_db_label` from the Configuration page. This abstraction keeps the public skill file free of installation-specific database identifiers while letting the generated sidecar content carry the concrete reference stakeholders need. If the config key is missing, omit the entire research-database source line for that file (the `/edtech-sme`, `/tam-estimate`, or `/educator-sme` line stays — only drop the database row).
 
 **Per-stream sidecar template:**
 
 ```markdown
 ---
 type: incubator/research-sidecar
-idea: {idea-name}
+idea: {idea Slug}
 jira-key: <<JIRA_KEY>>
 jira-url: <<JIRA_URL>>
 stream: {stream-slug}
@@ -247,7 +300,7 @@ sources:
 generated: {YYYY-MM-DD via Bash(date:*)}
 ---
 
-{full body of the artifact, frontmatter stripped, H1 onward preserved}
+{full body of the artifact row, converted back to Markdown, H1 onward preserved}
 ```
 
 **Per-stream slug + sources mapping:**
@@ -263,25 +316,25 @@ The Divergent Angles file has only one source — `/divergent-thinking` does not
 
 The Research Summary link line in the JPD body description (built in Step 3) uses the literal placeholder `<<SIDECAR_URL>>` that's substituted in Step 5d after the folder is created and its URL is known.
 
-**Re-push behavior:** On re-push (`jira-key` already present), do NOT regenerate the sidecar by default. Read `jira-sidecar-url` from the idea file frontmatter and reuse it directly in the JPD body description's "Full development research:" link line — no Drive call needed.
+**Re-push behavior:** On re-push (Jira key already present), do NOT regenerate the sidecar by default. Read the idea row's Jira sidecar URL field and reuse it directly in the JPD body description's "Full development research:" link line — no Drive call needed.
 
-If the frontmatter `jira-sidecar-url` is missing on a re-push (i.e., the idea was first pushed before the sidecar feature existed, or the field was removed), fall back to one of: (a) treat the re-push as a sidecar-bootstrap and run Step 3c to generate a v1 sidecar now, then store the URL in frontmatter, or (b) prompt the user at the review gate to confirm bootstrap. Default to (a) when the four research artifacts exist; prompt only when one or more are missing.
+If the Jira sidecar URL field is empty on a re-push (i.e., the idea was first pushed before the sidecar feature existed, or the field was removed), fall back to one of: (a) treat the re-push as a sidecar-bootstrap and run Step 3c to generate a v1 sidecar now, then store the URL in the Jira sidecar URL field, or (b) prompt the user at the review gate to confirm bootstrap. Default to (a) when the four research artifacts exist; prompt only when one or more are missing.
 
-For sidecar content correction (corrected DB label, regenerated artifact, typo): see "Re-push with sidecar correction (in-place)" under Step 5. The folder URL stays the same; only the affected files are recreated after the human deletes them in the Drive UI. No JPD edit, no frontmatter update.
+For sidecar content correction (corrected DB label, regenerated artifact, typo): see "Re-push with sidecar correction (in-place)" under Step 5. The folder URL stays the same; only the affected files are recreated after the human deletes them in the Drive UI. No JPD edit, no field update on the idea row.
 
 **Executive Summary:** The Core insight sentence, plain text only (strip bold markers). Max 255 characters — if the core insight exceeds this, condense to fit without losing the key claim. Show the condensed version in the review gate.
 
-**AI Feature:** If `themes` array contains any value starting with `ai-`, set to `1` (numeric). Otherwise omit.
+**AI Feature:** If the Themes field contains any value starting with `ai-`, set to `1` (numeric). Otherwise omit.
 
-**Domain Objective:** Select the single best-fit objective based on the idea's content and impact dimensions. Objective labels and their option IDs are in `jira-config.md > Domain Objective Mapping`.
+**Domain Objective:** Select the single best-fit objective based on the idea's content and impact dimensions. Objective labels, their option IDs and when to select each are in `jira.domain_objectives`.
 
 Format as: `[{"id": "{option_id}"}]`
 
 Use the impact dimensions as signals to select the best-fit objective from the mapping table. When ambiguous, pick the strongest signal and note the reasoning.
 
-**Labels:** The `themes` array values from frontmatter, as-is.
+**Labels:** The Themes field's values, as-is.
 
-**Static fields:** Apply all static field values from `jira-config.md > Static Field Values`. That table defines the field ID, option ID, and format for each static field (Product Brand, Product Domain, Squad, Product Surface Area, 2026 Roadmap Priority, Quarter Active).
+**Static fields:** Apply every entry of `jira.static_values`. Each entry's key names the field — its ID is the `jira.fields` key of the same name — and its `value` is what to send, in the format that field takes. An entry with no matching `jira.fields` key is a configuration error: name it and stop before the review gate.
 
 ### Step 4: Human Review Gate
 
@@ -301,7 +354,7 @@ Type: {First push | Re-push to {jira-key}}
 
 **Labels:** {comma-separated themes}
 
-**Static fields:** {list each static field from jira-config.md with its configured value}
+**Static fields:** {list each static field from `jira.static_values` with its configured label}
 
 **Description body:**
 {the extracted description, shown in full}
@@ -314,11 +367,11 @@ Confirm to push, or provide overrides (e.g., "change Surface Area to X", "change
 
 **Wait for human confirmation.** Do not push without explicit approval.
 
-**Overrides:** If the human provides overrides for Surface Area, Roadmap Priority, or Domain Objective, apply them. The human may also edit the description body or Executive Summary before push.
+**Overrides:** If the human provides overrides for Surface Area (`product_surface_area`), Roadmap Priority (`roadmap_priority`), or Domain Objective, apply them. The human may also edit the description body or Executive Summary before push.
 
 ### Step 5: Push
 
-**First push (multi-step: create JPD with placeholder → create sidecar → edit JPD with sidecar URL → transition + frontmatter):**
+**First push (multi-step: create JPD with placeholder → create sidecar → edit JPD with sidecar URL → transition + idea row fields):**
 
 **Step 5a — Create JPD issue with `<<SIDECAR_URL>>` placeholder:**
 
@@ -326,19 +379,19 @@ The description body built in Step 3 still contains the literal `<<SIDECAR_URL>>
 
 Call `mcp__atlassian__createJiraIssue` with:
 
-- `cloudId`: Cloud ID from `jira-config.md > Connection`
-- `projectKey`: project key from `jira-config.md > Connection`
+- `cloudId`: `jira.cloud_id`
+- `projectKey`: `jira.project_key`
 - `issueTypeName`: `Idea`
 - `summary`: the prepared summary
 - `description`: the prepared description body (still contains `<<SIDECAR_URL>>`)
 - `additional_fields`: object containing all custom fields:
-  - All static fields from `jira-config.md > Static Field Values` (field IDs and option IDs as specified there)
-  - Executive Summary field ID and format from `jira-config.md > Dynamic Field Mappings`: string value
-  - Domain Objective field ID from `jira-config.md > Dynamic Field Mappings`, option ID from `jira-config.md > Domain Objective Mapping`: multi-checkbox array
-  - AI Feature field ID from `jira-config.md > Dynamic Field Mappings`: `1` (numeric, omit if not applicable)
+  - All static fields from `jira.static_values` (each sent to the `jira.fields` ID of the same name, with the `value` given there)
+  - Executive Summary, field ID `jira.fields.executive_summary`: string value
+  - Domain Objective, field ID `jira.fields.domain_objective`, option ID from `jira.domain_objectives`: multi-checkbox array
+  - AI Feature, field ID `jira.fields.ai_feature`: `1` (numeric, omit if not applicable)
   - `labels`: themes array (e.g., `["ai-capabilities"]`)
 
-Extract `jira-key` from the response. Build `jira-url` as `{Atlassian base URL from jira-config.md}/browse/{jira-key}`.
+Extract `jira-key` from the response. Build `jira-url` as `{jira.base_url}/browse/{jira-key}`.
 
 **Step 5b — Create the sidecar folder:**
 
@@ -347,7 +400,7 @@ Build the folder name: `{jira-key} - {sanitized-idea-title}`. Sanitize the idea 
 Submit to `mcp__claude_ai_Google_Drive__create_file`:
 
 - `title`: the sanitized folder name
-- `parentId`: `incubator.jpd_sidecars_folder_id` from CLAUDE.md
+- `parentId`: `incubator.jpd_sidecars_folder_id` from the Configuration page
 - `contentMimeType`: `application/vnd.google-apps.folder`
 (no `textContent` — folders have no content)
 
@@ -358,7 +411,7 @@ Capture `id` and `viewUrl` from the response. The `viewUrl` is the `sidecar-fold
 For each of the four staged files from Step 3c, substitute the literal frontmatter placeholders:
 
 - Replace `<<JIRA_KEY>>` with `{jira-key}`
-- Replace `<<JIRA_URL>>` with `{jira-url}` (built as `{Atlassian base URL}/browse/{jira-key}`)
+- Replace `<<JIRA_URL>>` with `{jira-url}` (built as `{jira.base_url}/browse/{jira-key}`)
 
 Then submit four parallel `mcp__claude_ai_Google_Drive__create_file` calls — one per stream:
 
@@ -379,48 +432,48 @@ If any file create fails, note the failure and continue — partial sidecar is b
 
 Call `mcp__atlassian__editJiraIssue` with:
 
-- `cloudId`: Cloud ID from `jira-config.md > Connection`
+- `cloudId`: `jira.cloud_id`
 - `issueIdOrKey`: `{jira-key}` from Step 5a
 - `fields`: object with `description` set to the description body where every occurrence of `<<SIDECAR_URL>>` has been replaced with `{sidecar-folder-url}` (the placeholder appears twice — Research Summary trailer and Disruptive Reframing trailer; both must be substituted). The folder URL is the canonical sidecar reference, NOT a per-file URL.
 
 Description-only edit — all other fields stay as set in Step 5a.
 
-**Step 5e — Transition and update local frontmatter:**
+**Step 5e — Transition and update the idea row's fields:**
 
-Transition the issue to "1 - Opportunity Identification" using `mcp__atlassian__transitionJiraIssue` with the transition ID from `jira-config.md > Transition`. This moves the issue from the default "Backlog" status into the proper workflow state.
+Transition the issue to the status `jira.transition_to_status` names using `mcp__atlassian__transitionJiraIssue` with the transition ID `jira.transition_id`. This moves the issue from the tracker's default status into the proper workflow state.
 
-Update the idea file frontmatter with `Edit`:
+Update the idea row's fields with one `notion-update-page` `update_properties` call:
 
-- Add or update `jira-key: {jira-key}`
-- Add or update `jira-pushed-at: {today's date YYYY-MM-DD}` — use `Bash(date:*)` to get today's date
-- Add `jira-sidecar-url: {sidecar-folder-url}` (folder URL, not a single-file URL)
+- `Jira key`: {jira-key}
+- `date:Jira pushed:start`: today's date YYYY-MM-DD — use `Bash(date:*)` to get today's date
+- `Jira sidecar URL`: {sidecar-folder-url} (folder URL, not a single-file URL)
 
 **Re-push (default — sidecar unchanged):**
 
-The description body built in Step 3 uses `jira-sidecar-url` from idea frontmatter substituted directly into the Research Summary "Full development research:" link line — no `<<SIDECAR_URL>>` placeholder, no Drive call, no second editJiraIssue. Just one editJiraIssue.
+The description body built in Step 3 uses the idea row's Jira sidecar URL substituted directly into the Research Summary "Full development research:" link line — no `<<SIDECAR_URL>>` placeholder, no Drive call, no second editJiraIssue. Just one editJiraIssue.
 
 Call `mcp__atlassian__editJiraIssue` with:
 
-- `cloudId`: Cloud ID from `jira-config.md > Connection`
-- `issueIdOrKey`: the existing `jira-key` from frontmatter
+- `cloudId`: `jira.cloud_id`
+- `issueIdOrKey`: the existing Jira key from the idea row
 - `fields`: object containing fields being updated (`summary`, `description`, `labels`, plus any custom field changes — same structure as Step 5a's `additional_fields`)
 
 Before pushing, show a diff of what changed since the last push (compare current payload to what was previously pushed — if this is the first re-push and no prior payload is stored, note "First re-push — showing full payload").
 
-Update `jira-pushed-at` in frontmatter with `Edit`. Do NOT change `jira-sidecar-url` — the existing sidecar is unchanged.
+Update the idea row's Jira pushed field (`date:Jira pushed:start`, today's date) with `notion-update-page` `update_properties`. Do NOT change Jira sidecar URL — the existing sidecar is unchanged.
 
 **Re-push with sidecar correction (in-place):**
 
-Use this path when sidecar content needs fixing — corrected `incubator.research_db_label`, regenerated research artifact, typo, etc. The folder URL stays canonical; only the affected files are touched. JPD link, frontmatter `jira-sidecar-url`, and any sidecar files that don't need correction all stay untouched.
+Use this path when sidecar content needs fixing — corrected `incubator.research_db_label`, regenerated research artifact, typo, etc. The folder URL stays canonical; only the affected files are touched. JPD link, the idea row's Jira sidecar URL, and any sidecar files that don't need correction all stay untouched.
 
 Drive MCP exposes no edit-in-place or delete tool. The human deletes the affected files via the Drive UI; this skill recreates them in the same folder with corrected content.
 
 1. **Identify which files need correction.** Be specific — only those files get touched. Common cases: 1-3 files for a label or wording fix; 1 file for a regenerated artifact.
-2. **Stage corrected content** for those files per Step 3c — substitute `<<JIRA_KEY>>`, `<<JIRA_URL>>`, and `<<RESEARCH_DB_REF>>` directly using the known `jira-key` and `incubator.research_db_label` (no placeholders needed since values are known).
-3. **Ask the human to delete** the affected files from the existing sidecar folder via the Drive UI. Provide the folder URL from frontmatter `jira-sidecar-url` and the exact filenames so they don't have to navigate or guess. Wait for confirmation before proceeding.
-4. **Recreate the corrected files** via `mcp__claude_ai_Google_Drive__create_file` with `parentId` = the existing sidecar folder ID. Derive the folder ID from frontmatter `jira-sidecar-url` (last path segment) or via `mcp__claude_ai_Google_Drive__search_files` if the URL form is opaque.
+2. **Stage corrected content** for those files per Step 3c — substitute `<<JIRA_KEY>>`, `<<JIRA_URL>>`, and `<<RESEARCH_DB_REF>>` directly using the known Jira key and `incubator.research_db_label` (no placeholders needed since values are known).
+3. **Ask the human to delete** the affected files from the existing sidecar folder via the Drive UI. Provide the folder URL from the idea row's Jira sidecar URL field and the exact filenames so they don't have to navigate or guess. Wait for confirmation before proceeding.
+4. **Recreate the corrected files** via `mcp__claude_ai_Google_Drive__create_file` with `parentId` = the existing sidecar folder ID. Derive the folder ID from the Jira sidecar URL field (last path segment) or via `mcp__claude_ai_Google_Drive__search_files` if the URL form is opaque.
 5. **No JPD edit.** Description body still points at the same folder URL.
-6. **No frontmatter update.** `jira-sidecar-url` is unchanged. `jira-pushed-at` only updates if the JPD description body itself is also being re-pushed in the same invocation; for sidecar-only correction it stays.
+6. **No field update on the idea row.** Jira sidecar URL is unchanged. Jira pushed only updates if the JPD description body itself is also being re-pushed in the same invocation; for sidecar-only correction it stays.
 
 If sidecar correction is the entire scope of the invocation (no card content changes, no JPD field changes), skip Step 4 (Human Review Gate) for the JPD payload — there is no payload changing. The delete-and-confirm exchange in step 3 above is the human gate for this path.
 
@@ -430,17 +483,17 @@ If sidecar correction is the entire scope of the invocation (no card content cha
 Push successful: {idea-name}
 
 **JPD Issue:** {issue-key}
-**URL:** {Atlassian base URL from jira-config.md}/browse/{issue-key}
+**URL:** {jira.base_url}/browse/{issue-key}
 
 **Research Sidecar Folder:** {sidecar-folder-url}
 - {N} files created (of 4 expected): {comma-separated filenames; flag any missing as "skipped — {artifact} not present"}
-{On re-push (no sidecar correction): "Sidecar unchanged: {jira-sidecar-url from frontmatter}"}
-{On in-place sidecar correction: "Sidecar files corrected: {comma-separated filenames}; folder URL unchanged: {jira-sidecar-url from frontmatter}"}
+{On re-push (no sidecar correction): "Sidecar unchanged: {Jira sidecar URL from the idea row}"}
+{On in-place sidecar correction: "Sidecar files corrected: {comma-separated filenames}; folder URL unchanged: {Jira sidecar URL from the idea row}"}
 
-Local frontmatter updated:
-- jira-key: {issue-key} (only on first push)
-- jira-pushed-at: {date} (omit on sidecar-only correction)
-- jira-sidecar-url: {sidecar-folder-url, only on first push}
+Idea row fields updated:
+- Jira key: {issue-key} (only on first push)
+- Jira pushed: {date} (omit on sidecar-only correction)
+- Jira sidecar URL: {sidecar-folder-url, only on first push}
 ```
 
 ## Re-push Guidance
@@ -461,12 +514,13 @@ Local frontmatter updated:
 | Condition | Behavior |
 | ----------- | ---------- |
 | No argument and no eligible ideas | Report "No developing-or-later ideas found" and exit |
-| Idea file not found | Report with available filenames, exit |
+| Idea row not found | Report with the available slugs, exit |
 | Idea at seed stage | Report "Idea is at seed stage — develop it first with /develop" and exit |
-| Missing impact dimensions | Report which dimensions are null, exit |
+| Missing impact dimensions | Report which dimensions are empty with no "Insufficient data" row in the card's table, exit |
 | Missing TL;DR sections | Report which sections are incomplete, exit |
-| Atlassian API error on create | Report the error. Do not update frontmatter. Exit. |
-| Atlassian API error on edit | Report the error. Do not update frontmatter. Exit. |
+| Atlassian API error on create | Report the error. Do not update the idea row's fields. Exit. |
+| Atlassian API error on edit | Report the error. Do not update the idea row's fields. Exit. |
+| Configuration page cannot be fetched, or a needed `jira.*` key is missing | Report what is missing. Exit before any push. |
 | Human declines at review gate | Exit without pushing |
 
 ## Scope Boundaries
@@ -478,5 +532,5 @@ This skill does NOT:
 - Sync back from JPD (sync-back is conversational and ad-hoc)
 - Push seeds (must be developing or later)
 - Push without human review
-- Modify the idea card body, with two exceptions — the Step 3a self-heal fallback may insert a `### Cross-Domain Signals` section if it's missing from the card and the artifact exists, and the Step 3b self-heal fallback may insert a `### Disruptive Reframing` section if it's missing from the card and the divergent-angles artifact exists (both architecture migration handling). All other body content is left untouched. Frontmatter updates remain limited to `jira-key`, `jira-pushed-at`, and `jira-sidecar-url`.
+- Modify the idea card body, with two exceptions — the Step 3a self-heal fallback may insert a `### Cross-Domain Signals` section if it's missing from the card and the artifact exists, and the Step 3b self-heal fallback may insert a `### Disruptive Reframing` section if it's missing from the card and the divergent-angles artifact exists (both architecture migration handling). All other body content is left untouched. Field updates on the idea row remain limited to Jira key, Jira pushed, and Jira sidecar URL.
 - Manage initiative hierarchy in JPD (initiatives are local only)

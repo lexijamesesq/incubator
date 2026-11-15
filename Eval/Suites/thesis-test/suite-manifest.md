@@ -12,9 +12,9 @@
 
 `/thesis-test` produces a chain of artifacts. The regression bar is checked across three of them:
 
-- **Thesis brief** (`Research/{idea}/thesis-brief.md` or caller-supplied) — the committed position(s) + per-(thesis × lens) break-condition table. Signal 1 checks this.
-- **Lens artifacts** (`Research/{idea}/thesis-test-{lens}-{date}.md`, one per lens) — per-break-condition verdicts with qualifiers and cited evidence, plus per-lens/per-thesis roll-ups. Signals 2 and 5 check these.
-- **Synthesis** (`Research/{idea}/thesis-test-{date}.md`) — orchestrator-authored stack-rank, recomposition/conditions, premortem, through-line, register. Signals 3, 4, 5, 6 check this.
+- **Thesis brief** (the idea's `thesis-brief` Research row, or a caller-supplied file) — the committed position(s) + per-(thesis × lens) break-condition table. Signal 1 checks this.
+- **Lens artifacts** (the idea's `thesis-test-lens` Research rows, named `thesis-test-{lens}-{date} ({slug})`, one per lens; local files of the same name in subject-mode) — per-break-condition verdicts with qualifiers and cited evidence, plus per-lens/per-thesis roll-ups. Signals 2 and 5 check these.
+- **Synthesis** (the idea's `thesis-test-synthesis` Research row; a local file `thesis-test-{date}.md` in subject-mode) — orchestrator-authored stack-rank, recomposition/conditions, premortem, through-line, register. Signals 3, 4, 5, 6 check this.
 
 The synthesis is the load-bearing deliverable; four of six signals land on it.
 
@@ -194,12 +194,12 @@ Overall: PASS (all six present) | FAIL (signals: <list>) — <one line naming th
 
 Each run exercises one fixture end-to-end, then scores the output with an independent grader.
 
-1. **Stage the fixture.** Card-mode: copy the card to `Ideas/accommodations-on-classroom-checks.md` and the brief to `Research/accommodations-on-classroom-checks/thesis-brief.md`. Subject-mode: the brief stays where it is and is passed by path. The run also needs a configured instance: `.claude/instance.md` with `incubator.learning_outcome_break_condition` set (use the phrasing in the fixture brief's § 3), and `persona.md` for the card-mode register.
+1. **Stage the fixture.** The skills read and write Notion, so a fixture is loaded as rows, not staged as files. Keep a set of scratch databases with the same fields and options as the real Ideas, Research and Outputs databases, and a scratch Configuration page, and pass them to the skill as pointer overrides (`notion_ideas=`, `notion_research=`, `notion_outputs=`, `notion_config=`): a run with overrides reads and writes only what they name. A fixture file becomes a row this way: its front matter becomes the row's fields (the file name without `.md` is the Slug, the `##` title is the Name), and its body from the `##` title down becomes the row's body. `reference/skill-conventions-notion-access.md` gives the field names. A select or multi-select value a fixture uses (its `themes`, a Research type) has to be an option of the scratch field before the row is loaded: add it to the scratch database first. Card-mode: load the card as an Ideas (scratch) row with Slug `accommodations-on-classroom-checks`, and the brief as a Research (scratch) row, Research type `thesis-brief`, its `Idea` relation set to the card's row. Subject-mode: the brief stays where it is and is passed by path; subject-mode reads and writes local files. The run also needs a configured instance: the scratch Configuration page with `incubator.learning_outcome_break_condition` set (use the phrasing in the fixture brief's § 3).
 2. **Run thesis-test.** Invoke `/thesis-test accommodations-on-classroom-checks` (card-mode) or `/thesis-test --subject "How Larkmoor enters regional colleges" --brief Eval/Suites/thesis-test/Fixtures/Briefs/college-entry-subject-brief.md` (subject-mode). The skill produces the lens artifacts and the synthesis. The fixture market is invented, so the lenses' web research returns nothing for it; a lens that cannot find evidence should return UNKNOWN-INSUFFICIENT, and a run that does so is behaving correctly (see § What a live run on these fixtures can and cannot show).
 3. **Grade independently.** Spawn a fresh-context grader subagent per § Grader Rubric. It reads ONLY the brief, the lens artifacts, the synthesis, and this rubric — never this run's generating conversation, never an Expected baseline. It returns the fixed six-row table plus a one-line overall verdict. Grader confirmations carry reduced weight than criticisms; the revision loop caps at 3 iterations before human escalation.
 4. **High-stakes only:** if the run's output feeds a pre-leadership-review or pre-JPD decision, additionally run the verified-blind escalation procedure (§ Grader protocol) out-of-harness.
 5. **File a run report** in `Runs/{YYYY-MM-DD}-{model}-{note}.md` capturing: date, model version, skill commit ref, fixture, lens model overrides used, the grader table, and (high-stakes) the second grader table + reconciliation.
-6. **Teardown.** Remove the staged copies under `Ideas/` and `Research/accommodations-on-classroom-checks/`, and the synthesis the subject-mode run wrote.
+6. **Teardown.** Move the scratch rows the run loaded and created to the trash by hand, and remove the synthesis file the subject-mode run wrote.
 
 ---
 

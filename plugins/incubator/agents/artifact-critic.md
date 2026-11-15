@@ -1,7 +1,7 @@
 ---
 name: artifact-critic
 description: Checks strategy artifacts (TL;DR cards, output documents) for structural conformance, voice conformance, and rating calibration. Invoked by /develop and /draft after artifact generation.
-tools: Read, Glob, Grep
+tools: Read, Grep, Skill, mcp__notion__notion-fetch
 model: opus
 ---
 

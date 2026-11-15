@@ -16,13 +16,13 @@ Reference material for Incubator stage work, split into section-scoped files und
 | Shared Research | `reference/shared-research.md` | Snowflake `research_findings` table: topics, capture heuristic, governance, TTL reference, citation + /draft verification rules. |
 | Initiative Schema | `reference/initiative-schema.md` | Initiative frontmatter, child-to-parent reference, initiative stage model, output-format heuristic, body template. |
 | JPD Integration | `reference/jpd-integration.md` | Push purpose, JPD idea template alignment, push criteria, sync-tracking frontmatter, sync-back policy. |
-| Skill Conventions: Vault Access | `reference/skill-conventions-vault-access.md` | Rule that vault-touching skills/agents declare the native tools they use; per-operation tool table and the CLI move rule. |
+| Skill Conventions: Notion Access | `reference/skill-conventions-notion-access.md` | How a skill reaches ideas, research rows, output documents, configuration and the persona in Notion: pointers and overrides, addressing an idea, artifact rows, writing to a card, body read-back, tool lists. |
 
 ## Seed intake contract (router reads this)
 
 The upstream router conforms to the Incubator's seed contract. The two sections that define it:
 
 - **Frontmatter Schema** → `reference/frontmatter-schema.md`
-- **Seed Template** → `reference/templates.md` (`### Seed Template (Stage 1)`)
+- **Seed Template** → `reference/templates.md` (`## Seed Template (Stage 1)`)
 
 A reader arriving from "incubator-reference.md (sections: Frontmatter Schema, Seed Template)" routes to those two files in one hop.
